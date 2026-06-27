@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: theme("colors.arena-border");
+  }
+}
+
+@layer utilities {
+  /* Subtle scanline-esque grid used behind the lobby header for the
+     competitive-HUD feel, without resorting to a background image. */
+  .bg-arena-grid {
+    background-image:
+      linear-gradient(rgba(34, 211, 238, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 211, 238, 0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
