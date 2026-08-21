@@ -1,48 +1,99 @@
-/**
- * Hand-trimmed ABI fragment matching SkillFiEscrow.sol exactly.
- *
- * Only includes what this frontend actually calls:
- *  - createMatch (the write the CreateChallengeModal performs)
- *  - matches (the public mapping getter, used for on-chain status checks)
- *  - MatchCreated (decoded server-side to verify a claimed deposit)
- *
- * If you add UI for joinMatch/settleMatch/cancelMatch later, extend this
- * array rather than maintaining a second ABI file.
- */
 export const skillFiEscrowAbi = [
   {
     type: "function",
     name: "createMatch",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "_matchId", type: "bytes32" },
-      { name: "_entryFee", type: "uint256" },
+      { name: "matchId", type: "uint256" },
+      { name: "entryFee", type: "uint256" },
+      { name: "player1", type: "address" },
     ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "joinMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "startMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "resolveMatch",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "matchId", type: "uint256" },
+      { name: "winner", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "disputeMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
     outputs: [],
   },
   {
     type: "function",
     name: "matches",
     stateMutability: "view",
-    inputs: [{ name: "", type: "bytes32" }],
+    inputs: [{ name: "matchId", type: "uint256" }],
     outputs: [
-      { name: "playerA", type: "address" },
-      { name: "status", type: "uint8" },
-      { name: "createdAt", type: "uint40" },
-      { name: "playerB", type: "address" },
-      { name: "winner", type: "address" },
+      { name: "player1", type: "address" },
+      { name: "player2", type: "address" },
       { name: "entryFee", type: "uint256" },
-      { name: "matchId", type: "bytes32" },
+      { name: "createdAt", type: "uint256" },
+      { name: "player1Deposited", type: "bool" },
+      { name: "player2Deposited", type: "bool" },
+      { name: "status", type: "uint8" },
     ],
   },
   {
     type: "event",
     name: "MatchCreated",
     inputs: [
-      { name: "matchId", type: "bytes32", indexed: true },
-      { name: "playerA", type: "address", indexed: true },
+      { name: "matchId", type: "uint256", indexed: true },
+      { name: "player1", type: "address", indexed: true },
       { name: "entryFee", type: "uint256", indexed: false },
-      { name: "timestamp", type: "uint256", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "PlayerJoined",
+    inputs: [
+      { name: "matchId", type: "uint256", indexed: true },
+      { name: "player", type: "address", indexed: true },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchReady",
+    inputs: [{ name: "matchId", type: "uint256", indexed: true }],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchStarted",
+    inputs: [{ name: "matchId", type: "uint256", indexed: true }],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchResolved",
+    inputs: [
+      { name: "matchId", type: "uint256", indexed: true },
+      { name: "winner", type: "address", indexed: true },
+      { name: "prize", type: "uint256", indexed: false },
     ],
     anonymous: false,
   },
