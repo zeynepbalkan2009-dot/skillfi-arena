@@ -17,6 +17,12 @@ alter table public.match_submissions enable row level security;
 revoke all on public.match_submissions from anon, authenticated;
 grant all on public.match_submissions to service_role;
 
--- Realtime is used for low-frequency match lifecycle updates. High-frequency WPM
--- telemetry stays on Broadcast and is never persisted to this table.
-alter publication supabase_realtime add table public.matches;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'matches'
+  ) then
+    alter publication supabase_realtime add table public.matches;
+  end if;
+end $$;
