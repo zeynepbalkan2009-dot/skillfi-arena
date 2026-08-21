@@ -1,28 +1,30 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. " +
-      "The service role key must stay server-side only — do not prefix it with NEXT_PUBLIC_."
-  );
-}
+import { getServerEnv } from "@/lib/env/server";
 
 /**
  * SERVER-ONLY. service_role bypasses every RLS policy in the schema.
  *
- * The `import "server-only"` line above is a build-time guard: if any
- * "use client" component or browser bundle ever tries to import this
- * module, Next.js fails the build instead of silently shipping the
- * service role key to the browser.
- *
- * Only ever import this from Route Handlers, Server Actions, or other
- * server-only code — never from a Server Component that renders to the
- * client, and never from anything under "use client".
+ * The client is created lazily so `next build` can compile route modules
+ * without requiring server-only credentials in the build environment.
+ * Protected runtime requests still fail clearly when secrets are missing.
  */
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
+type SupabaseAdminClient = any;
+
+let adminClient: SupabaseAdminClient | null = null;
+
+export function getSupabaseAdmin(): SupabaseAdminClient {
+  if (!adminClient) {
+    const env = getServerEnv();
+    adminClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return adminClient;
+}
+
+export const supabaseAdmin = new Proxy({} as SupabaseAdminClient, {
+  get(_target, property) {
+    return Reflect.get(getSupabaseAdmin(), property);
+  },
 });

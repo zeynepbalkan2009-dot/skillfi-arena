@@ -1,4 +1,5 @@
-import { baseSepolia } from "wagmi/chains";
+import type { Chain } from "viem";
+import { getPublicEnv } from "@/lib/env/public";
 
 /**
  * Targeting Base Sepolia (testnet) by default since this is still an MVP —
@@ -6,21 +7,23 @@ import { baseSepolia } from "wagmi/chains";
  * mainnet deployment. Keeping this in one place means that's a one-line
  * change, not a find-and-replace across the codebase.
  */
-export const ACTIVE_CHAIN = baseSepolia;
+export const ACTIVE_CHAIN = {
+  id: 84532,
+  name: "Base Sepolia",
+  nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://sepolia.base.org"] },
+    public: { http: ["https://sepolia.base.org"] },
+  },
+  blockExplorers: {
+    default: { name: "BaseScan", url: "https://sepolia.basescan.org" },
+  },
+  testnet: true,
+} as const satisfies Chain;
 
-function requireAddress(value: string | undefined, name: string): `0x${string}` {
-  if (!value || !/^0x[a-fA-F0-9]{40}$/.test(value)) {
-    throw new Error(`${name} is missing or not a valid address. Check your .env.local.`);
-  }
-  return value as `0x${string}`;
-}
+const env = getPublicEnv();
 
-export const ESCROW_CONTRACT_ADDRESS = requireAddress(
-  process.env.NEXT_PUBLIC_ESCROW_ADDRESS,
-  "NEXT_PUBLIC_ESCROW_ADDRESS"
-);
+export const ESCROW_CONTRACT_ADDRESS = env.NEXT_PUBLIC_ESCROW_ADDRESS;
 
-export const GNESS_TOKEN_ADDRESS = requireAddress(
-  process.env.NEXT_PUBLIC_GNESS_TOKEN_ADDRESS,
-  "NEXT_PUBLIC_GNESS_TOKEN_ADDRESS"
-);
+export const USDC_TOKEN_ADDRESS = env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS;
+export const GNESS_TOKEN_ADDRESS = USDC_TOKEN_ADDRESS;

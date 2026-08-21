@@ -22,8 +22,8 @@ const config: Config = {
         "arena-danger": "#f87171",
       },
       fontFamily: {
-        body: ["var(--font-body)"],
-        display: ["var(--font-display)"],
+        body: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Rajdhani", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
         "arena-glow": "0 0 0 1px rgba(34,211,238,0.15), 0 0 24px -8px rgba(34,211,238,0.35)",

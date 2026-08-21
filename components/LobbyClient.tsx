@@ -1,63 +1,37 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { useSkillFiUser } from "@/components/AuthSync";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { CreateChallengeModal } from "@/components/CreateChallengeModal";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { WalletConnect } from "@/components/WalletConnect";
-import type { Game, Match, MatchWithRelations, PlayerProfile } from "@/lib/types";
+import type { Challenge, ChallengeWithRelations, Game } from "@/lib/types";
 
 export function LobbyClient({
-  initialMatches,
+  initialChallenges,
   games,
 }: {
-  initialMatches: MatchWithRelations[];
+  initialChallenges: ChallengeWithRelations[];
   games: Game[];
 }) {
-  const { address } = useAccount();
-  const [matches, setMatches] = useState<MatchWithRelations[]>(initialMatches);
-  const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
+  const { authenticated } = usePrivy();
+  const { profile: currentUser, loading: userLoading, needsProfile } = useSkillFiUser();
+  const [challenges, setChallenges] = useState<ChallengeWithRelations[]>(initialChallenges);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Resolve the connected wallet to a SkillFi account. `ilike` with no
-  // wildcards does a case-insensitive exact match — addresses may be stored
-  // checksummed or lowercased depending on signup path.
-  useEffect(() => {
-    if (!address) {
-      setCurrentUser(null);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("users")
-      .select("id, username, region, wallet_address")
-      .ilike("wallet_address", address)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setCurrentUser(data ?? null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address]);
-
-  // Realtime: keep the lobby in sync as challenges are created/joined/
-  // cancelled by anyone, without polling. Subscribes to every change on
-  // `matches` (not pre-filtered to status=searching) because a status
-  // transition *away* from searching is exactly the kind of update we need
-  // to react to by removing the card — a server-side equality filter on
-  // the new status would still fire for that UPDATE, but reasoning about
-  // old-vs-new state is simplest done here in the handler.
   useEffect(() => {
     const channel = supabase
-      .channel("public:matches")
+      .channel("public:challenges")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "matches" },
-        (payload: RealtimePostgresChangesPayload<Match>) => {
-          handleRealtimeChange(payload);
+        { event: "*", schema: "public", table: "challenges" },
+        (payload: RealtimePostgresChangesPayload<Challenge>) => {
+          void handleRealtimeChange(payload);
         }
       )
       .subscribe();
@@ -68,42 +42,58 @@ export function LobbyClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleRealtimeChange(payload: RealtimePostgresChangesPayload<Match>) {
-    if (payload.eventType === "DELETE") {
-      const oldRow = payload.old as Partial<Match>;
-      setMatches((current) => current.filter((m) => m.id !== oldRow.id));
-      return;
-    }
-
-    const row = payload.new as Match;
-
-    if (row.status !== "searching") {
-      // No longer joinable — drop it from the lobby if present.
-      setMatches((current) => current.filter((m) => m.id !== row.id));
-      return;
-    }
-
-    // It's a searching match we should be showing. The realtime payload
-    // only carries the base `matches` columns, not the joined game/player —
-    // the game is already in our small, fully-loaded `games` list, but the
-    // creator's profile needs a small follow-up fetch.
-    const game = games.find((g) => g.id === row.game_id) ?? null;
-    const { data: playerA } = await supabase
-      .from("users")
-      .select("id, username, region, wallet_address")
-      .eq("id", row.player_a_id)
+  async function fetchChallenge(id: string): Promise<ChallengeWithRelations | null> {
+    const { data, error } = await supabase
+      .from("challenges")
+      .select(
+        "id,game_id,creator_id,invited_opponent_id,accepted_by_id,match_id,entry_fee,currency,opponent_mode,rules,status,expires_at,accepted_at,created_at,updated_at, game:games(*), creator:users!challenges_creator_id_fkey(id,username,display_name,avatar_url,region,wallet_address,primary_wallet_address), invited_opponent:users!challenges_invited_opponent_id_fkey(id,username,display_name,avatar_url,region,wallet_address,primary_wallet_address), accepted_by:users!challenges_accepted_by_id_fkey(id,username,display_name,avatar_url,region,wallet_address,primary_wallet_address)"
+      )
+      .eq("id", id)
       .maybeSingle();
 
-    setMatches((current) => {
-      const withRelations: MatchWithRelations = { ...row, game, player_a: playerA ?? null };
-      const withoutThisRow = current.filter((m) => m.id !== row.id);
+    if (error) {
+      console.error("Failed to load challenge:", error.message);
+      return null;
+    }
+    return (data as ChallengeWithRelations | null) ?? null;
+  }
+
+  async function handleRealtimeChange(payload: RealtimePostgresChangesPayload<Challenge>) {
+    if (payload.eventType === "DELETE") {
+      const oldRow = payload.old as Partial<Challenge>;
+      setChallenges((current) => current.filter((challenge) => challenge.id !== oldRow.id));
+      return;
+    }
+
+    const row = payload.new as Challenge;
+    if (!["open", "accepted"].includes(row.status)) {
+      setChallenges((current) => current.filter((challenge) => challenge.id !== row.id));
+      return;
+    }
+
+    const withRelations = await fetchChallenge(row.id);
+    if (!withRelations) return;
+
+    setChallenges((current) => {
+      const withoutThisRow = current.filter((challenge) => challenge.id !== row.id);
       return [withRelations, ...withoutThisRow];
     });
   }
 
-  const sortedMatches = useMemo(
-    () => [...matches].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [matches]
+  function handleCreated(challenge: Challenge) {
+    const withRelations: ChallengeWithRelations = {
+      ...challenge,
+      game: games.find((game) => game.id === challenge.game_id) ?? null,
+      creator: currentUser,
+      invited_opponent: null,
+      accepted_by: null,
+    };
+    setChallenges((current) => [withRelations, ...current.filter((item) => item.id !== challenge.id)]);
+  }
+
+  const sortedChallenges = useMemo(
+    () => [...challenges].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [challenges]
   );
 
   return (
@@ -113,37 +103,57 @@ export function LobbyClient({
           <div>
             <h1 className="font-display text-2xl font-bold tracking-wide text-arena-text">SKILLFI ARENA</h1>
             <p className="text-sm text-arena-muted">
-              {currentUser ? `Welcome back, ${currentUser.username}` : "Skill-based PvP, settled on-chain"}
+              {currentUser ? `Welcome back, ${currentUser.display_name ?? currentUser.username}` : "Skill-based PvP"}
             </p>
           </div>
-          <WalletConnect />
+          <div className="flex items-center gap-3">
+            {currentUser && (
+              <Link href="/profile" className="text-sm font-medium text-arena-muted hover:text-arena-text">
+                Profile
+              </Link>
+            )}
+            <WalletConnect />
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-arena-text">Open Challenges</h2>
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            disabled={!address}
-            title={address ? undefined : "Connect your wallet first"}
-            className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg hover:bg-arena-accent/90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            + Create Challenge
-          </button>
-        </div>
-
-        {sortedMatches.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-arena-border py-16 text-center text-arena-muted">
-            No open challenges right now. Be the first to create one.
-          </div>
+        {needsProfile ? (
+          <OnboardingCard />
         ) : (
-          <div className="space-y-3">
-            {sortedMatches.map((match) => (
-              <ChallengeCard key={match.id} match={match} isOwnChallenge={match.player_a_id === currentUser?.id} />
-            ))}
-          </div>
+          <>
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display text-lg font-semibold text-arena-text">Challenges</h2>
+                <p className="text-sm text-arena-muted">Create an off-chain challenge and share the invitation URL.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                disabled={!authenticated || userLoading}
+                title={authenticated ? undefined : "Connect first"}
+                className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg hover:bg-arena-accent/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Create Challenge
+              </button>
+            </div>
+
+            {sortedChallenges.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-arena-border py-16 text-center text-arena-muted">
+                No open or accepted challenges yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sortedChallenges.map((challenge) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    isOwnChallenge={challenge.creator_id === currentUser?.id}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
 
@@ -152,6 +162,7 @@ export function LobbyClient({
         onClose={() => setModalOpen(false)}
         games={games}
         currentUser={currentUser}
+        onCreated={handleCreated}
       />
     </div>
   );

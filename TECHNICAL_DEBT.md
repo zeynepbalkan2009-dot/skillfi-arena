@@ -1,5 +1,9 @@
 # Technical Debt
 
+## Stabilization Note
+
+This document began as a pre-cleanup audit. Repository consolidation, Privy build isolation, Web3 consolidation, and contract invariant tests have since been completed. Remaining debt below should be read with that baseline in mind.
+
 ## Highest-Risk Debt
 
 ### Active vs Stranded Implementation Split
@@ -24,7 +28,7 @@ Affected examples:
 
 ### Contract/ABI Drift
 
-`lib/abi/skillFiEscrow.ts` does not match `contracts/SkillFiEscrowV2.sol`. The app and contract encode different authority, match ID, deposit, event, and lifecycle models.
+`lib/abi/skillFiEscrow.ts` does not match `web3/contracts/SkillFiEscrowV2.sol`. The app and contract encode different authority, match ID, deposit, event, and lifecycle models.
 
 ### Route Path Debt
 
@@ -38,7 +42,7 @@ The active route is `app/matches/create/route.ts`, but the client calls `/api/ma
 | Environment handling | Some active files use non-null assertions for env vars; root stranded files improve validation but are inactive. |
 | State management | User identity is resolved through wallet lookup in active lobby, while intended context-based identity is stranded. |
 | UI responsiveness | Challenge cards use fixed horizontal layout and may need mobile verification. |
-| Numeric assumptions | Stake display assumes 18 decimals; token is named GNESS in UI, MockUSDC in contracts, and no runtime token metadata is stored with matches. |
+| Numeric assumptions | Stake display now defaults to 6 decimals, but token naming remains GNESS in UI and MockUSDC in tests. No runtime token metadata is stored with matches. |
 | Error UX | Most failures surface raw messages or console logs; no toast/notification system. |
 | Realtime correctness | Realtime handler fetches related user data per event and does not guard against out-of-order responses. |
 | Idempotency | Stranded match create route has idempotency; active route does not. |
@@ -48,20 +52,16 @@ The active route is `app/matches/create/route.ts`, but the client calls `/api/ma
 
 - `.next` exists in the repository root.
 - `web3/artifacts`, `web3/cache`, and `web3/types` are present despite generated-output ignore rules.
-- `web3` is a sample Counter project rather than the SkillFi contract workspace.
-- `contracts/` has Hardhat config and deploy script but no local package/test setup.
-- Root-level source files are outside conventional folders and create ambiguity.
+- Web3 dependency audit still reports development-tooling vulnerabilities through Hardhat toolbox/Mocha transitive dependencies.
 - Encoding mojibake appears in README/comments/output text, suggesting file encoding or terminal conversion issues.
 
 ## Testing and CI Debt
 
-- No root test script.
-- `next lint` is not configured and prompts interactively.
-- `web3` test script intentionally fails.
+- No root unit-test script.
+- Route-level/frontend unit tests are still missing.
 - No tests for route handlers, Supabase integration, Privy auth sync, contract calls, or UI flows.
-- No smart contract tests for `SkillFiEscrowV2`.
 - No CI workflow present.
-- Build verification currently hangs in local review rather than producing a clear pass/fail.
+- Full authenticated Privy browser smoke testing requires real external credentials.
 
 ## Documentation Debt
 
@@ -70,4 +70,3 @@ The active route is `app/matches/create/route.ts`, but the client calls `/api/ma
 - Base schema file is referenced but absent.
 - Contract deployment/address documentation is incomplete.
 - The relationship between `contracts/` and `web3/` is unclear.
-
