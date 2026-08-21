@@ -17,12 +17,11 @@ alter table public.match_submissions enable row level security;
 revoke all on public.match_submissions from anon, authenticated;
 grant all on public.match_submissions to service_role;
 
+alter table public.matches add column if not exists started_at timestamptz;
+
 do $$
 begin
-  if not exists (
-    select 1 from pg_publication_tables
-    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'matches'
-  ) then
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'matches') then
     alter publication supabase_realtime add table public.matches;
   end if;
 end $$;
