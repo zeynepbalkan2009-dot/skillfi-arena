@@ -1,19 +1,11 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { usePrivy } from "@privy-io/react-auth";
 
-/**
- * Thin wrapper rather than using <ConnectButton /> directly inline
- * everywhere: if the design changes (e.g. swapping to a custom button via
- * ConnectButton.Custom) there's exactly one place to do it.
- */
 export function WalletConnect() {
-  return (
-    <ConnectButton
-      label="Connect Wallet"
-      chainStatus="icon"
-      showBalance={{ smallScreen: false, largeScreen: true }}
-      accountStatus={{ smallScreen: "avatar", largeScreen: "full" }}
-    />
-  );
+  const { ready, authenticated, login, logout } = usePrivy();
+
+  if (!ready) return <span className="text-sm text-arena-muted">Loading…</span>;
+  if (!authenticated) return <button type="button" onClick={login} className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg">Connect Wallet</button>;
+  return <button type="button" onClick={logout} className="rounded-md border border-arena-border px-4 py-2 text-sm text-arena-text">Disconnect</button>;
 }
