@@ -23,9 +23,7 @@ export async function POST(request: NextRequest) {
   if (getAddress(receipt.from) !== getAddress(user.wallet_address)) return NextResponse.json({ error: "Join transaction sender does not match authenticated wallet" }, { status: 403 });
 
   const onchain = await escrowPublicClient.readContract({ address: ESCROW_CONTRACT_ADDRESS, abi: skillFiEscrowAbi, functionName: "matches", args: [matchId] });
-  const player1 = getAddress(onchain[0]);
-  const player2 = getAddress(onchain[1]);
-  const caller = getAddress(user.wallet_address);
+  const player1 = getAddress(onchain[0]); const player2 = getAddress(onchain[1]); const caller = getAddress(user.wallet_address);
   if (caller !== player1 && caller !== player2) return NextResponse.json({ error: "Wallet is not a participant in this match" }, { status: 403 });
 
   const { data: dbMatch, error: dbError } = await supabaseAdmin.from("matches").select("id, player_a_id, player_b_id, status").eq("smart_contract_match_id", matchId.toString()).maybeSingle();
@@ -33,6 +31,7 @@ export async function POST(request: NextRequest) {
   if (!dbMatch) return NextResponse.json({ error: "Match not indexed" }, { status: 404 });
 
   const updates: Record<string, string> = {};
+  if (caller === player1 && Number(onchain[6]) === 1) updates.status = "searching";
   if (caller === player2 && !dbMatch.player_b_id) updates.player_b_id = user.id;
 
   if (Number(onchain[6]) === 2) {
