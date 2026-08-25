@@ -19,30 +19,33 @@ const BASE_SEPOLIA = {
   testnet: true,
 } as const satisfies Chain;
 
-function requireEnv(value: string | undefined, name: string): string {
-  if (!value && process.env.npm_lifecycle_event === "build" && name === "OPERATOR_PRIVATE_KEY") {
-    return "0x0000000000000000000000000000000000000000000000000000000000000001";
-  }
-  if (!value) throw new Error(`Missing ${name}.`);
-  return value;
-}
-
 const rpcUrl = process.env.RPC_URL || undefined;
-const operatorKey = requireEnv(process.env.OPERATOR_PRIVATE_KEY, "OPERATOR_PRIVATE_KEY") as `0x${string}`;
-
-const operator = privateKeyToAccount(operatorKey);
 
 export const escrowPublicClient = createPublicClient({
   chain: BASE_SEPOLIA,
   transport: http(rpcUrl),
 });
 
-export const escrowWalletClient = createWalletClient({
-  account: operator,
-  chain: BASE_SEPOLIA,
-  transport: http(rpcUrl),
-});
+export function getEscrowWalletClient() {
+  const operatorKey = process.env.OPERATOR_PRIVATE_KEY;
+  if (!operatorKey) {
+    throw new Error("Missing OPERATOR_PRIVATE_KEY. Server-side escrow operations are disabled.");
+  }
 
-export const operatorAddress: Address = operator.address;
+  const operator = privateKeyToAccount(operatorKey as `0x${string}`);
+  return createWalletClient({
+    account: operator,
+    chain: BASE_SEPOLIA,
+    transport: http(rpcUrl),
+  });
+}
+
+export function getOperatorAddress(): Address {
+  const operatorKey = process.env.OPERATOR_PRIVATE_KEY;
+  if (!operatorKey) {
+    throw new Error("Missing OPERATOR_PRIVATE_KEY. Server-side escrow operations are disabled.");
+  }
+  return privateKeyToAccount(operatorKey as `0x${string}`).address;
+}
 
 export { ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi };
