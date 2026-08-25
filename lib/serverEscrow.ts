@@ -20,6 +20,9 @@ const BASE_SEPOLIA = {
 } as const satisfies Chain;
 
 function requireEnv(value: string | undefined, name: string): string {
+  if (!value && process.env.npm_lifecycle_event === "build" && name === "OPERATOR_PRIVATE_KEY") {
+    return "0x0000000000000000000000000000000000000000000000000000000000000001";
+  }
   if (!value) throw new Error(`Missing ${name}.`);
   return value;
 }
