@@ -4,11 +4,11 @@ Tasks are ordered by current production priority. Complexity: S, M, L, XL.
 
 ## 1. Correct Supabase Development Service Role
 
-- Description: Replace the publishable key currently configured as `SUPABASE_SERVICE_ROLE_KEY` with a true development service-role secret or legacy `service_role` JWT. Do not commit the value.
+- Description: Replace the publishable key currently configured as `SUPABASE_SERVICE_ROLE_KEY` with a true development service-role secret or legacy `service_role` JWT. Do not commit the value. Also remove the duplicate `NEXT_PUBLIC_SUPABASE_URL` assignment from local `.env.local` while preserving the correct hosted project URL.
 - Affected files: local `.env.local` only, `SUPABASE_API_VALIDATION_REPORT.md`, `SUPABASE_DEV_SETUP.md`
 - Estimated complexity: M
 - Dependencies: Development Supabase dashboard access
-- Acceptance criteria: `npm run test:supabase` can seed the deterministic game fixture through the server-side Supabase client without RLS failure, and no credentials are committed.
+- Acceptance criteria: `SUPABASE_SERVICE_ROLE_KEY` is not a publishable key, `npm run test:supabase` can seed the deterministic game fixture through the server-side Supabase client without RLS failure, and no credentials are committed.
 
 ## 2. Run Supabase API Integration Tests
 

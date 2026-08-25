@@ -2,7 +2,10 @@ import EmbeddedPostgres from "embedded-postgres";
 import pg from "pg";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { createServer } from "node:net";
+import { setTimeout as delay } from "node:timers/promises";
 
 const { Client } = pg;
 const root = process.cwd();
@@ -10,13 +13,13 @@ const outDir = join(root, "tmp", "database-validation");
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
 const dbDir = join(outDir, `pgdata-${runId}`);
 const outputPath = join(outDir, "database-validation-output.json");
-const port = Number(process.env.SKILLFI_DB_TEST_PORT ?? 55432);
+let port = Number(process.env.SKILLFI_DB_TEST_PORT ?? 55432);
 const user = "postgres";
 const password = "skillfi_test_password";
 const database = "postgres";
 const migrationProfile = process.env.SKILLFI_DB_PROFILE === "hosted" ? "hosted" : "local";
 
-const baseConfig = { host: "127.0.0.1", port, user, password, database };
+let baseConfig = { host: "127.0.0.1", port, user, password, database };
 const migration01Name =
   migrationProfile === "hosted" ? "01_initial_schema_hosted_supabase.sql" : "01_initial_schema.sql";
 const migration02Name =
@@ -48,6 +51,88 @@ async function withClient(fn, config = baseConfig) {
   } finally {
     await client.end();
   }
+}
+
+async function canListen(candidatePort) {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.once("error", () => resolve(false));
+    server.once("listening", () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(candidatePort, "127.0.0.1");
+  });
+}
+
+async function resolvePort(preferredPort) {
+  if (process.env.SKILLFI_DB_TEST_PORT || (await canListen(preferredPort))) {
+    return preferredPort;
+  }
+
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.once("listening", () => {
+      const address = server.address();
+      server.close(() => {
+        resolve(typeof address === "object" && address ? address.port : preferredPort);
+      });
+    });
+    server.listen(0, "127.0.0.1");
+  });
+}
+
+async function waitForPortToClose(timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const client = new Client(baseConfig);
+    try {
+      await client.connect();
+      await client.end().catch(() => {});
+      await delay(250);
+    } catch {
+      return;
+    }
+  }
+}
+
+async function cleanupPortOwner() {
+  if (process.platform !== "win32") return;
+
+  spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      `$ErrorActionPreference = 'SilentlyContinue'; ` +
+        `$connections = Get-NetTCPConnection -LocalPort ${port}; ` +
+        `$pids = $connections | Select-Object -ExpandProperty OwningProcess -Unique; ` +
+        `foreach ($pidValue in $pids) { Stop-Process -Id $pidValue -Force }`,
+    ],
+    { stdio: "ignore" }
+  );
+  await delay(500);
+}
+
+async function stopEmbeddedPostgres(pgServer, serverStarted) {
+  if (!serverStarted) {
+    await pgServer.stop().catch(() => {});
+    return;
+  }
+
+  if (process.platform === "win32") {
+    const pid = pgServer.process?.pid;
+    if (pid) {
+      spawnSync("taskkill", ["/pid", String(pid), "/f", "/t"], { stdio: "ignore" });
+      await delay(500);
+    }
+    await cleanupPortOwner();
+    await waitForPortToClose();
+    rmSync(dbDir, { recursive: true, force: true });
+    return;
+  }
+
+  await pgServer.stop().catch(() => {});
 }
 
 async function createDatabase(name) {
@@ -470,6 +555,8 @@ async function concurrencyValidation() {
 
 async function main() {
   mkdirSync(outDir, { recursive: true });
+  port = await resolvePort(port);
+  baseConfig = { host: "127.0.0.1", port, user, password, database };
 
   const pgServer = new EmbeddedPostgres({
     databaseDir: dbDir,
@@ -481,6 +568,7 @@ async function main() {
     onLog: () => {},
     onError: () => {},
   });
+  let serverStarted = false;
 
   const report = {
     environment: {
@@ -499,23 +587,32 @@ async function main() {
   try {
     await pgServer.initialise();
     await pgServer.start();
+    serverStarted = true;
     report.clean = await cleanDatabaseValidation();
     report.existing = await existingSchemaValidation();
     report.concurrency = await concurrencyValidation();
     report.ok = true;
   } catch (error) {
     report.ok = false;
-    report.error = { message: error.message, stack: error.stack };
-    throw error;
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    report.error = {
+      message: normalizedError.message,
+      stack: normalizedError.stack,
+    };
+    throw normalizedError;
   } finally {
     report.finishedAt = new Date().toISOString();
     writeFileSync(outputPath, JSON.stringify(report, null, 2));
-    await pgServer.stop().catch(() => {});
+    await stopEmbeddedPostgres(pgServer, serverStarted);
     console.log(`database validation output: ${outputPath}`);
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => {
+    process.exitCode = 0;
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
