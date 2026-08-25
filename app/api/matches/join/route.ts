@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAddress } from "viem";
 import { getCurrentProfile } from "@/lib/auth/server";
-import { escrowPublicClient, escrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
+import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   let matchId: bigint;
   try { matchId = BigInt(body.matchId); } catch { return NextResponse.json({ error: "Invalid matchId" }, { status: 400 }); }
 
-  if (!user?.wallet_address) return NextResponse.json({ error: "Wallet is not linked" }, { status: 400 });
+  if (!user.wallet_address) return NextResponse.json({ error: "Wallet is not linked" }, { status: 400 });
 
   const receipt = await escrowPublicClient.getTransactionReceipt({ hash: body.txHash });
   if (receipt.status !== "success") return NextResponse.json({ error: "Join transaction reverted" }, { status: 400 });
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
   if (caller === player2 && !dbMatch.player_b_id) updates.player_b_id = user.id;
 
   if (Number(onchain[6]) === 2) {
+    const escrowWalletClient = getEscrowWalletClient();
     const startHash = await escrowWalletClient.writeContract({ address: ESCROW_CONTRACT_ADDRESS, abi: skillFiEscrowAbi, functionName: "startMatch", args: [matchId] });
     const startReceipt = await escrowPublicClient.waitForTransactionReceipt({ hash: startHash });
     if (startReceipt.status !== "success") return NextResponse.json({ error: "Both players joined, but the operator could not start the match" }, { status: 502 });
