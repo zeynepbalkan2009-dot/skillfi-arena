@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { keccak256, stringToBytes } from "viem";
 import { getCurrentProfile } from "@/lib/auth/server";
-import { escrowPublicClient, escrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
+import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   const matchId = BigInt(keccak256(stringToBytes(`${profile.id}:${Date.now()}:${crypto.randomUUID()}`)));
+  const escrowWalletClient = getEscrowWalletClient();
   const hash = await escrowWalletClient.writeContract({
     address: ESCROW_CONTRACT_ADDRESS,
     abi: skillFiEscrowAbi,
