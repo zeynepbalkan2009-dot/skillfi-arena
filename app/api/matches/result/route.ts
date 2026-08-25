@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/server";
-import { escrowPublicClient, escrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
+import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { passageForMatch, scoreTyping } from "@/lib/typingGame";
 
@@ -23,8 +23,6 @@ export async function POST(request: NextRequest) {
   const passage = passageForMatch(body.matchId);
   if (body.typedText.length > passage.length) return NextResponse.json({ error: "Submission is longer than the deterministic passage" }, { status: 400 });
 
-  // Never trust the client-supplied timer. The server's match start timestamp
-  // is authoritative; the client value is ignored for scoring.
   const serverElapsedMs = Math.max(1000, Math.min(60000, Date.now() - new Date(match.started_at).getTime()));
   const score = scoreTyping(passage, body.typedText, serverElapsedMs);
 
@@ -46,6 +44,7 @@ export async function POST(request: NextRequest) {
   const onchain = await escrowPublicClient.readContract({ address: ESCROW_CONTRACT_ADDRESS, abi: skillFiEscrowAbi, functionName: "matches", args: [matchId] });
   const winnerWallet = (winnerId === match.player_a_id ? onchain[0] : onchain[1]) as `0x${string}`;
   if (Number(onchain[6]) === 3) {
+    const escrowWalletClient = getEscrowWalletClient();
     const settlementHash = await escrowWalletClient.writeContract({ address: ESCROW_CONTRACT_ADDRESS, abi: skillFiEscrowAbi, functionName: "resolveMatch", args: [matchId, winnerWallet] });
     const settlementReceipt = await escrowPublicClient.waitForTransactionReceipt({ hash: settlementHash });
     if (settlementReceipt.status !== "success") return NextResponse.json({ error: "Settlement transaction reverted", status: "settling" }, { status: 502 });
