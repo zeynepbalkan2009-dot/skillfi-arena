@@ -1,51 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { privy, verifyPrivyAccessToken } from "@/lib/privy";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getPrivyIdentityFromRequest, MissingProfileFieldsError, syncProfile } from "@/lib/auth/server";
 import type { UserRegion } from "@/lib/types";
 
-interface SyncBody {
+interface SyncRequestBody {
   username?: string;
   region?: UserRegion;
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export async function POST(request: NextRequest) {
-  const privyUserId = await verifyPrivyAccessToken(request.headers.get("authorization"));
-  if (!privyUserId) {
+  const identity = await getPrivyIdentityFromRequest(request.headers.get("authorization"));
+  if (!identity) {
     return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401 });
   }
 
-  const { data: existing, error: lookupError } = await supabaseAdmin
-    .from("users")
-    .select("id, username, region, wallet_address")
-    .eq("privy_user_id", privyUserId)
-    .maybeSingle();
-
-  if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
-  if (existing) return NextResponse.json({ user: existing });
-
-  let body: SyncBody = {};
-  try { body = await request.json(); } catch {}
-  if (!body.username || !body.region) {
-    return NextResponse.json({ error: "username and region are required" }, { status: 400 });
+  let body: SyncRequestBody = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
   }
 
-  const privyUser = await privy.users()._get(privyUserId);
-  const linkedWallet = privyUser.linked_accounts.find(
-    (account): account is Extract<typeof account, { type: "wallet"; chain_type: "ethereum" }> =>
-      account.type === "wallet" && account.chain_type === "ethereum"
-  );
-
-  const { data: created, error: insertError } = await supabaseAdmin
-    .from("users")
-    .insert({
-      privy_user_id: privyUserId,
-      username: body.username,
-      region: body.region,
-      wallet_address: linkedWallet?.address ?? null,
-    })
-    .select("id, username, region, wallet_address")
-    .single();
-
-  if (insertError) return NextResponse.json({ error: insertError.message }, { status: 409 });
-  return NextResponse.json({ user: created }, { status: 201 });
+  try {
+    const user = await syncProfile(identity, body);
+    return NextResponse.json({ user }, { status: 200 });
+  } catch (error) {
+    if (error instanceof MissingProfileFieldsError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    const message = error instanceof Error ? error.message : "Account sync failed";
+    if (/duplicate|unique/i.test(message)) {
+      return NextResponse.json({ error: "Profile already exists" }, { status: 409 });
+    }
+    if (/username|region/i.test(message)) {
+      return NextResponse.json({ error: message }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Account sync failed" }, { status: 500 });
+  }
 }

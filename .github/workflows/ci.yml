@@ -1,0 +1,99 @@
+name: SkillFi Arena CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+
+  frontend:
+
+    name: Next.js Build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+        with:
+          node-version: 22
+
+
+      - name: Install dependencies
+        run: npm install
+
+
+      - name: Type Check
+        run: npm run typecheck
+        continue-on-error: true
+
+
+      - name: Build
+        run: npm run build
+
+
+
+  smart-contracts:
+
+
+    name: Hardhat Tests
+
+
+    runs-on: ubuntu-latest
+
+
+    defaults:
+
+      run:
+
+        working-directory: web3
+
+
+
+    steps:
+
+
+      - name: Checkout
+
+        uses: actions/checkout@v4
+
+
+
+      - name: Setup Node
+
+        uses: actions/setup-node@v4
+
+        with:
+
+          node-version: 22
+
+
+
+      - name: Install
+
+        run: npm install
+
+
+
+      - name: Compile Contracts
+
+        run: npx hardhat compile
+
+
+
+      - name: Run Tests
+
+        run: npx hardhat test

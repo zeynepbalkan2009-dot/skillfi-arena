@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabaseClient";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { CreateChallengeModal } from "@/components/CreateChallengeModal";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { WalletConnect } from "@/components/WalletConnect";
-import type { Game, Match, MatchWithRelations, PlayerProfile } from "@/lib/types";
+import { useSkillFiUser } from "@/components/AuthSync";
+import { supabase } from "@/lib/supabaseClient";
+import type { Game, Match, MatchWithRelations } from "@/lib/types";
 
 export function LobbyClient({
   initialMatches,
@@ -16,40 +19,11 @@ export function LobbyClient({
   initialMatches: MatchWithRelations[];
   games: Game[];
 }) {
-  const { address } = useAccount();
+  const { authenticated } = usePrivy();
+  const { profile: currentUser, loading: userLoading, needsProfile } = useSkillFiUser();
   const [matches, setMatches] = useState<MatchWithRelations[]>(initialMatches);
-  const [currentUser, setCurrentUser] = useState<PlayerProfile | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Resolve the connected wallet to a SkillFi account. `ilike` with no
-  // wildcards does a case-insensitive exact match — addresses may be stored
-  // checksummed or lowercased depending on signup path.
-  useEffect(() => {
-    if (!address) {
-      setCurrentUser(null);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("users")
-      .select("id, username, region, wallet_address")
-      .ilike("wallet_address", address)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setCurrentUser(data ?? null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address]);
-
-  // Realtime: keep the lobby in sync as challenges are created/joined/
-  // cancelled by anyone, without polling. Subscribes to every change on
-  // `matches` (not pre-filtered to status=searching) because a status
-  // transition *away* from searching is exactly the kind of update we need
-  // to react to by removing the card — a server-side equality filter on
-  // the new status would still fire for that UPDATE, but reasoning about
-  // old-vs-new state is simplest done here in the handler.
   useEffect(() => {
     const channel = supabase
       .channel("public:matches")
@@ -57,7 +31,7 @@ export function LobbyClient({
         "postgres_changes",
         { event: "*", schema: "public", table: "matches" },
         (payload: RealtimePostgresChangesPayload<Match>) => {
-          handleRealtimeChange(payload);
+          void handleRealtimeChange(payload);
         }
       )
       .subscribe();
@@ -66,39 +40,30 @@ export function LobbyClient({
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [games]);
 
   async function handleRealtimeChange(payload: RealtimePostgresChangesPayload<Match>) {
     if (payload.eventType === "DELETE") {
       const oldRow = payload.old as Partial<Match>;
-      setMatches((current) => current.filter((m) => m.id !== oldRow.id));
+      setMatches((current) => current.filter((match) => match.id !== oldRow.id));
       return;
     }
 
     const row = payload.new as Match;
-
     if (row.status !== "searching") {
-      // No longer joinable — drop it from the lobby if present.
-      setMatches((current) => current.filter((m) => m.id !== row.id));
+      setMatches((current) => current.filter((match) => match.id !== row.id));
       return;
     }
 
-    // It's a searching match we should be showing. The realtime payload
-    // only carries the base `matches` columns, not the joined game/player —
-    // the game is already in our small, fully-loaded `games` list, but the
-    // creator's profile needs a small follow-up fetch.
-    const game = games.find((g) => g.id === row.game_id) ?? null;
+    const game = games.find((item) => item.id === row.game_id) ?? null;
     const { data: playerA } = await supabase
       .from("users")
       .select("id, username, region, wallet_address")
       .eq("id", row.player_a_id)
       .maybeSingle();
 
-    setMatches((current) => {
-      const withRelations: MatchWithRelations = { ...row, game, player_a: playerA ?? null };
-      const withoutThisRow = current.filter((m) => m.id !== row.id);
-      return [withRelations, ...withoutThisRow];
-    });
+    const withRelations: MatchWithRelations = { ...row, game, player_a: playerA ?? null };
+    setMatches((current) => [withRelations, ...current.filter((match) => match.id !== row.id)]);
   }
 
   const sortedMatches = useMemo(
@@ -113,46 +78,57 @@ export function LobbyClient({
           <div>
             <h1 className="font-display text-2xl font-bold tracking-wide text-arena-text">SKILLFI ARENA</h1>
             <p className="text-sm text-arena-muted">
-              {currentUser ? `Welcome back, ${currentUser.username}` : "Skill-based PvP, settled on-chain"}
+              {currentUser ? `Welcome back, ${currentUser.display_name ?? currentUser.username}` : "Skill-based PvP"}
             </p>
           </div>
-          <WalletConnect />
+          <div className="flex items-center gap-3">
+            {currentUser && (
+              <Link href="/profile" className="text-sm font-medium text-arena-muted hover:text-arena-text">
+                Profile
+              </Link>
+            )}
+            <WalletConnect />
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-arena-text">Open Challenges</h2>
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            disabled={!address}
-            title={address ? undefined : "Connect your wallet first"}
-            className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg hover:bg-arena-accent/90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            + Create Challenge
-          </button>
-        </div>
-
-        {sortedMatches.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-arena-border py-16 text-center text-arena-muted">
-            No open challenges right now. Be the first to create one.
-          </div>
+        {needsProfile ? (
+          <OnboardingCard />
         ) : (
-          <div className="space-y-3">
-            {sortedMatches.map((match) => (
-              <ChallengeCard key={match.id} match={match} isOwnChallenge={match.player_a_id === currentUser?.id} />
-            ))}
-          </div>
+          <>
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display text-lg font-semibold text-arena-text">Open Challenges</h2>
+                <p className="text-sm text-arena-muted">Create a stake-backed live match and wait for an opponent.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                disabled={!authenticated || userLoading}
+                title={authenticated ? undefined : "Connect first"}
+                className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg hover:bg-arena-accent/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Create Challenge
+              </button>
+            </div>
+
+            {sortedMatches.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-arena-border py-16 text-center text-arena-muted">
+                No open challenges right now.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sortedMatches.map((match) => (
+                  <ChallengeCard key={match.id} match={match} isOwnChallenge={match.player_a_id === currentUser?.id} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
 
-      <CreateChallengeModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        games={games}
-        currentUser={currentUser}
-      />
+      <CreateChallengeModal open={modalOpen} onClose={() => setModalOpen(false)} games={games} currentUser={currentUser} />
     </div>
   );
 }

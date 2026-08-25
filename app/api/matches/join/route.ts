@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAddress } from "viem";
-import { verifyPrivyAccessToken } from "@/lib/privy";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCurrentProfile } from "@/lib/auth/server";
 import { escrowPublicClient, escrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const privyUserId = await verifyPrivyAccessToken(request.headers.get("authorization"));
-  if (!privyUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getCurrentProfile(request.headers.get("authorization"));
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json().catch(() => null) as { matchId?: string; txHash?: `0x${string}` } | null;
   if (!body?.matchId || !body.txHash) return NextResponse.json({ error: "matchId and txHash are required" }, { status: 400 });
   let matchId: bigint;
   try { matchId = BigInt(body.matchId); } catch { return NextResponse.json({ error: "Invalid matchId" }, { status: 400 }); }
 
-  const { data: user, error: userError } = await supabaseAdmin.from("users").select("id, wallet_address").eq("privy_user_id", privyUserId).maybeSingle();
-  if (userError) return NextResponse.json({ error: userError.message }, { status: 500 });
   if (!user?.wallet_address) return NextResponse.json({ error: "Wallet is not linked" }, { status: 400 });
 
   const receipt = await escrowPublicClient.getTransactionReceipt({ hash: body.txHash });

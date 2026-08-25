@@ -1,13 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import { getPublicEnv } from "@/lib/env/public";
 
-export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const env = getPublicEnv();
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export const getSupabaseClient = (privyAccessToken?: string) => {
-  if (!privyAccessToken) return supabase;
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: `Bearer ${privyAccessToken}` } },
-  });
-};
+export const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  realtime: {
+    params: { eventsPerSecond: 10 },
+  },
+});

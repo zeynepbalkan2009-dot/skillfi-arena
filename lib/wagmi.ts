@@ -1,22 +1,23 @@
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { createConfig } from "@privy-io/wagmi";
+import { http } from "viem";
 import { ACTIVE_CHAIN } from "@/lib/contracts";
-
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-
-if (!walletConnectProjectId) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID. Get one free at https://cloud.walletconnect.com."
-  );
-}
+import { getPublicEnv } from "@/lib/env/public";
 
 /**
- * `ssr: true` is required for the App Router: it tells Wagmi to defer
- * reading any persisted connection state until after hydration, avoiding
- * a server/client markup mismatch on first paint.
+ * `@privy-io/wagmi`'s createConfig, not wagmi's own — Privy needs its own
+ * wrapper to register its embedded-wallet connector and keep wagmi's
+ * active account in sync with whichever wallet (embedded or external) the
+ * user is currently using. Plain `wagmi`'s `createConfig` doesn't know
+ * about Privy at all.
+ *
+ * No connectors array here: PrivyProvider (see app/providers.tsx) injects
+ * the appropriate connectors itself based on `loginMethods` /
+ * `embeddedWallets` config — adding RainbowKit/injected connectors here
+ * would conflict with that.
  */
-export const wagmiConfig = getDefaultConfig({
-  appName: "SkillFi Arena",
-  projectId: walletConnectProjectId,
+export const wagmiConfig = createConfig({
   chains: [ACTIVE_CHAIN],
-  ssr: true,
+  transports: {
+    [ACTIVE_CHAIN.id]: http(getPublicEnv().NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL),
+  },
 });

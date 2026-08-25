@@ -1,5 +1,9 @@
 # Security Review
 
+## Stabilization Note
+
+This document began as a pre-cleanup security review. Web3 contracts now live in `web3/`, token transfers use `SafeERC20`, and invariant tests cover refund/settlement terminal-state behavior. Remaining findings should be read together with `CONTRACT_DIFF_SECURITY_REVIEW.md` and `DEPENDENCY_SECURITY_REPORT.md`.
+
 ## Executive Summary
 
 The intended security architecture is directionally sound: Privy tokens should be verified server-side, sensitive database access should use a server-only service-role client, and match creation should be backed by independently verified on-chain events.
@@ -58,7 +62,7 @@ Files:
 
 - `lib/abi/skillFiEscrow.ts`
 - `components/CreateChallengeModal.tsx`
-- `contracts/SkillFiEscrowV2.sol`
+- `web3/contracts/SkillFiEscrowV2.sol`
 
 Impact: the UI may call functions/events that do not exist on the deployed contract, or may encode the wrong lifecycle assumption. A production Web3 app must not ship with ambiguous escrow semantics.
 
@@ -119,17 +123,17 @@ The stranded match creation route credits `player_a` based on the wallet in the 
 
 Impact: this may be intentional, but production must decide whether relayers are allowed. If not, enforce caller wallet equals depositor wallet.
 
-### 11. Contract Refunds Ignore ERC20 Return Values in Some Paths
+### 11. Contract Refunds Use SafeERC20 After Stabilization
 
-File: `contracts/SkillFiEscrowV2.sol`
+File: `web3/contracts/SkillFiEscrowV2.sol`
 
-`_refund` and part of `resolveDispute` call `token.transfer` without checking the returned boolean.
+`_refund`, settlement, and dispute resolution now use `SafeERC20`.
 
-Impact: non-standard ERC20 behavior can silently fail. Prefer `SafeERC20`.
+Impact: the original ERC20 return-value concern is resolved for the consolidated contract.
 
 ### 12. Operator-Created Match Design Requires Backend Key Security
 
-File: `contracts/SkillFiEscrowV2.sol`
+File: `web3/contracts/SkillFiEscrowV2.sol`
 
 `createMatch`, `startMatch`, `resolveMatch`, and `cancelMatch` rely on `OPERATOR_ROLE`.
 
@@ -152,4 +156,3 @@ Impact: the operator key becomes critical infrastructure and needs hardware cust
 5. Add tests for auth rejection, receipt verification, duplicate indexing, and wallet binding.
 6. Add rate limiting and structured audit logs before public launch.
 7. Add smart contract tests for deposits, double joins, refunds, disputes, fees, pause, and role authorization.
-

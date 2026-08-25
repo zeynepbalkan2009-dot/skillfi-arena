@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyPrivyAccessToken } from "@/lib/privy";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCurrentProfile } from "@/lib/auth/server";
 import { escrowPublicClient, escrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { passageForMatch, scoreTyping } from "@/lib/typingGame";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const privyUserId = await verifyPrivyAccessToken(request.headers.get("authorization"));
-  if (!privyUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getCurrentProfile(request.headers.get("authorization"));
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json().catch(() => null) as { matchId?: string; typedText?: string; elapsedMs?: number } | null;
   if (!body?.matchId || typeof body.typedText !== "string") return NextResponse.json({ error: "matchId and typedText are required" }, { status: 400 });
-
-  const { data: user, error: userError } = await supabaseAdmin.from("users").select("id, wallet_address").eq("privy_user_id", privyUserId).maybeSingle();
-  if (userError) return NextResponse.json({ error: userError.message }, { status: 500 });
-  if (!user) return NextResponse.json({ error: "SkillFi account not found" }, { status: 404 });
 
   const { data: match, error: matchError } = await supabaseAdmin.from("matches").select("id, smart_contract_match_id, player_a_id, player_b_id, status, started_at").eq("smart_contract_match_id", body.matchId).maybeSingle();
   if (matchError) return NextResponse.json({ error: matchError.message }, { status: 500 });
