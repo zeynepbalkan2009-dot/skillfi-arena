@@ -51,6 +51,32 @@ function looksPlaceholder(value) {
   return !value || /your-|<|>|placeholder/i.test(value);
 }
 
+function jwtRole(value) {
+  const parts = value.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (payload.length % 4 !== 0) payload += "=";
+    return JSON.parse(Buffer.from(payload, "base64").toString("utf8")).role ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function assertServiceRoleCredential(value) {
+  if (value.startsWith("sb_publishable_")) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is configured with a publishable key; use a server-only service-role secret.");
+  }
+
+  if (value.startsWith("sb_secret_")) return;
+
+  const role = jwtRole(value);
+  if (role === "service_role") return;
+
+  throw new Error("SUPABASE_SERVICE_ROLE_KEY is not recognized as a service-role credential.");
+}
+
 function tokenHash(token) {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
@@ -121,6 +147,7 @@ async function run() {
   env.NEXT_PUBLIC_SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   env.NEXT_PUBLIC_SUPABASE_ANON_KEY = requireEnv(env, "NEXT_PUBLIC_SUPABASE_ANON_KEY");
   env.SUPABASE_SERVICE_ROLE_KEY = requireEnv(env, "SUPABASE_SERVICE_ROLE_KEY");
+  assertServiceRoleCredential(env.SUPABASE_SERVICE_ROLE_KEY);
   env.NEXT_PUBLIC_PRIVY_APP_ID = env.NEXT_PUBLIC_PRIVY_APP_ID ?? "skillfi-test-privy-app";
   env.PRIVY_APP_SECRET = env.PRIVY_APP_SECRET ?? "skillfi-test-privy-secret";
   env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS =

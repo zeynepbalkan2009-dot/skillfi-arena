@@ -46,10 +46,10 @@ Result: failed before the HTTP login/profile/challenge flow could begin.
 Failure:
 
 ```text
-Game seed failed: new row violates row-level security policy for table "games"
+SUPABASE_SERVICE_ROLE_KEY is configured with a publishable key; use a server-only service-role secret.
 ```
 
-A sanitized credential-shape diagnostic showed that `SUPABASE_SERVICE_ROLE_KEY` is currently configured as a publishable-key class, not a service-role secret or legacy `service_role` JWT. Because of that, the validation runner's server-side Supabase client is evaluated under RLS and cannot seed the deterministic test game fixture.
+A sanitized credential-shape diagnostic showed that `SUPABASE_SERVICE_ROLE_KEY` is currently configured as a publishable-key class, not a service-role secret or legacy `service_role` JWT. The HTTP validation runner now fails fast before seeding so this cannot be mistaken for an application query or RLS policy regression.
 
 The local `.env.local` file also contains two `NEXT_PUBLIC_SUPABASE_URL` assignments. The validation helpers normalize this safely by selecting the last usable URL, but the duplicate should be cleaned up when the service-role credential is corrected.
 
