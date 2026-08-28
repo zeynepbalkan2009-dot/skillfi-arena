@@ -104,7 +104,7 @@ Tasks are ordered by current production priority. Complexity: S, M, L, XL.
 
 ## 11. Studio & Game Onboarding
 
-- Status: In progress on 2026-08-28. Studio ownership, private application records, game drafts, a studio portal, separate testnet USDC listing-fee verification, administrator review, immutable audit events, hashed/scoped/revocable API credentials, and an HMAC-signed idempotent game-server result protocol are implemented locally; the hosted migration and live fee/result exercises remain.
+- Status: In progress on 2026-08-28. Studio ownership, private application records, game drafts, a studio portal, separate testnet USDC listing-fee verification, administrator review, immutable audit events, hashed/scoped/revocable API credentials, and an HMAC-signed idempotent game-server result protocol are implemented. The hosted migration is applied; live studio fee, credential, and signed-result exercises remain.
 - Description: Let studios register, submit games, pay a configurable integration fee, and progress through technical review without mixing studio revenue with player escrow.
 - Affected files: studio migration, studio APIs and portal, game catalog policies, payment verification, future admin and developer integration surfaces
 - Estimated complexity: XL
