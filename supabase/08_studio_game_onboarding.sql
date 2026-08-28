@@ -109,6 +109,27 @@ alter table public.game_api_credentials enable row level security;
 revoke all on public.game_api_credentials from anon, authenticated;
 grant select, insert, update on public.game_api_credentials to service_role;
 
+create table if not exists public.game_result_submissions (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references public.games(id) on delete restrict,
+  studio_id uuid not null references public.studios(id) on delete restrict,
+  credential_id uuid not null references public.game_api_credentials(id) on delete restrict,
+  match_id uuid not null unique references public.matches(id) on delete restrict,
+  event_id text not null,
+  winner_user_id uuid not null references public.users(id) on delete restrict,
+  payload_hash text not null,
+  source_occurred_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  constraint game_result_event_unique unique (game_id, event_id),
+  constraint game_result_event_id_length check (char_length(event_id) between 8 and 100),
+  constraint game_result_payload_hash_format check (payload_hash ~ '^[0-9a-f]{64}$')
+);
+create index if not exists game_result_submissions_studio_created
+  on public.game_result_submissions (studio_id, created_at desc);
+alter table public.game_result_submissions enable row level security;
+revoke all on public.game_result_submissions from anon, authenticated;
+grant select, insert on public.game_result_submissions to service_role;
+
 drop policy if exists "games_public_read" on public.games;
 create policy "games_public_read" on public.games for select to anon, authenticated
 using (is_active = true and integration_status = 'published');

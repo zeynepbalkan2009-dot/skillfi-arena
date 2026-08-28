@@ -224,4 +224,18 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.doesNotMatch(credentialOwner, /secret_hash|secret:/);
   assert.match(integrationGame, /authenticateGameApiKey/);
   assert.match(integrationGame, /"game:read"/);
+  const integrationResult = readFileSync(join(root, "app/api/integrations/v1/results/route.ts"), "utf8");
+  const integrationDocs = readFileSync(join(root, "INTEGRATION_API.md"), "utf8");
+  assert.match(migration, /create table if not exists public\.game_result_submissions/);
+  assert.match(migration, /constraint game_result_event_unique unique \(game_id, event_id\)/);
+  assert.match(migration, /match_id uuid not null unique/);
+  assert.match(credentialService, /createHmac\("sha256"/);
+  assert.match(credentialService, /timingSafeEqual/);
+  assert.match(credentialService, /5 \* 60 \* 1000/);
+  assert.match(integrationResult, /"results:write"/);
+  assert.match(integrationResult, /Credential cannot submit results for this game/);
+  assert.match(integrationResult, /Winner wallet is not a match participant/);
+  assert.match(integrationResult, /external_result_accepted/);
+  assert.match(integrationResult, /settleAndReconcileMatch/);
+  assert.match(integrationDocs, /exact raw JSON body/);
 });

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type GameCredential = {
@@ -23,10 +23,24 @@ export function createGameApiKey(environment: "test" | "live") {
   return { prefix, secret, secretHash: hashGameApiKey(secret) };
 }
 
-export async function authenticateGameApiKey(authorization: string | null, requiredScope: string) {
+export function verifyGameRequestSignature(secret: string, timestamp: string | null, rawBody: string, signature: string | null) {
+  if (!timestamp || !signature || !/^\d{10,13}$/.test(timestamp) || !/^[0-9a-f]{64}$/i.test(signature)) return false;
+  const timestampMs = timestamp.length === 10 ? Number(timestamp) * 1000 : Number(timestamp);
+  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) return false;
+  const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`, "utf8").digest();
+  const provided = Buffer.from(signature, "hex");
+  return provided.length === expected.length && timingSafeEqual(provided, expected);
+}
+
+export function readBearerSecret(authorization: string | null): string | null {
   if (!authorization?.startsWith("Bearer ")) return null;
   const secret = authorization.slice(7).trim();
-  if (!/^sk_(test|live)_[a-zA-Z0-9_-]{20,}$/.test(secret)) return null;
+  return /^sk_(test|live)_[a-zA-Z0-9_-]{20,}$/.test(secret) ? secret : null;
+}
+
+export async function authenticateGameApiKey(authorization: string | null, requiredScope: string) {
+  const secret = readBearerSecret(authorization);
+  if (!secret) return null;
   const { data, error } = await supabaseAdmin.from("game_api_credentials")
     .select("id,game_id,studio_id,scopes,revoked_at,expires_at").eq("secret_hash", hashGameApiKey(secret)).maybeSingle();
   if (error || !data || data.revoked_at || !data.scopes?.includes(requiredScope)) return null;
@@ -34,4 +48,3 @@ export async function authenticateGameApiKey(authorization: string | null, requi
   await supabaseAdmin.from("game_api_credentials").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
   return data as GameCredential;
 }
-
