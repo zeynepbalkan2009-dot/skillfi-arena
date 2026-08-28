@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     if (/username|region/i.test(message)) {
       return NextResponse.json({ error: message }, { status: 422 });
     }
+    console.error("Account sync failed:", message);
     return NextResponse.json({ error: "Account sync failed" }, { status: 500 });
   }
 }

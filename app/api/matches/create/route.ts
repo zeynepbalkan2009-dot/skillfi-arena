@@ -3,6 +3,8 @@ import { keccak256, stringToBytes } from "viem";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { recordAuditEvent } from "@/lib/audit";
+import { attachStakeReservation, releaseStakeReservation, reserveStake } from "@/lib/risk";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +14,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => null)) as { gameId?: string; stakeAmount?: string } | null;
-  if (!body?.gameId || !body.stakeAmount) {
-    return NextResponse.json({ error: "gameId and stakeAmount are required" }, { status: 400 });
+  const body = (await request.json().catch(() => null)) as { gameId?: string; stakeAmount?: string; idempotencyKey?: string } | null;
+  if (!body?.gameId || !body.stakeAmount || !body.idempotencyKey) {
+    return NextResponse.json({ error: "gameId, stakeAmount and idempotencyKey are required" }, { status: 400 });
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(body.idempotencyKey)) {
+    return NextResponse.json({ error: "Invalid idempotencyKey" }, { status: 400 });
   }
 
   let stake: bigint;
@@ -43,16 +48,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Game not found or inactive" }, { status: 404 });
   }
 
+  const reservationKey = `create:${profile.id}:${body.idempotencyKey}`;
+  const risk = await reserveStake(profile.id, stake, reservationKey);
+  if (!risk.allowed) {
+    return NextResponse.json({ error: risk.reason, risk }, { status: 429 });
+  }
+
   const matchId = BigInt(keccak256(stringToBytes(`${profile.id}:${Date.now()}:${crypto.randomUUID()}`)));
   const escrowWalletClient = getEscrowWalletClient();
-  const hash = await escrowWalletClient.writeContract({
-    address: ESCROW_CONTRACT_ADDRESS,
-    abi: skillFiEscrowAbi,
-    functionName: "createMatch",
-    args: [matchId, stake],
-  });
+  let hash: `0x${string}`;
+  try {
+    hash = await escrowWalletClient.writeContract({
+      address: ESCROW_CONTRACT_ADDRESS,
+      abi: skillFiEscrowAbi,
+      functionName: "createMatch",
+      args: [matchId, stake],
+    });
+  } catch (error) {
+    await releaseStakeReservation(reservationKey);
+    throw error;
+  }
   const receipt = await escrowPublicClient.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") {
+    await releaseStakeReservation(reservationKey);
     return NextResponse.json({ error: "On-chain match creation reverted" }, { status: 502 });
   }
 
@@ -72,6 +90,16 @@ export async function POST(request: NextRequest) {
   if (insertError) {
     return NextResponse.json({ error: "On-chain match exists but database indexing failed", txHash: hash }, { status: 502 });
   }
+  await attachStakeReservation(reservationKey, match.id);
+
+  await recordAuditEvent({
+    matchId: match.id,
+    actorUserId: profile.id,
+    eventType: "match_created",
+    txHash: hash,
+    idempotencyKey: `match_created:${hash.toLowerCase()}`,
+    payload: { smartContractMatchId: match.smart_contract_match_id, stakeAmount: match.stake_amount },
+  });
 
   return NextResponse.json({ match, txHash: hash });
 }

@@ -10,6 +10,11 @@
     "test:db": "node scripts/db-validation.mjs",
     "test:db:hosted": "powershell -NoProfile -Command \"$env:SKILLFI_DB_PROFILE='hosted'; node scripts/db-validation.mjs\"",
     "test:supabase": "node scripts/supabase-http-validation.mjs",
+    "test:risk": "node scripts/risk-validation.mjs",
+    "test:settlement": "node scripts/settlement-validation.mjs",
+    "test:cancellation": "node scripts/cancellation-validation.mjs",
+    "list:disputes": "node scripts/list-disputes.mjs",
+    "resolve:dispute": "node scripts/resolve-dispute.mjs",
     "start": "next start",
     "lint": "next lint"
   },

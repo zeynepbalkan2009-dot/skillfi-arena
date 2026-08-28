@@ -33,6 +33,13 @@ export function JoinMatchButton({ matchId, stakeAmount }: { matchId: string; sta
     try {
       const token = await getAccessToken();
       if (!token) throw new Error("Log in with Privy first.");
+      const checkResponse = await fetch("/api/matches/join/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ matchId }),
+      });
+      const checkBody = await checkResponse.json().catch(() => ({}));
+      if (!checkResponse.ok) throw new Error(checkBody.error ?? "Risk check failed.");
       const stake = BigInt(stakeAmount);
       const currentAllowance = (await refetch()).data ?? allowance ?? 0n;
       if (currentAllowance < stake) {

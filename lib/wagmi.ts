@@ -1,7 +1,6 @@
 import { createConfig } from "@privy-io/wagmi";
 import { http } from "viem";
-import { ACTIVE_CHAIN } from "@/lib/contracts";
-import { getPublicEnv } from "@/lib/env/public";
+import { ACTIVE_CHAIN, ACTIVE_RPC_URL } from "@/lib/contracts";
 
 /**
  * `@privy-io/wagmi`'s createConfig, not wagmi's own — Privy needs its own
@@ -18,6 +17,6 @@ import { getPublicEnv } from "@/lib/env/public";
 export const wagmiConfig = createConfig({
   chains: [ACTIVE_CHAIN],
   transports: {
-    [ACTIVE_CHAIN.id]: http(getPublicEnv().NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL),
+    [ACTIVE_CHAIN.id]: http(ACTIVE_RPC_URL),
   },
 });

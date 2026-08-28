@@ -2,6 +2,7 @@
 
 import type { MatchWithRelations } from "@/lib/types";
 import { JoinMatchButton } from "@/components/JoinMatchButton";
+import { CancelMatchButton } from "@/components/CancelMatchButton";
 
 const REGION_LABELS: Record<string, string> = { EU: "Europe", NA: "N. America", ASIA: "Asia" };
 
@@ -38,6 +39,9 @@ export function ChallengeCard({ match, isOwnChallenge }: { match: MatchWithRelat
           <p className="text-sm text-arena-muted">
             {match.player_a?.username ?? "Anonymous"} / {region} / {timeAgo(match.created_at)}
           </p>
+          {match.status === "waiting_on_chain" && (
+            <p className="mt-1 text-xs text-arena-accent">Awaiting your deposit · safe to cancel</p>
+          )}
         </div>
       </div>
 
@@ -47,9 +51,7 @@ export function ChallengeCard({ match, isOwnChallenge }: { match: MatchWithRelat
           <p className="font-display text-lg font-bold text-arena-text">{formatStake(match.stake_amount)} USDC</p>
         </div>
         {isOwnChallenge ? (
-          <span className="rounded-md border border-arena-border px-4 py-2 text-sm text-arena-muted">
-            Your challenge
-          </span>
+          <CancelMatchButton matchId={match.id} />
         ) : (
           <JoinMatchButton matchId={matchId} stakeAmount={match.stake_amount} />
         )}

@@ -5,11 +5,13 @@
 
 export type UserRegion = "EU" | "NA" | "ASIA";
 export type GameType = "web2" | "web3";
+export type GameIntegrationStatus = "draft" | "submitted" | "sandbox" | "published" | "rejected" | "suspended";
 export type MatchStatus =
   | "searching"
   | "waiting_on_chain"
   | "active"
   | "settling"
+  | "disputed"
   | "completed"
   | "cancelled";
 export type ChallengeStatus = "open" | "accepted" | "expired" | "cancelled";
@@ -20,6 +22,10 @@ export interface Game {
   id: string;
   name: string;
   type: GameType;
+  studio_id: string | null;
+  description: string | null;
+  website_url: string | null;
+  integration_status: GameIntegrationStatus;
   is_active: boolean;
   created_at: string;
 }
@@ -58,6 +64,11 @@ export interface Match {
   stake_amount: string;
   status: MatchStatus;
   winner_id: string | null;
+  accepted_at?: string | null;
+  expires_at?: string | null;
+  rules?: string | null;
+  currency?: CurrencyCode;
+  started_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,4 +106,36 @@ export interface ChallengeWithRelations extends Challenge {
   invited_opponent?: PlayerProfile | null;
   accepted_by?: PlayerProfile | null;
   match?: MatchWithRelations | null;
+}
+
+export interface MatchAuditEvent {
+  id: string;
+  match_id: string | null;
+  challenge_id: string | null;
+  actor_user_id: string | null;
+  event_type: string;
+  tx_hash: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+  studio_id?: string | null;
+  slug?: string | null;
+  description?: string | null;
+  website_url?: string | null;
+  integration_status?: "draft" | "submitted" | "sandbox" | "published" | "rejected" | "suspended";
+}
+
+export type StudioStatus = "pending_payment" | "pending_review" | "approved" | "rejected" | "suspended";
+
+export interface Studio {
+  id: string;
+  owner_user_id: string;
+  name: string;
+  slug: string;
+  website_url: string | null;
+  contact_email: string | null;
+  status: StudioStatus;
+  listing_fee_amount: string;
+  listing_fee_currency: "USDC";
+  created_at: string;
+  updated_at: string;
 }

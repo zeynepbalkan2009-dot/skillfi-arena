@@ -4,10 +4,20 @@ const { ethers } = await network.create();
 
 async function main() {
   const [deployer] = await ethers.getSigners();
+  const networkInfo = await ethers.provider.getNetwork();
+  if (networkInfo.chainId !== 84532n) {
+    throw new Error(`Refusing to deploy: expected Base Sepolia chain ID 84532, received ${networkInfo.chainId}`);
+  }
+
+  const balance = await ethers.provider.getBalance(deployer.address);
+  if (balance === 0n) {
+    throw new Error(`Deployer ${deployer.address} has no Base Sepolia ETH for gas`);
+  }
 
   console.log(
-    "Deploying with:",
-    deployer.address
+    "Deploying to Base Sepolia with:",
+    deployer.address,
+    `(balance: ${ethers.formatEther(balance)} ETH)`
   );
 
   const MockUSDC =

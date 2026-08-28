@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
+import { ESCROW_CONTRACT_ADDRESS } from "@/lib/contracts";
+import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 import { passageForMatch, scoreTyping } from "@/lib/typingGame";
 import { supabase } from "@/lib/supabaseClient";
 import type { Game } from "@/lib/types";
@@ -25,12 +27,17 @@ type Progress = { wpm: number; accuracy: number; chars: number };
 export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
   const { getAccessToken } = usePrivy();
   const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const [match, setMatch] = useState(initialMatch);
   const [text, setText] = useState("");
   const [remaining, setRemaining] = useState(60000);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [opponentProgress, setOpponentProgress] = useState<Progress | null>(null);
+  const [disputeBusy, setDisputeBusy] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const autoSubmitAttemptedRef = useRef(false);
   const startedAtRef = useRef<number | null>(
     initialMatch.started_at ? new Date(initialMatch.started_at).getTime() : null
   );
@@ -46,6 +53,36 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
     address && match.player_b?.wallet_address && address.toLowerCase() === match.player_b.wallet_address.toLowerCase()
   );
   const isParticipant = isPlayerA || isPlayerB;
+
+  async function disputeMatch() {
+    const reason = disputeReason.trim().replace(/\s+/g, " ");
+    if (!isParticipant || match.status !== "active" || reason.length < 10 || reason.length > 500) return;
+    setDisputeBusy(true);
+    setResult(null);
+    try {
+      const txHash = await writeContractAsync({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: skillFiEscrowAbi,
+        functionName: "disputeMatch",
+        args: [BigInt(match.smart_contract_match_id)],
+      });
+      const token = await getAccessToken();
+      const response = await fetch("/api/matches/dispute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ matchId: match.id, txHash, reason }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error ?? "Dispute indexing failed");
+      setMatch((current) => ({ ...current, status: "disputed" }));
+      setDisputeOpen(false);
+      setResult("Match disputed. Automatic settlement is paused for arbiter review.");
+    } catch (error) {
+      setResult(error instanceof Error ? error.message : "Dispute failed");
+    } finally {
+      setDisputeBusy(false);
+    }
+  }
 
   const submitResult = useCallback(async () => {
     if (submitted || !isParticipant) return;
@@ -98,6 +135,29 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
   }, [address, match.id]);
 
   useEffect(() => {
+    let active = true;
+
+    async function refreshMatchState() {
+      const { data, error } = await supabase
+        .from("matches")
+        .select("status,winner_id,started_at,player_a_id,player_b_id,updated_at")
+        .eq("id", match.id)
+        .maybeSingle();
+
+      if (!active || error || !data) return;
+      setMatch((current) => ({ ...current, ...data }));
+      if (data.started_at) startedAtRef.current = new Date(data.started_at).getTime();
+    }
+
+    void refreshMatchState();
+    const timer = window.setInterval(refreshMatchState, 3_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [match.id]);
+
+  useEffect(() => {
     if (match.status !== "active" || !startedAtRef.current || submitted) return;
     const tick = () => setRemaining(Math.max(0, 60000 - (Date.now() - (startedAtRef.current as number))));
     tick();
@@ -106,7 +166,8 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
   }, [match.status, submitted]);
 
   useEffect(() => {
-    if (remaining === 0 && !submitted && match.status === "active") {
+    if (remaining === 0 && !submitted && match.status === "active" && !autoSubmitAttemptedRef.current) {
+      autoSubmitAttemptedRef.current = true;
       void submitResult();
     }
   }, [match.status, remaining, submitResult, submitted]);
@@ -219,6 +280,56 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
                   {submitted ? "Submitted" : "Finish"}
                 </button>
               </div>
+              <div className="mt-4 border-t border-arena-border pt-4 text-right">
+                {!disputeOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setDisputeOpen(true)}
+                    disabled={disputeBusy || submitted}
+                    className="text-xs font-medium text-arena-muted underline decoration-arena-border underline-offset-4 hover:text-arena-danger disabled:opacity-40"
+                  >
+                    Report a result problem
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-arena-danger/30 bg-arena-danger/5 p-4 text-left">
+                    <label htmlFor="dispute-reason" className="text-sm font-semibold text-arena-text">
+                      What went wrong?
+                    </label>
+                    <p className="mt-1 text-xs text-arena-muted">
+                      This note becomes part of the match audit trail. Submitting also requires a wallet transaction.
+                    </p>
+                    <textarea
+                      id="dispute-reason"
+                      value={disputeReason}
+                      maxLength={500}
+                      onChange={(event) => setDisputeReason(event.target.value)}
+                      placeholder="Describe the result or gameplay problem (minimum 10 characters)."
+                      className="mt-3 min-h-24 w-full resize-y rounded-md border border-arena-border bg-arena-bg p-3 text-sm text-arena-text outline-none focus:border-arena-danger"
+                    />
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-xs text-arena-muted">{disputeReason.trim().length}/500</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setDisputeOpen(false); setDisputeReason(""); }}
+                          disabled={disputeBusy}
+                          className="rounded-md border border-arena-border px-3 py-2 text-xs text-arena-muted disabled:opacity-40"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={disputeMatch}
+                          disabled={disputeBusy || disputeReason.trim().length < 10}
+                          className="rounded-md bg-arena-danger px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                        >
+                          {disputeBusy ? "Opening dispute…" : "Confirm dispute"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </section>
             <aside className="rounded-xl border border-arena-border bg-arena-surface p-5">
               <h2 className="font-display text-lg font-bold">Opponent</h2>
@@ -244,6 +355,13 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
               {match.winner_id === (isPlayerA ? match.player_a_id : match.player_b_id) ? "YOU WIN" : "YOU LOSE"}
             </h2>
             <p className="mt-3 text-arena-muted">The result has been settled on-chain.</p>
+          </div>
+        )}
+
+        {match.status === "disputed" && (
+          <div className="rounded-xl border border-arena-danger/40 bg-arena-danger/10 p-10 text-center">
+            <h2 className="font-display text-3xl font-bold text-arena-danger">MATCH DISPUTED</h2>
+            <p className="mt-3 text-arena-muted">Automatic settlement is paused. An authorized arbiter must review the result.</p>
           </div>
         )}
 

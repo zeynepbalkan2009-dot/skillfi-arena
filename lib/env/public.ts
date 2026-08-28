@@ -18,12 +18,25 @@ const BUILD_DEFAULTS: PublicEnv = {
   NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: "https://sepolia.base.org",
 };
 
+// Next.js replaces only statically analyzable NEXT_PUBLIC_* references in
+// browser bundles. Do not change these to process.env[name].
+const RAW_PUBLIC_ENV: Record<keyof PublicEnv, string | undefined> = {
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_PRIVY_APP_ID: process.env.NEXT_PUBLIC_PRIVY_APP_ID,
+  NEXT_PUBLIC_ESCROW_ADDRESS: process.env.NEXT_PUBLIC_ESCROW_ADDRESS,
+  NEXT_PUBLIC_USDC_TOKEN_ADDRESS: process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS,
+  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+  NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
+};
+
 function isProductionBuild(): boolean {
   return process.env.npm_lifecycle_event === "build";
 }
 
 function required(name: keyof PublicEnv): string {
-  const value = process.env[name];
+  const value = RAW_PUBLIC_ENV[name];
   if (!value) {
     if (isProductionBuild()) return BUILD_DEFAULTS[name];
     throw new Error(`Missing ${name}. Copy .env.local.example to .env.local and set a value.`);

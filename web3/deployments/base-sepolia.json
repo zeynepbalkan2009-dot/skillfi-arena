@@ -1,0 +1,11 @@
+{
+  "chainId": 84532,
+  "network": "baseSepolia",
+  "deployer": "0xC86938446034FDC114e8422bC13dd18b9ED2F99F",
+  "operator": "0xC86938446034FDC114e8422bC13dd18b9ED2F99F",
+  "arbiter": "0xC86938446034FDC114e8422bC13dd18b9ED2F99F",
+  "treasury": "0xC86938446034FDC114e8422bC13dd18b9ED2F99F",
+  "mockUsdc": "0xbDaeABa986273B34eA8cAA1B43272b29aD16b9ae",
+  "escrow": "0x928a3519fBD753283FB5E332D615479e8FE278DA",
+  "platformFeeBps": 500
+}

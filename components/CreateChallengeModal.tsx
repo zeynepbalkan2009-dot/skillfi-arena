@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { erc20Abi, parseUnits } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
@@ -31,6 +32,7 @@ export function CreateChallengeModal({
   games: Game[];
   currentUser: PlayerProfile | null;
 }) {
+  const router = useRouter();
   const { getAccessToken } = usePrivy();
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -39,6 +41,8 @@ export function CreateChallengeModal({
   const [stakeInput, setStakeInput] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingMatch, setPendingMatch] = useState<{ matchId: bigint; stakeAmount: bigint } | null>(null);
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 
   const { data: decimals } = useReadContract({
     address: GNESS_TOKEN_ADDRESS,
@@ -57,6 +61,8 @@ export function CreateChallengeModal({
     if (open) {
       setPhase("form");
       setErrorMessage(null);
+      setPendingMatch(null);
+      setRequestId(crypto.randomUUID());
       setStakeInput("");
       setGameId(games[0]?.id ?? "");
     }
@@ -89,7 +95,7 @@ export function CreateChallengeModal({
 
     let stakeAmount: bigint;
     try {
-      stakeAmount = parseUnits(stakeInput, decimals);
+      stakeAmount = pendingMatch?.stakeAmount ?? parseUnits(stakeInput, decimals);
       if (stakeAmount <= 0n) throw new Error("invalid stake");
     } catch {
       setErrorMessage("Enter a valid stake amount.");
@@ -100,16 +106,19 @@ export function CreateChallengeModal({
       const token = await getAccessToken();
       if (!token) throw new Error("Privy authentication is required.");
 
-      setPhase("creating");
-      const createResponse = await fetch("/api/matches/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ gameId, stakeAmount: stakeAmount.toString() }),
-      });
-      const createBody = await createResponse.json().catch(() => ({}));
-      if (!createResponse.ok) throw new Error(createBody.error ?? "Could not create the match.");
-
-      const matchId = BigInt(createBody.match.smart_contract_match_id);
+      let matchId = pendingMatch?.matchId;
+      if (!matchId) {
+        setPhase("creating");
+        const createResponse = await fetch("/api/matches/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ gameId, stakeAmount: stakeAmount.toString(), idempotencyKey: requestId }),
+        });
+        const createBody = await createResponse.json().catch(() => ({}));
+        if (!createResponse.ok) throw new Error(createBody.error ?? "Could not create the match.");
+        matchId = BigInt(createBody.match.smart_contract_match_id);
+        setPendingMatch({ matchId, stakeAmount });
+      }
       const freshAllowance = (await refetchAllowance()).data ?? allowance ?? 0n;
       if (freshAllowance < stakeAmount) {
         setPhase("approving");
@@ -141,6 +150,7 @@ export function CreateChallengeModal({
       if (!joinResponse.ok) throw new Error(joinBody.error ?? "Could not register the join.");
 
       setPhase("success");
+      router.refresh();
       setTimeout(onClose, 1000);
     } catch (err) {
       setPhase("error");
@@ -164,7 +174,7 @@ export function CreateChallengeModal({
             aria-label="Game"
             value={gameId}
             onChange={(event) => setGameId(event.target.value)}
-            disabled={isBusy}
+            disabled={isBusy || Boolean(pendingMatch)}
             className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text"
           >
             {games.map((game) => (
@@ -184,7 +194,7 @@ export function CreateChallengeModal({
             step="any"
             value={stakeInput}
             onChange={(event) => setStakeInput(event.target.value)}
-            disabled={isBusy}
+            disabled={isBusy || Boolean(pendingMatch)}
             placeholder="10.00"
             className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text"
           />

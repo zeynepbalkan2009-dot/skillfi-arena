@@ -2,50 +2,41 @@ import "server-only";
 
 import { createPublicClient, createWalletClient, http, type Address, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { ESCROW_CONTRACT_ADDRESS } from "@/lib/contracts";
+import { ACTIVE_CHAIN, ACTIVE_RPC_URL, ESCROW_CONTRACT_ADDRESS } from "@/lib/contracts";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 
-const BASE_SEPOLIA = {
-  id: 84532,
-  name: "Base Sepolia",
-  nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://sepolia.base.org"] },
-    public: { http: ["https://sepolia.base.org"] },
-  },
-  blockExplorers: {
-    default: { name: "BaseScan", url: "https://sepolia.basescan.org" },
-  },
-  testnet: true,
-} as const satisfies Chain;
+const activeChain: Chain = ACTIVE_CHAIN;
+const rpcUrl = process.env.RPC_URL || ACTIVE_RPC_URL;
 
-const rpcUrl = process.env.RPC_URL || undefined;
+function getOperatorPrivateKey(): `0x${string}` {
+  const rawKey = process.env.OPERATOR_PRIVATE_KEY;
+  if (!rawKey) {
+    throw new Error("Missing OPERATOR_PRIVATE_KEY. Server-side escrow operations are disabled.");
+  }
+
+  const key = rawKey.startsWith("0x") ? rawKey : `0x${rawKey}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(key)) {
+    throw new Error("OPERATOR_PRIVATE_KEY must contain exactly 32 bytes.");
+  }
+  return key as `0x${string}`;
+}
 
 export const escrowPublicClient = createPublicClient({
-  chain: BASE_SEPOLIA,
+  chain: activeChain,
   transport: http(rpcUrl),
 });
 
 export function getEscrowWalletClient() {
-  const operatorKey = process.env.OPERATOR_PRIVATE_KEY;
-  if (!operatorKey) {
-    throw new Error("Missing OPERATOR_PRIVATE_KEY. Server-side escrow operations are disabled.");
-  }
-
-  const operator = privateKeyToAccount(operatorKey as `0x${string}`);
+  const operator = privateKeyToAccount(getOperatorPrivateKey());
   return createWalletClient({
     account: operator,
-    chain: BASE_SEPOLIA,
+    chain: activeChain,
     transport: http(rpcUrl),
   });
 }
 
 export function getOperatorAddress(): Address {
-  const operatorKey = process.env.OPERATOR_PRIVATE_KEY;
-  if (!operatorKey) {
-    throw new Error("Missing OPERATOR_PRIVATE_KEY. Server-side escrow operations are disabled.");
-  }
-  return privateKeyToAccount(operatorKey as `0x${string}`).address;
+  return privateKeyToAccount(getOperatorPrivateKey()).address;
 }
 
 export { ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi };

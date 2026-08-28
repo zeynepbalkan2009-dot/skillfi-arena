@@ -1,6 +1,4 @@
-import { network } from "hardhat";
-
-const { run } = await network.create();
+import hre from "hardhat";
 
 const escrowAddress = process.env.ESCROW_ADDRESS;
 const tokenAddress = process.env.TOKEN_ADDRESS;
@@ -15,11 +13,7 @@ if (!escrowAddress || !tokenAddress || !operatorAddress || !arbiterAddress || !t
   );
 }
 
-await run({
-  type: "task",
-  task: "verify",
-  arguments: {
-    address: escrowAddress,
-    constructorArgs: [tokenAddress, operatorAddress, arbiterAddress, treasuryAddress, feeBps],
-  },
+await hre.tasks.getTask("verify").run({
+  address: escrowAddress,
+  constructorArgs: [tokenAddress, operatorAddress, arbiterAddress, treasuryAddress, feeBps],
 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { hashInvitationToken } from "@/lib/challenges/tokens";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { recordAuditEvent } from "@/lib/audit";
 
 export async function POST(
   request: NextRequest,
@@ -62,6 +63,15 @@ export async function POST(
   if (matchError) {
     return NextResponse.json({ error: matchError.message }, { status: 500 });
   }
+
+  await recordAuditEvent({
+    matchId: match.id,
+    challengeId: params.id,
+    actorUserId: profile.id,
+    eventType: "challenge_accepted",
+    idempotencyKey: `challenge_accepted:${params.id}`,
+    payload: { acceptedById: profile.id },
+  });
 
   return NextResponse.json({ match }, { status: 200 });
 }

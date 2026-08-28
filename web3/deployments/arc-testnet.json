@@ -1,0 +1,16 @@
+{
+  "network": "arcTestnet",
+  "chainId": 5042002,
+  "rpcUrl": "https://rpc.testnet.arc.network",
+  "explorerUrl": "https://testnet.arcscan.app",
+  "escrow": "0x263c8Eed47F11b7cd7E292139Afb5F774F033BFc",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "deployer": "0xE3E0BE01730963DB9196eb4E1060dEBd4251aEaF",
+  "operator": "0xE3E0BE01730963DB9196eb4E1060dEBd4251aEaF",
+  "arbiter": "0xE3E0BE01730963DB9196eb4E1060dEBd4251aEaF",
+  "treasury": "0xE3E0BE01730963DB9196eb4E1060dEBd4251aEaF",
+  "platformFeeBps": "500",
+  "deploymentTxHash": "0x2097e71075fab851047979f65fe4910a0fc13b4e77053f3a953da500bf9c6a30",
+  "deploymentBlock": 59242827,
+  "deployedAt": "2026-08-28T07:46:35.681Z"
+}

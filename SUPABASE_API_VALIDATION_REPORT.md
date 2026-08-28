@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Blocked at Supabase HTTP/API validation pre-seed as of 2026-08-25.
+Passed against the hosted Supabase development project on 2026-08-26.
 
 The hosted-safe migrations were manually applied in the development Supabase project in this order:
 
@@ -31,9 +31,9 @@ Result:
 - `public.match_participants`: visible
 - `public.accept_challenge` RPC: visible and returned `challenge not found` for a fake challenge id
 
-Security note: the repo migration contains `REVOKE ALL ON FUNCTION public.accept_challenge(uuid, uuid) FROM PUBLIC` and `GRANT EXECUTE ... TO service_role`. Because the preflight request path is currently using a publishable key where the service-role key should be, RPC visibility must be rechecked after the server-only service-role credential is corrected.
+Security note: the repo migration contains `REVOKE ALL ON FUNCTION public.accept_challenge(uuid, uuid) FROM PUBLIC` and `GRANT EXECUTE ... TO service_role`. The hosted validation confirmed that the configured service-role path can execute the RPC while the anonymous publishable-key path is rejected.
 
-## HTTP Validation Attempt
+## HTTP Validation Result
 
 Command:
 
@@ -41,26 +41,18 @@ Command:
 npm run test:supabase
 ```
 
-Result: failed before the HTTP login/profile/challenge flow could begin.
+Result: passed. Credentials remained server-only and were redacted from the generated report.
 
-Failure:
+- Player A, B, and C profile sync returned HTTP 200.
+- Player B accepted the seeded challenge and the database reached `accepted` with one match and two participants.
+- Ten parallel Player B/Player C acceptance races each produced one success and one controlled conflict.
+- The public lobby PostgREST read path remained readable.
+- Private invitation hashes, anonymous `accept_challenge` RPC execution, direct match/participant inserts, and direct challenge updates were rejected.
 
-```text
-SUPABASE_SERVICE_ROLE_KEY is configured with a publishable key; use a server-only service-role secret.
-```
+## Remaining Scope
 
-A sanitized credential-shape diagnostic showed that `SUPABASE_SERVICE_ROLE_KEY` is currently configured as a publishable-key class, not a service-role secret or legacy `service_role` JWT. The HTTP validation runner now fails fast before seeding so this cannot be mistaken for an application query or RLS policy regression.
-
-The local `.env.local` file also contains two `NEXT_PUBLIC_SUPABASE_URL` assignments. The validation helpers normalize this safely by selecting the last usable URL, but the duplicate should be cleaned up when the service-role credential is corrected.
-
-## Not Completed Due To Blocker
-
-The following requested HTTP validations did not run because the seed step failed first:
-
-- complete HTTP login/profile/challenge/invitation/acceptance flow
-- 10 parallel HTTP acceptance races
-- hosted RLS/PostgREST mutation checks inside the HTTP runner
-- lobby refresh validation inside the HTTP runner
+- Browser rendering and realtime delivery are separate UI checks; the validation runner verifies the lobby's public PostgREST query rather than waiting for the known slow first development compilation of `/`.
+- Escrow/operator validation is skipped until the USDC address, RPC URL, operator wallet, and operator private key are configured.
 
 ## Independent Verification Completed
 
@@ -75,25 +67,13 @@ These checks passed after the hosted HTTP blocker was identified:
 - `cd web3 && npx hardhat clean && npx hardhat compile`: passed, compiled 2 Solidity files with solc 0.8.28
 - `cd web3 && npm run test`: passed, 48 tests
 
-## Required User Action
-
-Replace the development value of `SUPABASE_SERVICE_ROLE_KEY` with a true server-only service-role credential or legacy `service_role` JWT. Do not use a publishable key for this variable.
-
-After updating `.env.local`, rerun:
+## Re-run
 
 ```bash
 node scripts/verify-supabase-schema.mjs
 npm run test:supabase
 ```
 
-The next validation pass should confirm that:
-
-- server-side game seeding bypasses RLS as intended
-- `public.accept_challenge` is not executable through anon/authenticated publishable-key clients
-- the full HTTP login/profile/challenge/invitation/acceptance flow passes
-- 10 parallel HTTP acceptance races produce one success and one controlled conflict each
-- lobby refresh validation passes
-
 ## Readiness Decision
 
-Not ready to begin escrow deposits, gameplay, settlement, or payout. Supabase HTTP integration remains blocked on the server-only service-role credential class.
+Supabase HTTP integration and PostgREST grant validation are ready. Escrow deposits, gameplay settlement, and payout validation remain blocked on the missing development escrow/operator configuration and should not be treated as verified yet.

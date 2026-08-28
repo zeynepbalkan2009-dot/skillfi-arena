@@ -5,7 +5,17 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
+    "deploy:arc-testnet": "hardhat run scripts/deploy-arc.ts --network arcTestnet",
+    "validate:arc-testnet": "node scripts/validate-arc-deployment.mjs",
+    "configure:arc-operator": "hardhat run scripts/configure-arc-operator.ts --network arcTestnet",
+    "smoke:arc-testnet": "hardhat run scripts/smoke-arc-match.ts --network arcTestnet",
+    "smoke:arc-safety": "hardhat run scripts/smoke-arc-safety-paths.ts --network arcTestnet",
+    "validate:base-sepolia": "node scripts/validate-deployment.mjs",
+    "smoke:base-sepolia": "node scripts/smoke-live-match.mjs",
+    "cancel:base-sepolia": "node scripts/cancel-match.mjs",
+    "verify-match:base-sepolia": "node scripts/verify-match.mjs"
   },
   "keywords": [],
   "author": "",

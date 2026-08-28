@@ -42,6 +42,23 @@ export const skillFiEscrowAbi = [
   },
   {
     type: "function",
+    name: "cancelMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "resolveDispute",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "matchId", type: "uint256" },
+      { name: "winner", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "matches",
     stateMutability: "view",
     inputs: [{ name: "matchId", type: "uint256" }],
@@ -54,6 +71,13 @@ export const skillFiEscrowAbi = [
       { name: "player2Deposited", type: "bool" },
       { name: "status", type: "uint8" },
     ],
+  },
+  {
+    type: "function",
+    name: "platformFeeBps",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
   },
   {
     type: "event",
@@ -92,6 +116,28 @@ export const skillFiEscrowAbi = [
       { name: "matchId", type: "uint256", indexed: true },
       { name: "winner", type: "address", indexed: true },
       { name: "prize", type: "uint256", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchCancelled",
+    inputs: [{ name: "matchId", type: "uint256", indexed: true }],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchDisputed",
+    inputs: [{ name: "matchId", type: "uint256", indexed: true }],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchRefunded",
+    inputs: [
+      { name: "matchId", type: "uint256", indexed: true },
+      { name: "player", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
     ],
     anonymous: false,
   },

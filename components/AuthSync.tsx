@@ -46,7 +46,7 @@ async function callSync(getAccessToken: () => Promise<string | null>, body?: obj
 }
 
 export function AuthSync({ children }: { children: ReactNode }) {
-  const { ready, authenticated, getAccessToken } = usePrivy();
+  const { ready, authenticated, getAccessToken, user: privyUser } = usePrivy();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfile, setNeedsProfile] = useState(false);
@@ -54,7 +54,7 @@ export function AuthSync({ children }: { children: ReactNode }) {
   // Privy can report `authenticated: true` more than once across a
   // session (token refreshes, tab refocus). Track the last state we
   // actually synced for, so we don't re-POST on every re-render.
-  const lastSyncedAuthState = useRef<boolean | null>(null);
+  const lastSyncedUserId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -63,13 +63,15 @@ export function AuthSync({ children }: { children: ReactNode }) {
       setProfile(null);
       setLoading(false);
       setNeedsProfile(false);
-      lastSyncedAuthState.current = false;
+      lastSyncedUserId.current = null;
       return;
     }
 
-    if (lastSyncedAuthState.current === true) return;
-    lastSyncedAuthState.current = true;
+    if (!privyUser?.id || lastSyncedUserId.current === privyUser.id) return;
+    lastSyncedUserId.current = privyUser.id;
 
+    setProfile(null);
+    setNeedsProfile(false);
     setLoading(true);
     callSync(getAccessToken)
       .then((user) => {
@@ -89,7 +91,7 @@ export function AuthSync({ children }: { children: ReactNode }) {
         }
       })
       .finally(() => setLoading(false));
-  }, [ready, authenticated, getAccessToken]);
+  }, [ready, authenticated, getAccessToken, privyUser?.id]);
 
   async function completeProfile(username: string, region: UserRegion) {
     const user = await callSync(getAccessToken, { username, region });

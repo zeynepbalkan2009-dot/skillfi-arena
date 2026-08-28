@@ -127,7 +127,12 @@ export function ChallengeInviteClient({
             </div>
           ) : status === "accepted" ? (
             <div className="rounded-md border border-arena-win/40 bg-arena-win/10 p-4 text-sm text-arena-win">
-              Accepted match: {creatorName} vs {acceptedName ?? profile?.username ?? "Player B"}
+              <p>Accepted match: {creatorName} vs {acceptedName ?? profile?.username ?? "Player B"}</p>
+              {match?.id && (
+                <Link href={`/matches/${match.id}`} className="mt-3 inline-block font-semibold underline underline-offset-4">
+                  View match details
+                </Link>
+              )}
             </div>
           ) : (
             <button

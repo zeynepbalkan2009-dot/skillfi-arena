@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/server";
-import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { passageForMatch, scoreTyping } from "@/lib/typingGame";
+import { recordAuditEvent } from "@/lib/audit";
+import { MatchDisputedError, settleAndReconcileMatch } from "@/lib/settlement";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as { matchId?: string; typedText?: string; elapsedMs?: number } | null;
   if (!body?.matchId || typeof body.typedText !== "string") return NextResponse.json({ error: "matchId and typedText are required" }, { status: 400 });
 
-  const { data: match, error: matchError } = await supabaseAdmin.from("matches").select("id, smart_contract_match_id, player_a_id, player_b_id, status, started_at").eq("smart_contract_match_id", body.matchId).maybeSingle();
+  const { data: match, error: matchError } = await supabaseAdmin.from("matches").select("id, smart_contract_match_id, player_a_id, player_b_id, status, winner_id, started_at").eq("smart_contract_match_id", body.matchId).maybeSingle();
   if (matchError) return NextResponse.json({ error: matchError.message }, { status: 500 });
   if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
   if (match.player_a_id !== user.id && match.player_b_id !== user.id) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
@@ -32,27 +33,54 @@ export async function POST(request: NextRequest) {
   }, { onConflict: "match_id,user_id" });
   if (submissionError) return NextResponse.json({ error: submissionError.message }, { status: 500 });
 
+  await recordAuditEvent({
+    matchId: match.id,
+    actorUserId: user.id,
+    eventType: "result_submitted",
+    idempotencyKey: `result_submitted:${match.id}:${user.id}`,
+    payload: {
+      correctChars: score.correctChars,
+      typedChars: score.typedChars,
+      wpm: score.wpm,
+      accuracy: score.accuracy,
+      elapsedMs: score.elapsedMs,
+    },
+  });
+
   const { data: submissions, error: submissionsError } = await supabaseAdmin.from("match_submissions").select("user_id, correct_chars, accuracy, wpm, elapsed_ms").eq("match_id", match.id);
   if (submissionsError) return NextResponse.json({ error: submissionsError.message }, { status: 500 });
   if ((submissions?.length ?? 0) < 2) return NextResponse.json({ status: "waiting_for_opponent", score });
 
   const ranked = [...(submissions ?? [])].sort((a, b) => b.correct_chars - a.correct_chars || Number(b.accuracy) - Number(a.accuracy) || Number(b.wpm) - Number(a.wpm));
   const winnerId = ranked[0].user_id;
-  await supabaseAdmin.from("matches").update({ status: "settling", winner_id: winnerId }).eq("id", match.id).in("status", ["active", "settling"]);
+  const { data: settlementMatch, error: decisionError } = await supabaseAdmin
+    .from("matches")
+    .update({ status: "settling", winner_id: winnerId })
+    .eq("id", match.id)
+    .in("status", ["active", "settling"])
+    .or(`winner_id.is.null,winner_id.eq.${winnerId}`)
+    .select("id,smart_contract_match_id,player_a_id,player_b_id,status,winner_id")
+    .maybeSingle();
+  if (decisionError) return NextResponse.json({ error: decisionError.message }, { status: 500 });
+  if (!settlementMatch) return NextResponse.json({ error: "Settlement decision conflict" }, { status: 409 });
 
-  const matchId = BigInt(body.matchId);
-  const onchain = await escrowPublicClient.readContract({ address: ESCROW_CONTRACT_ADDRESS, abi: skillFiEscrowAbi, functionName: "matches", args: [matchId] });
-  const winnerWallet = (winnerId === match.player_a_id ? onchain[0] : onchain[1]) as `0x${string}`;
-  if (Number(onchain[6]) === 3) {
-    const escrowWalletClient = getEscrowWalletClient();
-    const settlementHash = await escrowWalletClient.writeContract({ address: ESCROW_CONTRACT_ADDRESS, abi: skillFiEscrowAbi, functionName: "resolveMatch", args: [matchId, winnerWallet] });
-    const settlementReceipt = await escrowPublicClient.waitForTransactionReceipt({ hash: settlementHash });
-    if (settlementReceipt.status !== "success") return NextResponse.json({ error: "Settlement transaction reverted", status: "settling" }, { status: 502 });
-  } else if (Number(onchain[6]) !== 4) {
-    return NextResponse.json({ error: `Unexpected on-chain match state ${Number(onchain[6])}` }, { status: 409 });
+  await recordAuditEvent({
+    matchId: match.id,
+    actorUserId: user.id,
+    eventType: "settlement_decided",
+    idempotencyKey: `settlement_decided:${match.id}`,
+    payload: { winnerId, ranking: ranked.map((entry) => entry.user_id) },
+  });
+
+  try {
+    const settlement = await settleAndReconcileMatch(settlementMatch, user.id);
+    return NextResponse.json({ ...settlement, score });
+  } catch (error) {
+    if (error instanceof MatchDisputedError) {
+      await supabaseAdmin.from("matches").update({ status: "disputed" }).eq("id", match.id);
+      return NextResponse.json({ error: error.message, status: "disputed" }, { status: 409 });
+    }
+    const message = error instanceof Error ? error.message : "Settlement failed";
+    return NextResponse.json({ error: message, status: "settling" }, { status: 502 });
   }
-
-  const { error: completeError } = await supabaseAdmin.from("matches").update({ status: "completed", winner_id: winnerId }).eq("id", match.id);
-  if (completeError) return NextResponse.json({ error: completeError.message }, { status: 500 });
-  return NextResponse.json({ status: "completed", winnerId, score });
 }
