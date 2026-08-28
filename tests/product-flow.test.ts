@@ -221,7 +221,12 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(credentialService, /expires_at/);
   assert.match(credentialAdmin, /Copy this key now\. It will not be shown again\./);
   assert.match(credentialAdmin, /Credentials require a sandbox or published studio game/);
-  assert.doesNotMatch(credentialOwner, /secret_hash|secret:/);
+  const credentialOwnerGet = credentialOwner.slice(0, credentialOwner.indexOf("export async function POST"));
+  assert.doesNotMatch(credentialOwnerGet, /secret_hash|secret:/);
+  assert.match(credentialOwner, /\.eq\("owner_user_id", user\.id\)/);
+  assert.match(credentialOwner, /\.eq\("studio_id", studio\.id\)/);
+  assert.match(credentialOwner, /Copy this key now\. It will not be shown again\./);
+  assert.match(credentialOwner, /game_credential_revoked/);
   assert.match(integrationGame, /authenticateGameApiKey/);
   assert.match(integrationGame, /"game:read"/);
   const integrationResult = readFileSync(join(root, "app/api/integrations/v1/results/route.ts"), "utf8");
@@ -238,4 +243,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(integrationResult, /external_result_accepted/);
   assert.match(integrationResult, /settleAndReconcileMatch/);
   assert.match(integrationDocs, /exact raw JSON body/);
+  assert.match(portal, /Create integration key/);
+  assert.match(portal, /Copy your new key now/);
+  assert.match(portal, /Confirm revoke/);
 });
