@@ -16,6 +16,7 @@
     "list:disputes": "node scripts/list-disputes.mjs",
     "test:studio": "node scripts/studio-validation.mjs",
     "test:studio:fixture": "node scripts/studio-live-fixture.mjs",
+    "test:studio:payment": "node scripts/studio-payment-readiness.mjs",
     "resolve:dispute": "node scripts/resolve-dispute.mjs",
     "start": "next start",
     "lint": "next lint"
