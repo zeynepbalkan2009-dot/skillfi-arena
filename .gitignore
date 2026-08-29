@@ -4,6 +4,7 @@ node_modules/
 # Next.js
 .next/
 .next-codex-backup-*/
+.next.stale-*/
 out/
 
 # TypeScript
