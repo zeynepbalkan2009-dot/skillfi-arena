@@ -15,6 +15,7 @@
     "test:cancellation": "node scripts/cancellation-validation.mjs",
     "list:disputes": "node scripts/list-disputes.mjs",
     "test:studio": "node scripts/studio-validation.mjs",
+    "test:studio:fixture": "node scripts/studio-live-fixture.mjs",
     "resolve:dispute": "node scripts/resolve-dispute.mjs",
     "start": "next start",
     "lint": "next lint"
