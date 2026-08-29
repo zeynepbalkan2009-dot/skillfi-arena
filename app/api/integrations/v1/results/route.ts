@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
   if (matchError || !match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
   if (match.game_id !== game.id) return NextResponse.json({ error: "Credential cannot submit results for this game" }, { status: 403 });
   if (!match.player_b_id || !['active', 'settling', 'completed'].includes(match.status)) return NextResponse.json({ error: "Match is not ready for an external result" }, { status: 409 });
+  const isSandboxMatch = game.integration_status === "sandbox" && !match.smart_contract_match_id;
+  if (!isSandboxMatch && !match.smart_contract_match_id) return NextResponse.json({ error: "Published game results require an on-chain match" }, { status: 409 });
   const { data: players, error: playerError } = await supabaseAdmin.from("users").select("id,wallet_address").in("id", [match.player_a_id, match.player_b_id]);
   if (playerError || players?.length !== 2) return NextResponse.json({ error: "Match participants are unavailable" }, { status: 409 });
   const playerRows = players as Array<{ id: string; wallet_address: string | null }>;
@@ -60,6 +62,13 @@ export async function POST(request: NextRequest) {
     if (updateError) return NextResponse.json({ error: "Could not lock external result" }, { status: 500 });
   }
   await recordAuditEvent({ matchId: match.id, actorUserId: null, eventType: "external_result_accepted", idempotencyKey: `external_result_accepted:${game.id}:${eventId}`, payload: { studioId: game.studio_id, gameId: game.id, credentialId: credential.id, winnerId: winner.id, payloadHash, occurredAt: occurredAt.toISOString() } });
+  if (isSandboxMatch) {
+    const { error: completeError } = await supabaseAdmin.from("matches").update({ status: "completed", winner_id: winner.id })
+      .eq("id", match.id).eq("winner_id", winner.id).in("status", ["settling", "completed"]);
+    if (completeError) return NextResponse.json({ error: "Could not complete sandbox match" }, { status: 500 });
+    await recordAuditEvent({ matchId: match.id, actorUserId: null, eventType: "sandbox_match_completed", idempotencyKey: `sandbox_match_completed:${match.id}`, payload: { studioId: game.studio_id, gameId: game.id, winnerId: winner.id, payout: "0" } });
+    return NextResponse.json({ status: "completed", matchId: match.id, winnerId: winner.id, settlementHash: null, sandbox: true });
+  }
   const settlement = await settleAndReconcileMatch({ ...match, status: match.status === "completed" ? "completed" : "settling", winner_id: winner.id }, null);
   return NextResponse.json({ status: settlement.status, matchId: match.id, winnerId: winner.id, settlementHash: settlement.settlementHash });
 }

@@ -238,6 +238,9 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(credentialService, /timingSafeEqual/);
   assert.match(credentialService, /5 \* 60 \* 1000/);
   assert.match(integrationResult, /"results:write"/);
+  assert.match(integrationResult, /game\.integration_status === "sandbox" && !match\.smart_contract_match_id/);
+  assert.match(integrationResult, /Published game results require an on-chain match/);
+  assert.match(integrationResult, /eventType: "sandbox_match_completed"/);
   assert.match(integrationResult, /Credential cannot submit results for this game/);
   assert.match(integrationResult, /Winner wallet is not a match participant/);
   assert.match(integrationResult, /external_result_accepted/);
