@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
   if (!match.player_b_id || !['active', 'settling', 'completed'].includes(match.status)) return NextResponse.json({ error: "Match is not ready for an external result" }, { status: 409 });
   const { data: players, error: playerError } = await supabaseAdmin.from("users").select("id,wallet_address").in("id", [match.player_a_id, match.player_b_id]);
   if (playerError || players?.length !== 2) return NextResponse.json({ error: "Match participants are unavailable" }, { status: 409 });
-  const winner = players.find((player) => player.wallet_address && getAddress(player.wallet_address) === winnerWallet);
+  const playerRows = players as Array<{ id: string; wallet_address: string | null }>;
+  const winner = playerRows.find((player) => player.wallet_address && getAddress(player.wallet_address) === winnerWallet);
   if (!winner) return NextResponse.json({ error: "Winner wallet is not a match participant" }, { status: 400 });
   const payloadHash = createHash("sha256").update(rawBody, "utf8").digest("hex");
   const submission = { game_id: game.id, studio_id: game.studio_id, credential_id: credential.id, match_id: match.id, event_id: eventId, winner_user_id: winner.id, payload_hash: payloadHash, source_occurred_at: occurredAt.toISOString() };
@@ -62,4 +63,3 @@ export async function POST(request: NextRequest) {
   const settlement = await settleAndReconcileMatch({ ...match, status: match.status === "completed" ? "completed" : "settling", winner_id: winner.id }, null);
   return NextResponse.json({ status: settlement.status, matchId: match.id, winnerId: winner.id, settlementHash: settlement.settlementHash });
 }
-
