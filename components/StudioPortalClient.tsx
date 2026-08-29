@@ -25,6 +25,7 @@ export function StudioPortalClient() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [pendingFeeTxHash, setPendingFeeTxHash] = useState<`0x${string}` | null>(null);
 
   const load = useCallback(async () => {
     const token = await getAccessToken();
@@ -42,6 +43,32 @@ export function StudioPortalClient() {
   }, [getAccessToken]);
 
   useEffect(() => { if (authenticated) void load().catch((error) => setMessage(error.message)); }, [authenticated, load]);
+  useEffect(() => {
+    if (!data?.studio) return;
+    const stored = window.localStorage.getItem(`studio-fee-tx:${data.studio.id}`);
+    setPendingFeeTxHash(stored?.match(/^0x[0-9a-fA-F]{64}$/) ? stored as `0x${string}` : null);
+  }, [data?.studio]);
+
+  async function verifyFee(hash: `0x${string}`) {
+    if (!data?.studio) throw new Error("Studio is not loaded");
+    let response: Response | null = null;
+    let body: Record<string, unknown> = {};
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const token = await getAccessToken();
+      if (!token) throw new Error("Your session expired. Log in again, then retry payment verification.");
+      response = await fetch("/api/studios/fee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ studioId: data.studio.id, txHash: hash }),
+      });
+      body = await response.json().catch(() => ({}));
+      if (response.status !== 401) break;
+    }
+    if (!response?.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not verify listing fee");
+    window.localStorage.removeItem(`studio-fee-tx:${data.studio.id}`);
+    setPendingFeeTxHash(null);
+    await load();
+  }
 
   async function createStudio(event: FormEvent) {
     event.preventDefault(); setBusy(true); setMessage(null);
@@ -73,12 +100,18 @@ export function StudioPortalClient() {
     try {
       const hash = await writeContractAsync({ address: USDC_TOKEN_ADDRESS, abi: erc20Abi, functionName: "transfer", args: [data.fee.treasury, BigInt(data.fee.amount)] });
       await publicClient.waitForTransactionReceipt({ hash });
-      const token = await getAccessToken();
-      const response = await fetch("/api/studios/fee", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ studioId: data.studio.id, txHash: hash }) });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error ?? "Could not verify listing fee");
-      await load(); setMessage("Listing fee confirmed. Your studio is now awaiting review.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Listing fee failed"); }
+      window.localStorage.setItem(`studio-fee-tx:${data.studio.id}`, hash);
+      setPendingFeeTxHash(hash);
+      await verifyFee(hash); setMessage("Listing fee confirmed. Your studio is now awaiting review.");
+    } catch (error) { setMessage(`${error instanceof Error ? error.message : "Listing fee failed"} If the wallet transaction completed, use Retry payment verification; do not pay again.`); }
+    finally { setBusy(false); }
+  }
+
+  async function retryFeeVerification() {
+    if (!pendingFeeTxHash) return;
+    setBusy(true); setMessage(null);
+    try { await verifyFee(pendingFeeTxHash); setMessage("Existing listing fee transaction confirmed. Your studio is now awaiting review."); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Could not verify existing payment"); }
     finally { setBusy(false); }
   }
 
@@ -135,7 +168,7 @@ export function StudioPortalClient() {
         ) : (
           <div className="mt-8 grid gap-6">
             <section className="rounded-xl border border-arena-border bg-arena-surface p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-2xl font-bold">{data.studio.name}</h2><p className="mt-1 text-sm capitalize text-arena-muted">Status: {data.studio.status.replaceAll("_", " ")}</p></div>{data.studio.status === "pending_payment" && <button type="button" onClick={payFee} disabled={busy || !address} className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-arena-bg disabled:opacity-50">Pay {data.fee.displayAmount} USDC</button>}</div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-2xl font-bold">{data.studio.name}</h2><p className="mt-1 text-sm capitalize text-arena-muted">Status: {data.studio.status.replaceAll("_", " ")}</p></div>{data.studio.status === "pending_payment" && (pendingFeeTxHash ? <button type="button" onClick={retryFeeVerification} disabled={busy} className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-arena-bg disabled:opacity-50">Retry payment verification</button> : <button type="button" onClick={payFee} disabled={busy || !address} className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-arena-bg disabled:opacity-50">Pay {data.fee.displayAmount} USDC</button>)}</div>
               <p className="mt-4 text-xs text-arena-muted">Testnet listing payment is separate from player stakes and match escrow.</p>
             </section>
             <form onSubmit={createGame} className="space-y-4 rounded-xl border border-arena-border bg-arena-surface p-6">
