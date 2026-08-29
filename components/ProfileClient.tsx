@@ -84,8 +84,8 @@ export function ProfileClient() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <Link href="/" className="text-sm font-medium text-arena-muted hover:text-arena-text">
-          Back to lobby
+        <Link href="/dashboard" className="text-sm font-medium text-arena-muted hover:text-arena-text">
+          Back to dashboard
         </Link>
         <WalletConnect />
       </div>

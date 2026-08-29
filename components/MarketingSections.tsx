@@ -17,7 +17,7 @@ export function MarketingHero() {
               SkillFi Arena turns competitive matches into transparent peer-to-peer payment agreements—with equal deposits, non-custodial escrow, and verifiable settlement.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a href="#arena" className="rounded-lg bg-arena-accent px-6 py-3 text-center text-sm font-bold text-arena-bg transition hover:-translate-y-0.5 hover:bg-cyan-300">Enter the arena</a>
+              <a href="/dashboard" className="rounded-lg bg-arena-accent px-6 py-3 text-center text-sm font-bold text-arena-bg transition hover:-translate-y-0.5 hover:bg-cyan-300">Enter the arena</a>
               <a href="#technology" className="rounded-lg border border-arena-border bg-white/[0.03] px-6 py-3 text-center text-sm font-semibold text-white transition hover:border-slate-500 hover:bg-white/[0.06]">Explore the protocol</a>
             </div>
             <p className="mt-5 text-xs leading-5 text-arena-muted">Testnet product. No promise of returns. Availability is subject to eligibility and applicable law.</p>
@@ -62,7 +62,7 @@ export function PilotSection() {
   const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
   const contactHref = contactEmail
     ? `mailto:${contactEmail}?subject=SkillFi%20Arena%20Pilot`
-    : "#arena";
+    : "/pilot";
 
   return (
     <section className="border-t border-white/5">
