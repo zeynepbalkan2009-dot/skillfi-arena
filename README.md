@@ -14,6 +14,14 @@ npm run test:load:100
 
 Set `SKILLFI_LOAD_URL` to test an authorized staging deployment. The load script does not create users, matches, financial transactions, or other persistent data. Passing it validates the listed public page requests under one local burst; it is not evidence that wallet, database, settlement, or real-world 100-player behavior has been fully load-tested.
 
+To validate 100 player records, 10 guilds, 100 memberships, 10 proposals, and 100 votes in an isolated disposable PostgreSQL instance:
+
+```bash
+npm run test:guild:100
+```
+
+See `PILOT_READINESS.md` for the exact test boundary, IP-safety controls, and the remaining legal/product gates before any paid public competition.
+
 Production MVP workspace for SkillFi Arena: a Next.js Web3 esports lobby with Privy identity, Supabase-backed application data, Wagmi/Viem contract interactions, and a consolidated Hardhat smart-contract workspace.
 
 ## Workspaces
