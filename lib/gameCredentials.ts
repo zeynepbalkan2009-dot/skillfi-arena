@@ -7,6 +7,7 @@ export type GameCredential = {
   id: string;
   game_id: string;
   studio_id: string;
+  key_prefix: string;
   scopes: string[];
   revoked_at: string | null;
   expires_at: string | null;
@@ -42,7 +43,7 @@ export async function authenticateGameApiKey(authorization: string | null, requi
   const secret = readBearerSecret(authorization);
   if (!secret) return null;
   const { data, error } = await supabaseAdmin.from("game_api_credentials")
-    .select("id,game_id,studio_id,scopes,revoked_at,expires_at").eq("secret_hash", hashGameApiKey(secret)).maybeSingle();
+    .select("id,game_id,studio_id,key_prefix,scopes,revoked_at,expires_at").eq("secret_hash", hashGameApiKey(secret)).maybeSingle();
   if (error || !data || data.revoked_at || !data.scopes?.includes(requiredScope)) return null;
   if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null;
   await supabaseAdmin.from("game_api_credentials").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);

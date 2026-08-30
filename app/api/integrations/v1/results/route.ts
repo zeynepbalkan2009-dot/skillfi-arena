@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
 
   const { data: game } = await supabaseAdmin.from("games").select("id,studio_id,integration_status").eq("id", credential.game_id).eq("studio_id", credential.studio_id).maybeSingle();
   if (!game || !['sandbox', 'published'].includes(game.integration_status)) return NextResponse.json({ error: "Game integration is not active" }, { status: 409 });
+  if (game.integration_status === "published" && !credential.key_prefix.startsWith("sk_live_")) {
+    return NextResponse.json({ error: "Published games require a live integration key" }, { status: 401 });
+  }
   const { data: match, error: matchError } = await supabaseAdmin.from("matches")
     .select("id,smart_contract_match_id,game_id,player_a_id,player_b_id,status,winner_id").eq("id", body.matchId).maybeSingle();
   if (matchError || !match) return NextResponse.json({ error: "Match not found" }, { status: 404 });

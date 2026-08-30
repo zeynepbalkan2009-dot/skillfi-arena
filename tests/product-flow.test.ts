@@ -208,6 +208,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(adminRoute, /Move the game through sandbox before publishing/);
   assert.match(adminRoute, /contains\("scopes", \["results:write"\]\)/);
   assert.match(adminRoute, /Complete at least one accepted sandbox result before publishing/);
+  assert.match(adminRoute, /Could not retire sandbox credentials/);
+  assert.match(adminRoute, /revokedSandboxCredentialCount/);
   assert.match(adminRoute, /readyToPublish: hasActiveResultsCredential && acceptedResultCount > 0/);
   assert.match(portal, /Result submissions/);
   assert.match(adminRoute, /is_active: body\.decision === "published"/);
@@ -234,6 +236,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(credentialOwner, /game_credential_revoked/);
   assert.match(integrationGame, /authenticateGameApiKey/);
   assert.match(integrationGame, /"game:read"/);
+  assert.match(integrationGame, /Published games require a live integration key/);
   const integrationResult = readFileSync(join(root, "app/api/integrations/v1/results/route.ts"), "utf8");
   const studioResults = readFileSync(join(root, "app/api/studios/results/route.ts"), "utf8");
   const integrationDocs = readFileSync(join(root, "INTEGRATION_API.md"), "utf8");
@@ -246,6 +249,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(integrationResult, /"results:write"/);
   assert.match(integrationResult, /game\.integration_status === "sandbox" && !match\.smart_contract_match_id/);
   assert.match(integrationResult, /Published game results require an on-chain match/);
+  assert.match(integrationResult, /Published games require a live integration key/);
   assert.match(integrationResult, /eventType: "sandbox_match_completed"/);
   assert.match(studioResults, /eq\("owner_user_id", user\.id\)/);
   assert.match(studioResults, /eq\("studio_id", studio\.id\)/);
