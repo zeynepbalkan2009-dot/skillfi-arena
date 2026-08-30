@@ -47,6 +47,11 @@ for (const table of [
   "challenges",
   "challenge_participants",
   "match_participants",
+  "guilds",
+  "guild_members",
+  "guild_proposals",
+  "guild_votes",
+  "guild_treasury_events",
 ]) {
   const result = await service.from(table).select("*", { head: true, count: "exact" }).limit(1);
   checks.push({ object: `public.${table}`, ok: !result.error, error: result.error?.message ?? null });

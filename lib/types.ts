@@ -139,3 +139,42 @@ export interface Studio {
   created_at: string;
   updated_at: string;
 }
+
+export type GuildRole = "owner" | "officer" | "member";
+export type GuildJoinPolicy = "open" | "approval" | "invite";
+export type GuildProposalType = "strategy" | "treasury" | "membership";
+export type GuildProposalStatus = "active" | "passed" | "rejected" | "executed" | "cancelled";
+export type GuildVoteChoice = "for" | "against" | "abstain";
+
+export interface Guild {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  emblem: string;
+  owner_user_id: string;
+  join_policy: GuildJoinPolicy;
+  treasury_balance: string;
+  season_influence: number;
+  created_at: string;
+  updated_at: string;
+  member_count?: number;
+  current_user_role?: GuildRole | null;
+}
+
+export interface GuildProposal {
+  id: string;
+  guild_id: string;
+  proposer_user_id: string;
+  title: string;
+  description: string;
+  proposal_type: GuildProposalType;
+  amount: string | null;
+  status: GuildProposalStatus;
+  closes_at: string;
+  created_at: string;
+  votes_for?: number;
+  votes_against?: number;
+  votes_abstain?: number;
+  current_user_vote?: GuildVoteChoice | null;
+}
