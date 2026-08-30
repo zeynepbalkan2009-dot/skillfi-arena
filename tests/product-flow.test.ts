@@ -191,6 +191,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(migration, /create table if not exists public\.studio_fee_payments/);
   assert.match(migration, /integration_status = 'published'/);
   assert.match(studioRoute, /owner_user_id: user\.id/);
+  assert.match(studioRoute, /export async function PUT/);
+  assert.match(studioRoute, /eventType: "studio_resubmitted"/);
   assert.match(gameRoute, /integration_status: "draft"/);
   assert.match(gameRoute, /is_active: false/);
   assert.match(feeRoute, /Only the studio owner can pay/);
@@ -214,6 +216,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(adminRoute, /readyToPublish: hasActiveResultsCredential && acceptedResultCount > 0/);
   assert.match(adminRoute, /A review note of at least 3 characters is required/);
   assert.match(studioRoute, /Could not load review feedback/);
+  assert.match(studioRoute, /\['rejected', 'suspended'\]\.includes\(currentStatus/);
   assert.match(portal, /Review feedback:/);
   assert.match(reviewPortal, /Review note \(required to reject\)/);
   assert.match(portal, /Result submissions/);
@@ -225,6 +228,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(gameRoute, /eventType: "game_draft_updated"/);
   assert.match(portal, /Edit draft/);
   assert.match(portal, /Save changes/);
+  assert.match(portal, /Revise application/);
+  assert.match(portal, /Resubmit application/);
   const credentialService = readFileSync(join(root, "lib/gameCredentials.ts"), "utf8");
   const credentialAdmin = readFileSync(join(root, "app/api/admin/studios/credentials/route.ts"), "utf8");
   const credentialOwner = readFileSync(join(root, "app/api/studios/credentials/route.ts"), "utf8");

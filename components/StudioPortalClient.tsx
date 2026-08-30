@@ -22,6 +22,7 @@ export function StudioPortalClient() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [studioDraft, setStudioDraft] = useState({ name: "", websiteUrl: "", contactEmail: "" });
+  const [editingStudio, setEditingStudio] = useState<{ name: string; websiteUrl: string; contactEmail: string } | null>(null);
   const [gameDraft, setGameDraft] = useState({ name: "", type: "web2", description: "", websiteUrl: "" });
   const [editingGame, setEditingGame] = useState<{ id: string; name: string; type: string; description: string; websiteUrl: string } | null>(null);
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -88,6 +89,20 @@ export function StudioPortalClient() {
       if (!response.ok) throw new Error(body.error ?? "Could not create studio");
       await load(); setMessage("Studio account created. Add your first game and complete the testnet listing fee.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not create studio"); }
+    finally { setBusy(false); }
+  }
+
+  async function resubmitStudio(event: FormEvent) {
+    event.preventDefault();
+    if (!editingStudio) return;
+    setBusy(true); setMessage(null);
+    try {
+      const token = await getAccessToken();
+      const response = await fetch("/api/studios", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editingStudio) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error ?? "Could not resubmit studio application");
+      setEditingStudio(null); await load(); setMessage("Studio application updated and resubmitted for review.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not resubmit studio application"); }
     finally { setBusy(false); }
   }
 
@@ -193,7 +208,8 @@ export function StudioPortalClient() {
             <section className="rounded-xl border border-arena-border bg-arena-surface p-6">
               <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-2xl font-bold">{data.studio.name}</h2><p className="mt-1 text-sm capitalize text-arena-muted">Status: {data.studio.status.replaceAll("_", " ")}</p></div>{data.studio.status === "pending_payment" && (pendingFeeTxHash ? <button type="button" onClick={retryFeeVerification} disabled={busy} className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-arena-bg disabled:opacity-50">Retry payment verification</button> : <button type="button" onClick={payFee} disabled={busy || !address} className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-arena-bg disabled:opacity-50">Pay {data.fee.displayAmount} USDC</button>)}</div>
               <p className="mt-4 text-xs text-arena-muted">Testnet listing payment is separate from player stakes and match escrow.</p>
-              {data.reviewFeedback.find((feedback) => !feedback.gameId) && <p className="mt-4 rounded-md border border-arena-danger/40 bg-arena-danger/10 p-3 text-sm text-arena-danger">Review feedback: {data.reviewFeedback.find((feedback) => !feedback.gameId)?.note}</p>}
+              {['rejected', 'suspended'].includes(data.studio.status) && data.reviewFeedback.find((feedback) => !feedback.gameId) && <p className="mt-4 rounded-md border border-arena-danger/40 bg-arena-danger/10 p-3 text-sm text-arena-danger">Review feedback: {data.reviewFeedback.find((feedback) => !feedback.gameId)?.note}</p>}
+              {data.studio.status === "rejected" && (editingStudio ? <form onSubmit={resubmitStudio} className="mt-4 grid gap-3"><input required minLength={2} maxLength={80} value={editingStudio.name} onChange={(event) => setEditingStudio({ ...editingStudio, name: event.target.value })} className="rounded-md border border-arena-border bg-arena-bg px-3 py-2" /><input type="url" placeholder="Website (optional)" value={editingStudio.websiteUrl} onChange={(event) => setEditingStudio({ ...editingStudio, websiteUrl: event.target.value })} className="rounded-md border border-arena-border bg-arena-bg px-3 py-2" /><input type="email" placeholder="Contact email" value={editingStudio.contactEmail} onChange={(event) => setEditingStudio({ ...editingStudio, contactEmail: event.target.value })} className="rounded-md border border-arena-border bg-arena-bg px-3 py-2" /><div className="flex gap-2"><button disabled={busy} className="rounded-md bg-arena-accent px-3 py-2 text-xs font-semibold text-arena-bg">Resubmit application</button><button type="button" onClick={() => setEditingStudio(null)} className="rounded-md border border-arena-border px-3 py-2 text-xs">Cancel</button></div></form> : <button type="button" onClick={() => setEditingStudio({ name: data.studio!.name, websiteUrl: data.studio!.website_url ?? "", contactEmail: data.studio!.contact_email ?? "" })} className="mt-4 rounded-md border border-arena-accent-dim px-3 py-2 text-xs text-arena-accent">Revise application</button>)}
             </section>
             <form onSubmit={createGame} className="space-y-4 rounded-xl border border-arena-border bg-arena-surface p-6">
               <h2 className="font-display text-xl font-bold">Add a game draft</h2>

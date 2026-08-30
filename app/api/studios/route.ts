@@ -23,8 +23,11 @@ export async function GET(request: NextRequest) {
       .in("event_type", ["studio_rejected", "studio_suspended", "game_rejected", "game_suspended"]).order("created_at", { ascending: false })
     : { data: [], error: null };
   if (reviewError) return NextResponse.json({ error: "Could not load review feedback" }, { status: 500 });
+  const gameStatuses = new Map((games ?? []).map((game: { id: string; integration_status: string | null }) => [game.id, game.integration_status]));
   const reviewEventRows = (reviewEvents ?? []) as Array<{ game_id: string | null; event_type: string; payload: unknown; created_at: string }>;
   const reviewFeedback = reviewEventRows.flatMap((event) => {
+    const currentStatus = event.game_id ? gameStatuses.get(event.game_id) : studio?.status;
+    if (!['rejected', 'suspended'].includes(currentStatus ?? "")) return [];
     const payload = event.payload as { note?: unknown } | null;
     return typeof payload?.note === "string" && payload.note.trim()
       ? [{ gameId: event.game_id, eventType: event.event_type, note: payload.note.trim(), createdAt: event.created_at }]
@@ -57,4 +60,25 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.code === "23505" ? "A studio already exists for this account or name" : "Could not create studio" }, { status: 409 });
   await recordStudioAudit({ studioId: data.id, actorUserId: user.id, eventType: "studio_created", idempotencyKey: `studio_created:${data.id}`, payload: { name: data.name } });
   return NextResponse.json({ studio: data }, { status: 201 });
+}
+
+export async function PUT(request: NextRequest) {
+  const user = await getCurrentProfile(request.headers.get("authorization"));
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = (await request.json().catch(() => null)) as { name?: string; websiteUrl?: string; contactEmail?: string } | null;
+  const name = body?.name?.trim() ?? "";
+  const slug = normalizeStudioSlug(name);
+  if (name.length < 2 || name.length > 80 || slug.length < 2 || slug.length > 80) return NextResponse.json({ error: "Studio name must be between 2 and 80 characters" }, { status: 400 });
+  let websiteUrl: string | null;
+  try { websiteUrl = optionalUrl(body?.websiteUrl); }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid website" }, { status: 400 }); }
+  const contactEmail = body?.contactEmail?.trim().toLowerCase() || user.email || null;
+  if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) return NextResponse.json({ error: "Enter a valid contact email" }, { status: 400 });
+  const { data: studio, error } = await supabaseAdmin.from("studios").update({
+    name, slug, website_url: websiteUrl, contact_email: contactEmail, status: "pending_review",
+  }).eq("owner_user_id", user.id).eq("status", "rejected").select("*").maybeSingle();
+  if (error) return NextResponse.json({ error: error.code === "23505" ? "A studio with this name already exists" : "Could not update studio application" }, { status: 409 });
+  if (!studio) return NextResponse.json({ error: "Only a rejected studio application can be revised" }, { status: 409 });
+  await recordStudioAudit({ studioId: studio.id, actorUserId: user.id, eventType: "studio_resubmitted", idempotencyKey: `studio_resubmitted:${studio.id}:${crypto.randomUUID()}`, payload: { name: studio.name } });
+  return NextResponse.json({ studio });
 }

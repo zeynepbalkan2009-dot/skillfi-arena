@@ -64,6 +64,6 @@ export async function PATCH(request: NextRequest) {
     .eq("id", body.gameId).eq("studio_id", studio.id).eq("integration_status", "draft").select("*").maybeSingle();
   if (error) return NextResponse.json({ error: "Could not submit game" }, { status: 500 });
   if (!game) return NextResponse.json({ error: "Only a draft game can be submitted" }, { status: 409 });
-  await recordStudioAudit({ studioId: studio.id, gameId: game.id, actorUserId: user.id, eventType: "game_submitted", idempotencyKey: `game_submitted:${game.id}` });
+  await recordStudioAudit({ studioId: studio.id, gameId: game.id, actorUserId: user.id, eventType: "game_submitted", idempotencyKey: `game_submitted:${game.id}:${crypto.randomUUID()}` });
   return NextResponse.json({ game });
 }
