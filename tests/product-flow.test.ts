@@ -205,6 +205,9 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(adminGuard, /STUDIO_ADMIN_USER_IDS/);
   assert.match(adminGuard, /OPERATOR_WALLET_ADDRESS/);
   assert.match(adminRoute, /Approve the studio before publishing its game/);
+  assert.match(adminRoute, /Move the game through sandbox before publishing/);
+  assert.match(adminRoute, /contains\("scopes", \["results:write"\]\)/);
+  assert.match(adminRoute, /Complete at least one accepted sandbox result before publishing/);
   assert.match(adminRoute, /is_active: body\.decision === "published"/);
   assert.match(gameRoute, /Pay the listing fee before submitting a game/);
   assert.match(gameRoute, /eventType: "game_submitted"/);
