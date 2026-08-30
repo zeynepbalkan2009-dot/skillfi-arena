@@ -12,9 +12,8 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentProfile(request.headers.get("authorization"));
   const { data, error } = await supabaseAdmin.from("guilds").select("*").order("season_influence", { ascending: false });
   if (error) {
-    console.error("Guild list query failed", { code: error.code, message: error.message, details: error.details });
     const setupRequired = error.code === "42P01" || error.code === "PGRST205";
-    return NextResponse.json({ error: setupRequired ? "Guild database migration is pending" : "Could not load guilds", setupRequired, diagnostic: error.code ?? "unknown" }, { status: 503 });
+    return NextResponse.json({ error: setupRequired ? "Guild database migration is pending" : "Could not load guilds", setupRequired }, { status: 503 });
   }
   const guilds = (data ?? []) as Guild[];
   const ids = guilds.map((guild) => guild.id);
