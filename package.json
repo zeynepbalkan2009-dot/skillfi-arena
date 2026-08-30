@@ -18,6 +18,7 @@
     "test:studio:fixture": "node scripts/studio-live-fixture.mjs",
     "test:studio:payment": "node scripts/studio-payment-readiness.mjs",
     "test:studio:result": "node scripts/studio-result-smoke.mjs",
+    "test:load:100": "node scripts/load-test-100.mjs",
     "resolve:dispute": "node scripts/resolve-dispute.mjs",
     "start": "next start",
     "lint": "next lint"

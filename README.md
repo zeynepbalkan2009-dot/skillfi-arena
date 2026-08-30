@@ -1,5 +1,19 @@
 # SkillFi Arena
 
+## Five-game test pilot
+
+The `/pilot/games` lab contains five original, deterministic skill-game prototypes: Typing Sprint, Arithmetic Rush, Sequence Recall, Pattern Lock, and Logic Grid. It intentionally uses no deposits, prizes, or blockchain transactions.
+
+To validate 100 concurrent read-only pilot visits against a running production build:
+
+```bash
+npm run build
+npm start
+npm run test:load:100
+```
+
+Set `SKILLFI_LOAD_URL` to test an authorized staging deployment. The load script does not create users, matches, financial transactions, or other persistent data. Passing it validates the listed public page requests under one local burst; it is not evidence that wallet, database, settlement, or real-world 100-player behavior has been fully load-tested.
+
 Production MVP workspace for SkillFi Arena: a Next.js Web3 esports lobby with Privy identity, Supabase-backed application data, Wagmi/Viem contract interactions, and a consolidated Hardhat smart-contract workspace.
 
 ## Workspaces
