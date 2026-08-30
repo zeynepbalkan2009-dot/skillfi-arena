@@ -215,6 +215,11 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(adminRoute, /is_active: body\.decision === "published"/);
   assert.match(gameRoute, /Pay the listing fee before submitting a game/);
   assert.match(gameRoute, /eventType: "game_submitted"/);
+  assert.match(gameRoute, /export async function PUT/);
+  assert.match(gameRoute, /\["draft", "rejected"\]/);
+  assert.match(gameRoute, /eventType: "game_draft_updated"/);
+  assert.match(portal, /Edit draft/);
+  assert.match(portal, /Save changes/);
   const credentialService = readFileSync(join(root, "lib/gameCredentials.ts"), "utf8");
   const credentialAdmin = readFileSync(join(root, "app/api/admin/studios/credentials/route.ts"), "utf8");
   const credentialOwner = readFileSync(join(root, "app/api/studios/credentials/route.ts"), "utf8");
