@@ -64,12 +64,14 @@ export async function PATCH(request: NextRequest) {
     if (body.decision === "published") {
       const [{ count: resultCount, error: resultError }, { data: activeCredentials, error: credentialError }] = await Promise.all([
         supabaseAdmin.from("game_result_submissions").select("id", { count: "exact", head: true }).eq("game_id", game.id),
-        supabaseAdmin.from("game_api_credentials").select("id,key_prefix")
-          .eq("game_id", game.id).contains("scopes", ["results:write"]).is("revoked_at", null),
+        supabaseAdmin.from("game_api_credentials").select("id,key_prefix,scopes")
+          .eq("game_id", game.id).is("revoked_at", null),
       ]);
       if (resultError || credentialError) return NextResponse.json({ error: "Could not verify integration readiness" }, { status: 500 });
-      const activeCredentialRows = (activeCredentials ?? []) as Array<{ id: string; key_prefix: string }>;
-      if (!activeCredentialRows.length) return NextResponse.json({ error: "Create an active results:write credential before publishing" }, { status: 409 });
+      const activeCredentialRows = (activeCredentials ?? []) as Array<{ id: string; key_prefix: string; scopes: string[] }>;
+      if (!activeCredentialRows.some((credential) => credential.scopes.includes("results:write"))) {
+        return NextResponse.json({ error: "Create an active results:write credential before publishing" }, { status: 409 });
+      }
       if (!resultCount) return NextResponse.json({ error: "Complete at least one accepted sandbox result before publishing" }, { status: 409 });
       if (game.integration_status === "sandbox") {
         const testCredentialIds = activeCredentialRows.filter((credential) => credential.key_prefix.startsWith("sk_test_")).map((credential) => credential.id);

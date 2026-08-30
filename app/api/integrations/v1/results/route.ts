@@ -9,9 +9,12 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 type ResultBody = { eventId?: string; matchId?: string; winnerWallet?: string; occurredAt?: string };
 
 export async function POST(request: NextRequest) {
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (!Number.isFinite(declaredLength) || declaredLength > 16_384) return NextResponse.json({ error: "Request body is too large" }, { status: 413 });
   const authorization = request.headers.get("authorization");
   const secret = readBearerSecret(authorization);
   const rawBody = await request.text();
+  if (Buffer.byteLength(rawBody, "utf8") > 16_384) return NextResponse.json({ error: "Request body is too large" }, { status: 413 });
   if (!secret || !verifyGameRequestSignature(secret, request.headers.get("x-skillfi-timestamp"), rawBody, request.headers.get("x-skillfi-signature"))) {
     return NextResponse.json({ error: "Invalid or expired request signature" }, { status: 401 });
   }

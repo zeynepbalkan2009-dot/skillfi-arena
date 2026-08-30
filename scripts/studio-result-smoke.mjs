@@ -40,6 +40,12 @@ const timestamp = Date.now().toString();
 const signature = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`, "utf8").digest("hex");
 const headers = { "content-type": "application/json", authorization: `Bearer ${secret}`, "x-skillfi-timestamp": timestamp };
 
+const oversized = await fetch(endpoint, { method: "POST", headers, body: "x".repeat(16_385) });
+const oversizedBody = await oversized.json().catch(() => ({}));
+if (oversized.status !== 413 || oversizedBody.error !== "Request body is too large") {
+  throw new Error(`Oversized request guard failed (${oversized.status}: ${JSON.stringify(oversizedBody)})`);
+}
+
 const invalid = await fetch(endpoint, { method: "POST", headers: { ...headers, "x-skillfi-signature": "0".repeat(64) }, body: rawBody });
 const invalidBody = await invalid.json().catch(() => ({}));
 if (invalid.status !== 401 || invalidBody.error !== "Invalid or expired request signature") {
@@ -57,4 +63,4 @@ if (priorMatch?.status !== "completed") {
 const { data: completed, error: completedError } = await admin.from("matches").select("status,winner_id").eq("id", matchId).single();
 if (completedError || completed.status !== "completed" || completed.winner_id !== players[0].id) throw new Error("Sandbox match was not completed with the submitted winner");
 
-console.log(JSON.stringify({ invalidSignatureRejected: true, signedCredentialAccepted: true, sandboxMatchCompleted: true, matchId, winnerId: completed.winner_id }, null, 2));
+console.log(JSON.stringify({ oversizedRequestRejected: true, invalidSignatureRejected: true, signedCredentialAccepted: true, sandboxMatchCompleted: true, matchId, winnerId: completed.winner_id }, null, 2));

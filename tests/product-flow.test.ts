@@ -206,7 +206,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(adminGuard, /OPERATOR_WALLET_ADDRESS/);
   assert.match(adminRoute, /Approve the studio before publishing its game/);
   assert.match(adminRoute, /Move the game through sandbox before publishing/);
-  assert.match(adminRoute, /contains\("scopes", \["results:write"\]\)/);
+  assert.match(adminRoute, /credential\.scopes\.includes\("results:write"\)/);
   assert.match(adminRoute, /Complete at least one accepted sandbox result before publishing/);
   assert.match(adminRoute, /Could not retire sandbox credentials/);
   assert.match(adminRoute, /revokedSandboxCredentialCount/);
@@ -250,6 +250,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(integrationResult, /game\.integration_status === "sandbox" && !match\.smart_contract_match_id/);
   assert.match(integrationResult, /Published game results require an on-chain match/);
   assert.match(integrationResult, /Published games require a live integration key/);
+  assert.match(integrationResult, /Buffer\.byteLength\(rawBody, "utf8"\) > 16_384/);
+  assert.match(integrationResult, /status: 413/);
   assert.match(integrationResult, /eventType: "sandbox_match_completed"/);
   assert.match(studioResults, /eq\("owner_user_id", user\.id\)/);
   assert.match(studioResults, /eq\("studio_id", studio\.id\)/);
