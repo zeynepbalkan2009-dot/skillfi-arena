@@ -6,6 +6,7 @@ import { useAccount, useWriteContract } from "wagmi";
 import { ESCROW_CONTRACT_ADDRESS } from "@/lib/contracts";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 import { passageForMatch, scoreTyping } from "@/lib/typingGame";
+import { createPilotRound, isPilotGameId, scorePilotRound } from "@/lib/pilotGames";
 import { supabase } from "@/lib/supabaseClient";
 import type { Game } from "@/lib/types";
 
@@ -46,6 +47,12 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
     () => passageForMatch(initialMatch.smart_contract_match_id),
     [initialMatch.smart_contract_match_id]
   );
+  const pilotGameId = isPilotGameId(match.game?.slug) ? match.game.slug : null;
+  const pilotRound = useMemo(
+    () => pilotGameId ? createPilotRound(pilotGameId, initialMatch.smart_contract_match_id) : null,
+    [initialMatch.smart_contract_match_id, pilotGameId]
+  );
+  const challengePrompt = pilotRound?.prompt ?? passage;
   const isPlayerA = Boolean(
     address && match.player_a?.wallet_address && address.toLowerCase() === match.player_a.wallet_address.toLowerCase()
   );
@@ -96,7 +103,7 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
       const response = await fetch("/api/matches/result", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ matchId: match.smart_contract_match_id, typedText: text, elapsedMs }),
+        body: JSON.stringify({ matchId: match.smart_contract_match_id, answer: text, elapsedMs }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "Result submission failed");
@@ -175,18 +182,22 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
   function broadcastProgress(value: string) {
     if (!channelRef.current || submitted || match.status !== "active") return;
     const elapsed = Math.max(1000, 60000 - remaining);
-    const score = scoreTyping(passage, value, elapsed);
+    const typingScore = scoreTyping(passage, value, elapsed);
+    const pilotScore = pilotRound ? scorePilotRound(pilotRound, value) : null;
     channelRef.current.send({
       type: "broadcast",
       event: "progress",
       payload: {
         player: address,
-        progress: { wpm: score.wpm, accuracy: score.accuracy, chars: score.correctChars },
+        progress: pilotScore
+          ? { wpm: pilotScore.points, accuracy: pilotScore.percent / 100, chars: pilotScore.points }
+          : { wpm: typingScore.wpm, accuracy: typingScore.accuracy, chars: typingScore.correctChars },
       },
     });
   }
 
-  const localScore = scoreTyping(passage, text, Math.max(1000, 60000 - remaining));
+  const typingScore = scoreTyping(passage, text, Math.max(1000, 60000 - remaining));
+  const pilotScore = pilotRound ? scorePilotRound(pilotRound, text) : null;
   const statusText =
     match.status === "searching"
       ? "Waiting for an opponent"
@@ -238,7 +249,7 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
             <section className="rounded-xl border border-arena-border bg-arena-surface p-6">
               <p className="mb-4 text-lg leading-8 text-arena-muted">
-                {passage.split("").map((char, index) => (
+                {pilotRound && pilotGameId !== "typing-sprint" ? challengePrompt : challengePrompt.split("").map((char, index) => (
                   <span
                     key={index}
                     className={index < text.length ? (text[index] === char ? "text-arena-text" : "text-arena-danger") : ""}
@@ -251,7 +262,7 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
                 autoFocus
                 value={text}
                 onChange={(event) => {
-                  if (event.target.value.length <= passage.length && !submitted) {
+                  if ((!pilotRound || pilotGameId !== "typing-sprint" || event.target.value.length <= challengePrompt.length) && !submitted) {
                     setText(event.target.value);
                     broadcastProgress(event.target.value);
                   }
@@ -262,14 +273,12 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
               />
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex gap-5 text-sm text-arena-muted">
+                  <span>{pilotScore ? "Score" : "WPM"} <b className="text-arena-text">{pilotScore?.points ?? typingScore.wpm.toFixed(0)}</b></span>
                   <span>
-                    WPM <b className="text-arena-text">{localScore.wpm.toFixed(0)}</b>
+                    Accuracy <b className="text-arena-text">{pilotScore?.percent ?? (typingScore.accuracy * 100).toFixed(0)}%</b>
                   </span>
                   <span>
-                    Accuracy <b className="text-arena-text">{(localScore.accuracy * 100).toFixed(0)}%</b>
-                  </span>
-                  <span>
-                    Correct <b className="text-arena-text">{localScore.correctChars}</b>
+                    Correct <b className="text-arena-text">{pilotScore?.points ?? typingScore.correctChars}</b>
                   </span>
                 </div>
                 <button
@@ -335,7 +344,7 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
               <h2 className="font-display text-lg font-bold">Opponent</h2>
               <p className="mt-1 text-arena-muted">{match.player_b?.username ?? "Player 2"}</p>
               <div className="mt-6">
-                <p className="text-xs uppercase tracking-wide text-arena-muted">Live WPM</p>
+                <p className="text-xs uppercase tracking-wide text-arena-muted">{pilotRound ? "Live score" : "Live WPM"}</p>
                 <p className="font-display text-4xl font-bold text-arena-accent">
                   {opponentProgress?.wpm.toFixed(0) ?? "-"}
                 </p>

@@ -20,6 +20,7 @@ export type CurrencyCode = "USDC";
 
 export interface Game {
   id: string;
+  slug?: string | null;
   name: string;
   type: GameType;
   studio_id: string | null;

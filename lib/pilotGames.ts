@@ -9,6 +9,10 @@ export const PILOT_GAMES = [
 export type PilotGameId = (typeof PILOT_GAMES)[number]["id"];
 export type PilotRound = { prompt: string; expected: string; maxScore: number };
 
+export function isPilotGameId(value: string | null | undefined): value is PilotGameId {
+  return PILOT_GAMES.some((game) => game.id === value);
+}
+
 function seededNumber(seed: string) {
   let value = 2166136261;
   for (const char of seed) value = Math.imul(value ^ char.charCodeAt(0), 16777619);
