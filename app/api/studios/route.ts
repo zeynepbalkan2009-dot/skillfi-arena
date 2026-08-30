@@ -18,7 +18,19 @@ export async function GET(request: NextRequest) {
     ? await supabaseAdmin.from("games").select("*").eq("studio_id", studio.id).order("created_at", { ascending: false })
     : { data: [], error: null };
   if (gamesError) return NextResponse.json({ error: "Could not load studio games" }, { status: 500 });
-  return NextResponse.json({ studio, games: games ?? [], isAdmin: isStudioAdmin(user), fee: { amount: amount.toString(), displayAmount: formatUsdcUnits(amount), treasury } });
+  const { data: reviewEvents, error: reviewError } = studio
+    ? await supabaseAdmin.from("studio_audit_events").select("game_id,event_type,payload,created_at").eq("studio_id", studio.id)
+      .in("event_type", ["studio_rejected", "studio_suspended", "game_rejected", "game_suspended"]).order("created_at", { ascending: false })
+    : { data: [], error: null };
+  if (reviewError) return NextResponse.json({ error: "Could not load review feedback" }, { status: 500 });
+  const reviewEventRows = (reviewEvents ?? []) as Array<{ game_id: string | null; event_type: string; payload: unknown; created_at: string }>;
+  const reviewFeedback = reviewEventRows.flatMap((event) => {
+    const payload = event.payload as { note?: unknown } | null;
+    return typeof payload?.note === "string" && payload.note.trim()
+      ? [{ gameId: event.game_id, eventType: event.event_type, note: payload.note.trim(), createdAt: event.created_at }]
+      : [];
+  });
+  return NextResponse.json({ studio, games: games ?? [], reviewFeedback, isAdmin: isStudioAdmin(user), fee: { amount: amount.toString(), displayAmount: formatUsdcUnits(amount), treasury } });
 }
 
 export async function POST(request: NextRequest) {

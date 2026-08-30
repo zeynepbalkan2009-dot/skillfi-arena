@@ -186,6 +186,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   const gameRoute = readFileSync(join(root, "app/api/studios/games/route.ts"), "utf8");
   const feeRoute = readFileSync(join(root, "app/api/studios/fee/route.ts"), "utf8");
   const portal = readFileSync(join(root, "components/StudioPortalClient.tsx"), "utf8");
+  const reviewPortal = readFileSync(join(root, "components/StudioReviewClient.tsx"), "utf8");
   assert.match(migration, /create table if not exists public\.studios/);
   assert.match(migration, /create table if not exists public\.studio_fee_payments/);
   assert.match(migration, /integration_status = 'published'/);
@@ -211,6 +212,10 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(adminRoute, /Could not retire sandbox credentials/);
   assert.match(adminRoute, /revokedSandboxCredentialCount/);
   assert.match(adminRoute, /readyToPublish: hasActiveResultsCredential && acceptedResultCount > 0/);
+  assert.match(adminRoute, /A review note of at least 3 characters is required/);
+  assert.match(studioRoute, /Could not load review feedback/);
+  assert.match(portal, /Review feedback:/);
+  assert.match(reviewPortal, /Review note \(required to reject\)/);
   assert.match(portal, /Result submissions/);
   assert.match(adminRoute, /is_active: body\.decision === "published"/);
   assert.match(gameRoute, /Pay the listing fee before submitting a game/);

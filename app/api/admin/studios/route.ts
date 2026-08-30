@@ -45,6 +45,7 @@ export async function PATCH(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as { studioId?: string; gameId?: string; decision?: string; note?: string } | null;
   const note = body?.note?.trim() ?? "";
   if (note.length > 500) return NextResponse.json({ error: "Review note must be at most 500 characters" }, { status: 400 });
+  if (['rejected', 'suspended'].includes(body?.decision ?? "") && note.length < 3) return NextResponse.json({ error: "A review note of at least 3 characters is required" }, { status: 400 });
   if (body?.studioId && ['approved', 'rejected', 'suspended'].includes(body.decision ?? "")) {
     const { data: studio, error } = await supabaseAdmin.from("studios").update({ status: body.decision })
       .eq("id", body.studioId).in("status", ["pending_review", "approved", "rejected", "suspended"]).select("*").maybeSingle();
