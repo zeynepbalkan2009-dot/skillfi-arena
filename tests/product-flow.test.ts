@@ -230,6 +230,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(integrationGame, /authenticateGameApiKey/);
   assert.match(integrationGame, /"game:read"/);
   const integrationResult = readFileSync(join(root, "app/api/integrations/v1/results/route.ts"), "utf8");
+  const studioResults = readFileSync(join(root, "app/api/studios/results/route.ts"), "utf8");
   const integrationDocs = readFileSync(join(root, "INTEGRATION_API.md"), "utf8");
   assert.match(migration, /create table if not exists public\.game_result_submissions/);
   assert.match(migration, /constraint game_result_event_unique unique \(game_id, event_id\)/);
@@ -241,6 +242,9 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(integrationResult, /game\.integration_status === "sandbox" && !match\.smart_contract_match_id/);
   assert.match(integrationResult, /Published game results require an on-chain match/);
   assert.match(integrationResult, /eventType: "sandbox_match_completed"/);
+  assert.match(studioResults, /eq\("owner_user_id", user\.id\)/);
+  assert.match(studioResults, /eq\("studio_id", studio\.id\)/);
+  assert.match(studioResults, /limit\(50\)/);
   assert.match(integrationResult, /Credential cannot submit results for this game/);
   assert.match(integrationResult, /Winner wallet is not a match participant/);
   assert.match(integrationResult, /external_result_accepted/);

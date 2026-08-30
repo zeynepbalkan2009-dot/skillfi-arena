@@ -11,6 +11,7 @@ import type { Game, Studio } from "@/lib/types";
 
 type PortalData = { studio: Studio | null; games: Game[]; isAdmin: boolean; fee: { amount: string; displayAmount: string; treasury: `0x${string}` } };
 type Credential = { id: string; game_id: string; name: string; key_prefix: string; scopes: string[]; last_used_at: string | null; revoked_at: string | null; created_at: string };
+type ResultSubmission = { id: string; event_id: string; game_id: string; match_id: string; winner_user_id: string; credential_id: string; payload_hash: string; source_occurred_at: string; created_at: string };
 
 export function StudioPortalClient() {
   const { authenticated, getAccessToken } = usePrivy();
@@ -23,6 +24,7 @@ export function StudioPortalClient() {
   const [studioDraft, setStudioDraft] = useState({ name: "", websiteUrl: "", contactEmail: "" });
   const [gameDraft, setGameDraft] = useState({ name: "", type: "web2", description: "", websiteUrl: "" });
   const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [submissions, setSubmissions] = useState<ResultSubmission[]>([]);
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [pendingFeeTxHash, setPendingFeeTxHash] = useState<`0x${string}` | null>(null);
@@ -35,11 +37,17 @@ export function StudioPortalClient() {
     if (!response.ok) throw new Error(body.error ?? "Could not load studio portal");
     setData(body);
     if (body.studio) {
-      const credentialResponse = await fetch("/api/studios/credentials", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const [credentialResponse, submissionResponse] = await Promise.all([
+        fetch("/api/studios/credentials", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }),
+        fetch("/api/studios/results", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }),
+      ]);
       const credentialBody = await credentialResponse.json().catch(() => ({}));
       if (!credentialResponse.ok) throw new Error(credentialBody.error ?? "Could not load integration credentials");
+      const submissionBody = await submissionResponse.json().catch(() => ({}));
+      if (!submissionResponse.ok) throw new Error(submissionBody.error ?? "Could not load result submissions");
       setCredentials(credentialBody.credentials ?? []);
-    } else setCredentials([]);
+      setSubmissions(submissionBody.submissions ?? []);
+    } else { setCredentials([]); setSubmissions([]); }
   }, [getAccessToken]);
 
   useEffect(() => { if (authenticated) void load().catch((error) => setMessage(error.message)); }, [authenticated, load]);
@@ -182,6 +190,7 @@ export function StudioPortalClient() {
             {data.games.length > 0 && <section className="rounded-xl border border-arena-border bg-arena-surface p-6"><h2 className="font-display text-xl font-bold">Your games</h2><div className="mt-4 space-y-3">{data.games.map((game) => <div key={game.id} className="rounded-md border border-arena-border bg-arena-bg p-4"><div className="flex justify-between gap-3"><span className="font-semibold">{game.name}</span><span className="text-sm capitalize text-arena-muted">{game.integration_status}</span></div><p className="mt-2 text-sm text-arena-muted">{game.description}</p>{game.integration_status === "draft" && <button type="button" onClick={() => submitGame(game.id)} disabled={busy || data.studio?.status === "pending_payment"} className="mt-3 rounded-md border border-arena-accent-dim px-3 py-2 text-xs font-semibold text-arena-accent disabled:opacity-40">Submit for review</button>}{['sandbox', 'published'].includes(game.integration_status ?? "") && <button type="button" onClick={() => createCredential(game)} disabled={busy} className="mt-3 rounded-md border border-arena-accent-dim px-3 py-2 text-xs font-semibold text-arena-accent disabled:opacity-40">Create integration key</button>}</div>)}</div></section>}
             {newSecret && <section className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-6"><h2 className="font-display text-xl font-bold text-amber-100">Copy your new key now</h2><p className="mt-2 text-sm text-amber-100/70">For security, SkillFi cannot display it again.</p><code className="mt-4 block break-all rounded-md bg-black/30 p-4 text-sm text-amber-100">{newSecret}</code><button type="button" onClick={() => navigator.clipboard.writeText(newSecret)} className="mt-3 rounded-md border border-amber-400/40 px-3 py-2 text-xs text-amber-100">Copy key</button></section>}
             {credentials.length > 0 && <section className="rounded-xl border border-arena-border bg-arena-surface p-6"><h2 className="font-display text-xl font-bold">Integration keys</h2><div className="mt-4 space-y-3">{credentials.map((credential) => <div key={credential.id} className="rounded-md border border-arena-border bg-arena-bg p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold">{credential.name}</p><code className="mt-1 block text-xs text-arena-muted">{credential.key_prefix}••••••••</code><p className="mt-1 text-xs text-arena-muted">{credential.scopes.join(", ")}{credential.last_used_at ? ` · Last used ${new Date(credential.last_used_at).toLocaleString()}` : " · Never used"}</p></div>{credential.revoked_at ? <span className="text-xs text-arena-danger">Revoked</span> : revokingId === credential.id ? <div className="flex gap-2"><button type="button" onClick={() => setRevokingId(null)} className="rounded-md border border-arena-border px-3 py-2 text-xs">Keep</button><button type="button" disabled={busy} onClick={() => revokeCredential(credential.id)} className="rounded-md bg-arena-danger px-3 py-2 text-xs font-semibold text-white">Confirm revoke</button></div> : <button type="button" onClick={() => setRevokingId(credential.id)} className="rounded-md border border-arena-danger/40 px-3 py-2 text-xs text-arena-danger">Revoke</button>}</div></div>)}</div></section>}
+            {submissions.length > 0 && <section className="rounded-xl border border-arena-border bg-arena-surface p-6"><h2 className="font-display text-xl font-bold">Result submissions</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead className="text-xs uppercase tracking-wide text-arena-muted"><tr><th className="pb-3 pr-4">Event</th><th className="pb-3 pr-4">Game</th><th className="pb-3 pr-4">Match</th><th className="pb-3 pr-4">Winner</th><th className="pb-3">Occurred</th></tr></thead><tbody>{submissions.map((submission) => <tr key={submission.id} className="border-t border-arena-border"><td className="py-3 pr-4 font-mono text-xs">{submission.event_id}</td><td className="py-3 pr-4">{data.games.find((game) => game.id === submission.game_id)?.name ?? submission.game_id.slice(0, 8)}</td><td className="py-3 pr-4 font-mono text-xs">{submission.match_id.slice(0, 8)}…</td><td className="py-3 pr-4 font-mono text-xs">{submission.winner_user_id.slice(0, 8)}…</td><td className="py-3 text-arena-muted">{new Date(submission.source_occurred_at).toLocaleString()}</td></tr>)}</tbody></table></div></section>}
           </div>
         )}
         {message && <p className="mt-5 rounded-md border border-arena-border bg-arena-surface p-4 text-sm text-arena-muted">{message}</p>}
