@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { InfoPageShell, InfoSection } from "@/components/InfoPageShell";
+import { PilotEnrollmentClient } from "@/components/PilotEnrollmentClient";
 
 export const metadata: Metadata = { title: "Arc Testnet Pilot", description: "Join the SkillFi Arena controlled testnet pilot for esports communities and tournament organizers." };
 
@@ -10,6 +11,7 @@ export default function PilotPage() {
     <InfoSection title="What partners do"><ul className="list-disc space-y-2 pl-5"><li>Nominate a small group of eligible adult testers.</li><li>Run structured matches using testnet USDC only.</li><li>Report onboarding, funding, match, refund, and settlement friction.</li><li>Join one kickoff and one retrospective session.</li><li>Allow anonymized aggregate metrics to appear in the grant pilot report.</li></ul></InfoSection>
     <InfoSection title="What SkillFi provides"><ul className="list-disc space-y-2 pl-5"><li>Guided onboarding and pilot documentation.</li><li>A controlled test environment with no requirement to deposit real funds.</li><li>Direct issue triage during the pilot window.</li><li>A partner summary with findings and proposed improvements.</li><li>Optional acknowledgement as a design partner, only with written approval.</li></ul></InfoSection>
     <InfoSection title="How success is measured"><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><Metric value="30+" label="initial testers" /><Metric value="90%" label="target completion" /><Metric value="0" label="real assets" /><Metric value="2" label="design partners" /></div><p>Grant-stage targets expand to 100 funded test wallets, 250 completed Arc settlements, and at least 20% repeat participation. These are future pilot targets, not current traction claims.</p></InfoSection>
+    <InfoSection title="Apply for controlled access"><PilotEnrollmentClient /></InfoSection>
     <InfoSection title="Express interest"><p>Review the product and connect with founder Zeynep Balkan through her verified professional profile. No partner name or logo will be published without explicit written permission.</p><p><a className="inline-flex rounded-lg border border-arena-accent/40 bg-arena-accent/10 px-5 py-3 font-semibold text-arena-accent hover:bg-arena-accent hover:text-arena-bg" href="https://www.linkedin.com/in/zeynep-balkan-3709a8193" target="_blank" rel="noreferrer">Contact the founder on LinkedIn</a></p><p className="text-xs text-arena-muted">A dedicated project email and privacy-compliant interest form will be added before broader recruitment.</p></InfoSection>
     <div className="flex flex-wrap gap-5"><Link className="inline-flex text-sm font-semibold text-arena-accent hover:text-cyan-300" href="/pilot/games">Test all five pilot games →</Link><Link className="inline-flex text-sm font-semibold text-arena-accent hover:text-cyan-300" href="/technology">Review the technical architecture →</Link></div>
   </InfoPageShell>;
