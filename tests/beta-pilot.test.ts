@@ -25,6 +25,8 @@ test("pilot copy keeps real-value activity disabled", () => {
 test("pilot admin UI exposes only controlled cohort transitions", () => {
   const client = readFileSync("components/PilotAdminClient.tsx", "utf8");
   assert.match(client, /"active" \| "rejected" \| "completed"/);
+  assert.match(client, /EXPORT CSV/);
+  assert.match(client, /Search pilot cohort/);
   assert.doesNotMatch(client, /delete|payment|prize/i);
 });
 
