@@ -46,4 +46,7 @@ test("challenge UI explains beta access and avoids financial reward claims", () 
   assert.match(hub, /Pilot arena locked/);
   assert.match(enrollment, /ENTER CHALLENGE ARENA/);
   assert.doesNotMatch(hub, /REWARD POOL|180 USDC|Verified entry fees/);
+  const card = readFileSync("components/ChallengeCard.tsx", "utf8");
+  assert.match(card, /canJoin/);
+  assert.match(card, /BETA ACCESS/);
 });

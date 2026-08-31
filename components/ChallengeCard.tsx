@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { MatchWithRelations } from "@/lib/types";
 import { JoinMatchButton } from "@/components/JoinMatchButton";
 import { CancelMatchButton } from "@/components/CancelMatchButton";
@@ -23,7 +24,7 @@ function timeAgo(isoTimestamp: string): string {
   return `${Math.floor(seconds / 3600)}h ago`;
 }
 
-export function ChallengeCard({ match, isOwnChallenge }: { match: MatchWithRelations; isOwnChallenge: boolean }) {
+export function ChallengeCard({ match, isOwnChallenge, canJoin = true }: { match: MatchWithRelations; isOwnChallenge: boolean; canJoin?: boolean }) {
   const region = match.player_a ? REGION_LABELS[match.player_a.region] ?? match.player_a.region : "-";
   const matchId = match.smart_contract_match_id ?? match.id;
 
@@ -53,6 +54,10 @@ export function ChallengeCard({ match, isOwnChallenge }: { match: MatchWithRelat
         </div>
         {isOwnChallenge ? (
           <CancelMatchButton matchId={match.id} />
+        ) : !canJoin ? (
+          <Link href="/pilot" className="rounded-md border border-amber-300/25 bg-amber-300/[.06] px-4 py-2 text-xs font-bold text-amber-100">
+            BETA ACCESS
+          </Link>
         ) : (
           <JoinMatchButton matchId={matchId} stakeAmount={match.stake_amount} />
         )}
