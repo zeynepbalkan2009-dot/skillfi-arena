@@ -15,7 +15,14 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: "Could not load pilot cohort" }, { status: 500 });
   const rows = data ?? [];
   const counts = Object.fromEntries(["applied","active","completed","withdrawn","rejected"].map((status) => [status, rows.filter((row: { status: string }) => row.status === status).length]));
-  return NextResponse.json({ enrollments: rows, counts, limit: 100 });
+  const { data: runData } = await supabaseAdmin.from("beta_pilot_game_runs").select("game_slug,score_percent,feedback_rating");
+  const runs = (runData ?? []) as Array<{ game_slug: string; score_percent: number; feedback_rating: number | null }>;
+  const gameSummary = Object.fromEntries(["typing-sprint","arithmetic-rush","sequence-recall","pattern-lock","logic-grid"].map((slug) => {
+    const gameRuns = runs.filter((run) => run.game_slug === slug);
+    const ratings = gameRuns.map((run) => run.feedback_rating).filter((value): value is number => value != null);
+    return [slug, { completions: gameRuns.length, averageScore: gameRuns.length ? Math.round(gameRuns.reduce((sum, run) => sum + run.score_percent, 0) / gameRuns.length) : null, averageRating: ratings.length ? Number((ratings.reduce((sum, value) => sum + value, 0) / ratings.length).toFixed(1)) : null }];
+  }));
+  return NextResponse.json({ enrollments: rows, counts, limit: 100, gameSummary });
 }
 
 export async function PATCH(request: NextRequest) {

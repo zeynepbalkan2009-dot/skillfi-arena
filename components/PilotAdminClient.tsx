@@ -6,11 +6,13 @@ import { usePrivy } from "@privy-io/react-auth";
 type CohortUser = { username: string; display_name: string | null; region: string; wallet_address: string | null };
 type Enrollment = { id: string; status: string; created_at: string; review_note: string; user: CohortUser | null };
 type Counts = Record<"applied" | "active" | "completed" | "withdrawn" | "rejected", number>;
+type GameMetric = { completions: number; averageScore: number | null; averageRating: number | null };
 
 export function PilotAdminClient() {
   const { authenticated, getAccessToken, login } = usePrivy();
   const [rows, setRows] = useState<Enrollment[]>([]);
   const [counts, setCounts] = useState<Counts>({ applied: 0, active: 0, completed: 0, withdrawn: 0, rejected: 0 });
+  const [gameSummary, setGameSummary] = useState<Record<string, GameMetric>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -26,7 +28,7 @@ export function PilotAdminClient() {
     if (!authenticated) { setLoading(false); return; }
     const response = await fetch("/api/admin/pilot", { headers: await tokenHeaders(), cache: "no-store" });
     const data = await response.json().catch(() => ({}));
-    if (response.ok) { setRows(data.enrollments ?? []); setCounts(data.counts ?? {}); }
+    if (response.ok) { setRows(data.enrollments ?? []); setCounts(data.counts ?? {}); setGameSummary(data.gameSummary ?? {}); }
     else setMessage(response.status === 403 ? "This account is not authorized for pilot administration." : data.error ?? "Could not load cohort.");
     setLoading(false);
   }, [authenticated, tokenHeaders]);
@@ -59,6 +61,7 @@ export function PilotAdminClient() {
 
   return <main className="mx-auto max-w-6xl px-5 py-9"><div className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-300">Controlled testnet operations</p><h1 className="mt-2 font-display text-4xl font-black">Pilot Cohort</h1><p className="mt-2 text-sm text-slate-500">Review applicants and keep active participation within the 100-player cap.</p></div><div className="flex gap-2"><button onClick={exportCsv} disabled={!visibleRows.length} className="rounded-lg border border-white/10 px-4 py-2 text-xs font-bold disabled:opacity-40">EXPORT CSV</button><button onClick={() => void load()} className="rounded-lg border border-white/10 px-4 py-2 text-xs font-bold">REFRESH</button></div></div>
     <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-5">{Object.entries(counts).map(([status, count]) => <div key={status} className="rounded-xl border border-white/7 bg-white/[.025] p-4"><p className="font-display text-2xl font-bold text-white">{count}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">{status}</p></div>)}</div>
+    <section className="mt-6"><h2 className="font-display text-xl font-bold">Five-game coverage</h2><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{Object.entries(gameSummary).map(([slug, metric]) => <div key={slug} className="rounded-xl border border-white/7 bg-white/[.025] p-4"><p className="text-xs font-bold capitalize text-white">{slug.replaceAll("-", " ")}</p><p className="mt-3 text-2xl font-bold text-cyan-200">{metric.completions}</p><p className="text-[10px] uppercase text-slate-600">completions</p><p className="mt-2 text-xs text-slate-500">Score {metric.averageScore ?? "—"}% · Rating {metric.averageRating ?? "—"}/5</p></div>)}</div></section>
     <div className="mt-5 overflow-hidden rounded-full bg-white/5"><div className="h-2 bg-gradient-to-r from-cyan-300 to-indigo-400 transition-all" style={{ width: `${Math.min(counts.active, 100)}%` }}/></div><p className="mt-2 text-right text-xs text-slate-600">{100 - counts.active} active cohort slots remaining</p>
     {message && <p role="status" className="mt-5 rounded-xl border border-amber-300/15 bg-amber-300/[.06] px-4 py-3 text-sm text-amber-200">{message}</p>}
     <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_220px]"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search player or region" aria-label="Search pilot cohort" className="rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 text-sm outline-none focus:border-cyan-300/40"/><select value={filter} onChange={(event) => setFilter(event.target.value as "all" | keyof Counts)} aria-label="Filter pilot status" className="rounded-xl border border-white/10 bg-[#0b0e14] px-4 py-3 text-sm"><option value="all">All statuses</option>{Object.keys(counts).map((status) => <option key={status} value={status}>{status}</option>)}</select></div>

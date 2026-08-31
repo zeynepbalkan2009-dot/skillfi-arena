@@ -53,6 +53,7 @@ for (const table of [
   "guild_votes",
   "guild_treasury_events",
   "beta_pilot_enrollments",
+  "beta_pilot_game_runs",
 ]) {
   const result = await service.from(table).select("*", { head: true, count: "exact" }).limit(1);
   checks.push({ object: `public.${table}`, ok: !result.error, error: result.error?.message ?? null });

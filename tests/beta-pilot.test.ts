@@ -41,6 +41,16 @@ test("pilot game entry is gated before onchain create or join", () => {
   assert.match(joinCheck, /status: 403/);
 });
 
+test("pilot run tracking requires active enrollment and limits personal feedback", () => {
+  const migration = readFileSync("supabase/12_pilot_game_runs.sql", "utf8");
+  const route = readFileSync("app/api/pilot/runs/route.ts", "utf8");
+  assert.match(migration, /unique \(user_id, game_slug\)/);
+  assert.match(migration, /char_length\(feedback_note\) <= 1000/);
+  assert.match(route, /eq\("status", "active"\)/);
+  assert.match(route, /Active beta access is required/);
+  assert.match(route, /onConflict: "user_id,game_slug"/);
+});
+
 test("challenge UI explains beta access and avoids financial reward claims", () => {
   const hub = readFileSync("components/ChallengeHubClient.tsx", "utf8");
   const enrollment = readFileSync("components/PilotEnrollmentClient.tsx", "utf8");
