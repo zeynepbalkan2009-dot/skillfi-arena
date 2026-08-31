@@ -38,3 +38,12 @@ test("pilot game entry is gated before onchain create or join", () => {
   assert.ok(challengeAccept.lastIndexOf("hasActiveBetaAccess") < challengeAccept.indexOf('.rpc("accept_challenge"'));
   assert.match(joinCheck, /status: 403/);
 });
+
+test("challenge UI explains beta access and avoids financial reward claims", () => {
+  const hub = readFileSync("components/ChallengeHubClient.tsx", "utf8");
+  const enrollment = readFileSync("components/PilotEnrollmentClient.tsx", "utf8");
+  assert.match(hub, /Beta access active/);
+  assert.match(hub, /Pilot arena locked/);
+  assert.match(enrollment, /ENTER CHALLENGE ARENA/);
+  assert.doesNotMatch(hub, /REWARD POOL|180 USDC|Verified entry fees/);
+});
