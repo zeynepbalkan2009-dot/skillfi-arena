@@ -21,3 +21,9 @@ test("pilot copy keeps real-value activity disabled", () => {
   const client = readFileSync("components/PilotEnrollmentClient.tsx", "utf8");
   assert.match(client, /no real deposits, prizes, lending, or production-value transfers/i);
 });
+
+test("pilot admin UI exposes only controlled cohort transitions", () => {
+  const client = readFileSync("components/PilotAdminClient.tsx", "utf8");
+  assert.match(client, /"active" \| "rejected" \| "completed"/);
+  assert.doesNotMatch(client, /delete|payment|prize/i);
+});
