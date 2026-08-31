@@ -3,6 +3,8 @@ import { getCurrentProfile } from "@/lib/auth/server";
 import { hashInvitationToken } from "@/lib/challenges/tokens";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { recordAuditEvent } from "@/lib/audit";
+import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
+import { isPilotGameId } from "@/lib/pilotGames";
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +28,7 @@ export async function POST(
 
   const { data: challenge, error: challengeError } = await supabaseAdmin
     .from("challenges")
-    .select("id")
+    .select("id,game:games(slug)")
     .eq("id", params.id)
     .eq("invitation_token_hash", hashInvitationToken(body.invitationToken))
     .maybeSingle();
@@ -36,6 +38,10 @@ export async function POST(
   }
   if (!challenge) {
     return NextResponse.json({ error: "Invalid invitation token" }, { status: 403 });
+  }
+  const challengeGame = challenge.game as unknown as { slug?: string } | null;
+  if (isPilotGameId(challengeGame?.slug) && !(await hasActiveBetaAccess(profile.id))) {
+    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403 });
   }
 
   const { data: result, error } = await supabaseAdmin
@@ -63,7 +69,6 @@ export async function POST(
   if (matchError) {
     return NextResponse.json({ error: matchError.message }, { status: 500 });
   }
-
   await recordAuditEvent({
     matchId: match.id,
     challengeId: params.id,

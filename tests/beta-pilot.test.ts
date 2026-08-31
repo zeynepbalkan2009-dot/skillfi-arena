@@ -27,3 +27,14 @@ test("pilot admin UI exposes only controlled cohort transitions", () => {
   assert.match(client, /"active" \| "rejected" \| "completed"/);
   assert.doesNotMatch(client, /delete|payment|prize/i);
 });
+
+test("pilot game entry is gated before onchain create or join", () => {
+  const createRoute = readFileSync("app/api/matches/create/route.ts", "utf8");
+  const joinCheck = readFileSync("app/api/matches/join/check/route.ts", "utf8");
+  const joinConfirm = readFileSync("app/api/matches/join/route.ts", "utf8");
+  const challengeAccept = readFileSync("app/api/challenges/[id]/accept/route.ts", "utf8");
+  for (const source of [createRoute, joinCheck, joinConfirm, challengeAccept]) assert.match(source, /hasActiveBetaAccess/);
+  assert.ok(createRoute.lastIndexOf("hasActiveBetaAccess") < createRoute.indexOf("writeContract"));
+  assert.ok(challengeAccept.lastIndexOf("hasActiveBetaAccess") < challengeAccept.indexOf('.rpc("accept_challenge"'));
+  assert.match(joinCheck, /status: 403/);
+});

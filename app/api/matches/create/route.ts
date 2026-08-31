@@ -5,6 +5,8 @@ import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, ski
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { recordAuditEvent } from "@/lib/audit";
 import { attachStakeReservation, releaseStakeReservation, reserveStake } from "@/lib/risk";
+import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
+import { isPilotGameId } from "@/lib/pilotGames";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   const { data: game, error: gameError } = await supabaseAdmin
     .from("games")
-    .select("id")
+    .select("id,slug")
     .eq("id", body.gameId)
     .eq("is_active", true)
     .maybeSingle();
@@ -46,6 +48,9 @@ export async function POST(request: NextRequest) {
   }
   if (!game) {
     return NextResponse.json({ error: "Game not found or inactive" }, { status: 404 });
+  }
+  if (isPilotGameId(game.slug) && !(await hasActiveBetaAccess(profile.id))) {
+    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403 });
   }
 
   const reservationKey = `create:${profile.id}:${body.idempotencyKey}`;

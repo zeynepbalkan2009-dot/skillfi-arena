@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { attachStakeReservation, reserveStake } from "@/lib/risk";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
+import { isPilotGameId } from "@/lib/pilotGames";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +16,16 @@ export async function POST(request: NextRequest) {
 
   const { data: match, error } = await supabaseAdmin
     .from("matches")
-    .select("id,player_a_id,player_b_id,stake_amount,status")
+    .select("id,player_a_id,player_b_id,stake_amount,status,game:games(slug)")
     .eq("smart_contract_match_id", body.matchId)
     .maybeSingle();
   if (error) return NextResponse.json({ error: "Could not load match" }, { status: 500 });
   if (!match || match.status !== "searching") return NextResponse.json({ error: "Match is not open" }, { status: 409 });
   if (match.player_a_id === user.id) return NextResponse.json({ error: "You already own this match" }, { status: 409 });
+  const game = match.game as unknown as { slug?: string } | null;
+  if (isPilotGameId(game?.slug) && !(await hasActiveBetaAccess(user.id))) {
+    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403 });
+  }
 
   const reservationKey = `join:${match.id}:${user.id}`;
   const risk = await reserveStake(user.id, BigInt(match.stake_amount), reservationKey);

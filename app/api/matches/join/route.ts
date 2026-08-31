@@ -5,6 +5,8 @@ import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, ski
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { recordAuditEvent } from "@/lib/audit";
 import { confirmStakeReservation } from "@/lib/risk";
+import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
+import { isPilotGameId } from "@/lib/pilotGames";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +29,13 @@ export async function POST(request: NextRequest) {
   const player1 = getAddress(onchain[0]); const player2 = getAddress(onchain[1]); const caller = getAddress(user.wallet_address);
   if (caller !== player1 && caller !== player2) return NextResponse.json({ error: "Wallet is not a participant in this match" }, { status: 403 });
 
-  const { data: dbMatch, error: dbError } = await supabaseAdmin.from("matches").select("id, player_a_id, player_b_id, status").eq("smart_contract_match_id", matchId.toString()).maybeSingle();
+  const { data: dbMatch, error: dbError } = await supabaseAdmin.from("matches").select("id, player_a_id, player_b_id, status, game:games(slug)").eq("smart_contract_match_id", matchId.toString()).maybeSingle();
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   if (!dbMatch) return NextResponse.json({ error: "Match not indexed" }, { status: 404 });
+  const game = dbMatch.game as unknown as { slug?: string } | null;
+  if (isPilotGameId(game?.slug) && !(await hasActiveBetaAccess(user.id))) {
+    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403 });
+  }
 
   await recordAuditEvent({
     matchId: dbMatch.id,
