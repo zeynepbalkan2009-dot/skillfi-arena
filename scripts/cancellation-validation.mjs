@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { readFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 
 function loadEnv(path) {
   return Object.fromEntries(
@@ -34,6 +35,7 @@ const account = privateKeyToAccount(env.OPERATOR_PRIVATE_KEY.startsWith("0x") ? 
 const publicClient = createPublicClient({ transport: http(rpcUrl) });
 const walletClient = createWalletClient({ account, transport: http(rpcUrl) });
 const abi = parseAbi([
+  "function createMatch(uint256 matchId,uint256 entryFee)",
   "function matches(uint256) view returns(address player1,address player2,uint256 entryFee,uint256 createdAt,bool player1Deposited,bool player2Deposited,uint8 status)",
   "function cancelMatch(uint256 matchId)",
   "event MatchCancelled(uint256 indexed matchId)",
@@ -62,7 +64,59 @@ for (const candidate of candidates ?? []) {
     break;
   }
 }
-assert(selected && chainMatch, "No unfunded disposable match is available");
+if (!selected || !chainMatch) {
+  const operatorWallet = account.address.toLowerCase();
+  let { data: operatorUser, error: userError } = await service
+    .from("users")
+    .select("id")
+    .ilike("wallet_address", operatorWallet)
+    .maybeSingle();
+  assert(!userError, `Operator user lookup failed: ${userError?.message}`);
+  if (!operatorUser) {
+    const suffix = operatorWallet.slice(-8);
+    const created = await service.from("users").insert({
+      username: `validation_operator_${suffix}`,
+      region: "EU",
+      wallet_address: operatorWallet,
+      privy_user_id: `validation:operator:${operatorWallet}`,
+    }).select("id").single();
+    assert(!created.error && created.data, `Operator validation user creation failed: ${created.error?.message}`);
+    operatorUser = created.data;
+  }
+  const { data: pilotGame, error: gameError } = await service
+    .from("games")
+    .select("id")
+    .eq("slug", "typing-sprint")
+    .eq("is_active", true)
+    .maybeSingle();
+  assert(!gameError && pilotGame, "Typing Sprint pilot game is required before creating a cancellation fixture");
+
+  const generatedMatchId = BigInt(`0x${randomBytes(32).toString("hex")}`);
+  const createHash = await walletClient.writeContract({
+    address: env.NEXT_PUBLIC_ESCROW_ADDRESS,
+    abi,
+    functionName: "createMatch",
+    args: [generatedMatchId, 1n],
+  });
+  const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
+  assert(createReceipt.status === "success", "Cancellation fixture creation reverted");
+  const { data: inserted, error: insertError } = await service.from("matches").insert({
+    smart_contract_match_id: generatedMatchId.toString(),
+    game_id: pilotGame.id,
+    player_a_id: operatorUser.id,
+    player_b_id: null,
+    stake_amount: "1",
+    status: "waiting_on_chain",
+  }).select("id,smart_contract_match_id,player_a_id,status").single();
+  assert(!insertError && inserted, `Cancellation fixture indexing failed: ${insertError?.message}`);
+  selected = inserted;
+  chainMatch = await publicClient.readContract({
+    address: env.NEXT_PUBLIC_ESCROW_ADDRESS,
+    abi,
+    functionName: "matches",
+    args: [generatedMatchId],
+  });
+}
 
 const chainId = BigInt(selected.smart_contract_match_id);
 let hash;
