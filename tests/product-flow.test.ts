@@ -99,6 +99,16 @@ test("accept route requires invitation token before RPC acceptance", () => {
   assert.ok(source.indexOf("hashInvitationToken") < source.indexOf("accept_challenge"));
 });
 
+test("production metadata never falls back to localhost", () => {
+  const siteUrl = readFileSync(join(root, "lib/siteUrl.ts"), "utf8");
+  const sitemap = readFileSync(join(root, "app/sitemap.ts"), "utf8");
+  const robots = readFileSync(join(root, "app/robots.ts"), "utf8");
+  assert.match(siteUrl, /VERCEL_PROJECT_PRODUCTION_URL/);
+  assert.match(siteUrl, /skillfi-arena\.vercel\.app/);
+  assert.match(sitemap, /getSiteUrl/);
+  assert.match(robots, /getSiteUrl/);
+});
+
 test("settlement validates winner and on-chain participants before payout", () => {
   const source = readFileSync(join(root, "lib/settlement.ts"), "utf8");
   assert.match(source, /winnerId !== match\.player_a_id && winnerId !== match\.player_b_id/);

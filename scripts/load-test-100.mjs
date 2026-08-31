@@ -1,6 +1,6 @@
 const baseUrl = (process.env.SKILLFI_LOAD_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const virtualUsers = Number(process.env.SKILLFI_LOAD_USERS ?? 100);
-const paths = ["/", "/games", "/pilot", "/pilot/games", "/guilds", "/api/guilds", "/terms", "/privacy"];
+const paths = ["/", "/games", "/pilot", "/pilot/games", "/guilds", "/api/guilds", "/api/pilot/enroll", "/terms", "/privacy"];
 
 if (!Number.isInteger(virtualUsers) || virtualUsers < 1 || virtualUsers > 500) throw new Error("SKILLFI_LOAD_USERS must be an integer from 1 to 500");
 

@@ -2,16 +2,16 @@
 
 ## Current status
 
-- Production build: passing on 28 August 2026
+- Production build: passing on 30 August 2026
 - Frontend typecheck: passing
 - Lint: passing with no warnings
-- Product tests: 12 passing
+- Product tests: 27 passing
 - Smart-contract tests: 48 passing
 - Active local target: Arc Testnet
 - Arc escrow: `0x263c8Eed47F11b7cd7E292139Afb5F774F033BFc`
 - Canonical Arc USDC: `0x3600000000000000000000000000000000000000`
-- Hosting project: not yet linked
-- Public domain: not yet selected
+- Hosting project: linked and deploying from `main`
+- Public pilot URL: `https://skillfi-arena.vercel.app`
 
 ## Required hosting environment variables
 
@@ -44,7 +44,7 @@ Copy values from the secure local environment or provider dashboards. Never past
 
 - Confirm all Supabase migrations through `11_beta_pilot.sql` are applied to the hosted project.
 - Add the production URL to Privy's allowed origins and redirect configuration.
-- Set the production URL in `NEXT_PUBLIC_APP_URL` so metadata, sitemap, and robots use the correct host.
+- Optionally set `NEXT_PUBLIC_APP_URL` when moving to a custom domain. Vercel production metadata currently resolves automatically.
 - Confirm the operator wallet has only testnet funds and remains authorized on the Arc escrow.
 - Confirm no private key or service-role value appears in the repository or deployment output.
 - Run `npm run build`, `npm run test:product`, and the hosted Supabase validations.
