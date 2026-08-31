@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 const TERMS_VERSION = "2026-08-31";
-const PRIVACY_VERSION = "2026-08-31";
+const PRIVACY_VERSION = "2026-09-01";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentProfile(request.headers.get("authorization"));
