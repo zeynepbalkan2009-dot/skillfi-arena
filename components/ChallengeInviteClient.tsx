@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { formatUsdcUnits } from "@/lib/env/public";
+import { SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
 import { useSkillFiUser } from "@/components/AuthSync";
 import { OnboardingCard } from "@/components/OnboardingCard";
 import { WalletConnect } from "@/components/WalletConnect";
@@ -90,7 +91,7 @@ export function ChallengeInviteClient({
           <div className="text-left sm:text-right">
             <p className="text-xs uppercase tracking-wide text-arena-muted">Entry</p>
             <p className="font-display text-2xl font-bold text-arena-text">
-              {formatUsdcUnits(challenge.entry_fee)} USDC
+              {formatUsdcUnits(challenge.entry_fee)} {SETTLEMENT_ASSET_LABEL}
             </p>
           </div>
         </div>

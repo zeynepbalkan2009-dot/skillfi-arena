@@ -3,6 +3,7 @@
 import type { MatchWithRelations } from "@/lib/types";
 import { JoinMatchButton } from "@/components/JoinMatchButton";
 import { CancelMatchButton } from "@/components/CancelMatchButton";
+import { SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
 
 const REGION_LABELS: Record<string, string> = { EU: "Europe", NA: "N. America", ASIA: "Asia" };
 
@@ -48,7 +49,7 @@ export function ChallengeCard({ match, isOwnChallenge }: { match: MatchWithRelat
       <div className="flex items-center justify-between gap-5 sm:justify-end">
         <div className="text-right">
           <p className="text-xs uppercase tracking-wide text-arena-muted">Stake</p>
-          <p className="font-display text-lg font-bold text-arena-text">{formatStake(match.stake_amount)} USDC</p>
+          <p className="font-display text-lg font-bold text-arena-text">{formatStake(match.stake_amount)} {SETTLEMENT_ASSET_LABEL}</p>
         </div>
         {isOwnChallenge ? (
           <CancelMatchButton matchId={match.id} />

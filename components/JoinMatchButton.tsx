@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { erc20Abi, formatUnits } from "viem";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
-import { ESCROW_CONTRACT_ADDRESS, GNESS_TOKEN_ADDRESS } from "@/lib/contracts";
+import { ESCROW_CONTRACT_ADDRESS, GNESS_TOKEN_ADDRESS, SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 
 export function JoinMatchButton({ matchId, stakeAmount }: { matchId: string; stakeAmount: string }) {
@@ -58,7 +58,7 @@ export function JoinMatchButton({ matchId, stakeAmount }: { matchId: string; sta
   }
 
   return <div className="flex flex-col items-end gap-1">
-    <button type="button" onClick={join} disabled={busy} className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg hover:bg-arena-accent/90 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Joining…" : `Join · ${decimals === undefined ? "…" : formatUnits(BigInt(stakeAmount), decimals)} GNESS`}</button>
+    <button type="button" onClick={join} disabled={busy} className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg hover:bg-arena-accent/90 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Joining…" : `Join · ${decimals === undefined ? "…" : formatUnits(BigInt(stakeAmount), decimals)} ${SETTLEMENT_ASSET_LABEL}`}</button>
     {error && <span className="max-w-48 text-right text-xs text-arena-danger">{error}</span>}
   </div>;
 }

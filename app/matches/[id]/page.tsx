@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatUsdcUnits } from "@/lib/env/public";
+import { SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
 import { supabase } from "@/lib/supabaseClient";
 import type { MatchWithRelations } from "@/lib/types";
 
@@ -55,7 +56,7 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           </div>
 
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
-            <Detail label="Entry per player" value={`${formatUsdcUnits(match.stake_amount)} USDC`} />
+            <Detail label="Testnet entry per player" value={`${formatUsdcUnits(match.stake_amount)} ${SETTLEMENT_ASSET_LABEL}`} />
             <Detail label="Created" value={new Date(match.created_at).toLocaleString()} />
             {match.smart_contract_match_id && (
               <Detail label="On-chain match ID" value={match.smart_contract_match_id} wide />

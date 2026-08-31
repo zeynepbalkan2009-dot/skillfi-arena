@@ -6,7 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { erc20Abi, parseUnits } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
-import { ESCROW_CONTRACT_ADDRESS, GNESS_TOKEN_ADDRESS } from "@/lib/contracts";
+import { ESCROW_CONTRACT_ADDRESS, GNESS_TOKEN_ADDRESS, SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
 import type { Game, PlayerProfile } from "@/lib/types";
 
 type Phase = "form" | "creating" | "approving" | "joining" | "indexing" | "success" | "error";
@@ -198,6 +198,9 @@ export function CreateChallengeModal({
             placeholder="10.00"
             className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text"
           />
+          <p className="text-xs leading-5 text-arena-muted">
+            Pilot asset: {SETTLEMENT_ASSET_LABEL}. Testnet units have no promised monetary value and cannot be redeemed by SkillFi.
+          </p>
           {isBusy && (
             <div className="rounded-md border border-arena-accent-dim bg-arena-accent/10 px-3 py-2 text-sm text-arena-accent">
               {LABELS[phase]}
@@ -205,7 +208,7 @@ export function CreateChallengeModal({
           )}
           {phase === "success" && (
             <div className="rounded-md border border-arena-win/40 bg-arena-win/10 px-3 py-2 text-sm text-arena-win">
-              Your stake is locked. Waiting for an opponent.
+              Your testnet entry is locked. Waiting for an opponent.
             </div>
           )}
           {errorMessage && (
@@ -222,7 +225,7 @@ export function CreateChallengeModal({
               disabled={isBusy || !stakeInput}
               className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg disabled:opacity-50"
             >
-              {isBusy ? "Processing..." : "Create & Deposit"}
+              {isBusy ? "Processing..." : `Create with ${SETTLEMENT_ASSET_LABEL}`}
             </button>
           </div>
         </form>
