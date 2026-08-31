@@ -42,7 +42,7 @@ Copy values from the secure local environment or provider dashboards. Never past
 
 ## Pre-launch checks
 
-- Confirm all Supabase migrations through `09_guild_dao.sql` are applied to the hosted project.
+- Confirm all Supabase migrations through `11_beta_pilot.sql` are applied to the hosted project.
 - Add the production URL to Privy's allowed origins and redirect configuration.
 - Set the production URL in `NEXT_PUBLIC_APP_URL` so metadata, sitemap, and robots use the correct host.
 - Confirm the operator wallet has only testnet funds and remains authorized on the Arc escrow.
