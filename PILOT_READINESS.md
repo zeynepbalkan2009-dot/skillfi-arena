@@ -35,3 +35,5 @@ SKILLFI_LOAD_URL=https://skillfi-arena.vercel.app npm run test:load:100
 ```
 
 Passing these commands confirms the implemented software checks only. A real pilot still needs named test participants, consent, support coverage, monitoring, a rollback plan, and a documented incident owner.
+
+The latest measured acceptance result is recorded in [`PILOT_ACCEPTANCE_REPORT.md`](./PILOT_ACCEPTANCE_REPORT.md).
