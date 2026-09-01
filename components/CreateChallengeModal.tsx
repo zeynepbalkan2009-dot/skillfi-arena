@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { erc20Abi, parseUnits } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
+import { WaitingMotion } from "@/components/motion/WaitingMotion";
 import { ESCROW_CONTRACT_ADDRESS, GNESS_TOKEN_ADDRESS, SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
 import type { Game, PlayerProfile } from "@/lib/types";
 
@@ -202,8 +203,8 @@ export function CreateChallengeModal({
             Pilot asset: {SETTLEMENT_ASSET_LABEL}. Testnet units have no promised monetary value and cannot be redeemed by SkillFi.
           </p>
           {isBusy && (
-            <div className="rounded-md border border-arena-accent-dim bg-arena-accent/10 px-3 py-2 text-sm text-arena-accent">
-              {LABELS[phase]}
+            <div className="rounded-xl border border-arena-accent-dim bg-arena-accent/10 px-3 py-4 text-arena-accent">
+              <WaitingMotion compact label={LABELS[phase]} />
             </div>
           )}
           {phase === "success" && (

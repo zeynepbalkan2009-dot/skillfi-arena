@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const source = readFileSync("components/motion/WaitingMotion.tsx", "utf8");
 const challengeLoading = readFileSync("app/challenges/loading.tsx", "utf8");
 const matchLoading = readFileSync("app/match/[id]/loading.tsx", "utf8");
+const challengeModal = readFileSync("components/CreateChallengeModal.tsx", "utf8");
 
 describe("waiting motion system", () => {
   it("ships all four original arena scenes", () => {
@@ -30,5 +31,9 @@ describe("waiting motion system", () => {
   it("covers challenge and live-match route loading", () => {
     assert.match(challengeLoading, /ArenaRouteLoading/);
     assert.match(matchLoading, /ArenaRouteLoading/);
+  });
+
+  it("covers the on-chain challenge creation wait", () => {
+    assert.match(challengeModal, /WaitingMotion compact label=\{LABELS\[phase\]\}/);
   });
 });
