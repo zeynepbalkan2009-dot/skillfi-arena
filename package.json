@@ -23,6 +23,7 @@
     "test:pilot:hosted": "node --experimental-strip-types scripts/pilot-games-acceptance.mjs",
     "test:live": "node scripts/live-readiness-smoke.mjs",
     "test:guild:100": "node scripts/guild-capacity-100.mjs",
+    "test:pilot:release": "node scripts/pilot-release-gate.mjs",
     "resolve:dispute": "node scripts/resolve-dispute.mjs",
     "start": "next start",
     "lint": "next lint"

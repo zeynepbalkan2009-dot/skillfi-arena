@@ -117,6 +117,16 @@ test("public health endpoint is sanitized and verifies the five-game cohort", ()
   assert.doesNotMatch(health, /SERVICE_ROLE|PRIVATE_KEY|wallet_address|privy_user_id/);
 });
 
+test("pilot release gate combines local, capacity, and production checks", () => {
+  const gate = readFileSync(join(root, "scripts/pilot-release-gate.mjs"), "utf8");
+  assert.match(gate, /npm run typecheck/);
+  assert.match(gate, /npm run test:product/);
+  assert.match(gate, /npm run test:guild:100/);
+  assert.match(gate, /npm run test:live/);
+  assert.match(gate, /npm run test:load:100/);
+  assert.match(gate, /SKILLFI_LOAD_USERS: "100"/);
+});
+
 test("settlement validates winner and on-chain participants before payout", () => {
   const source = readFileSync(join(root, "lib/settlement.ts"), "utf8");
   assert.match(source, /winnerId !== match\.player_a_id && winnerId !== match\.player_b_id/);

@@ -26,6 +26,16 @@ This is an engineering readiness statement, not legal advice or a guarantee that
 
 ## Required acceptance commands
 
+Run the complete release gate against production with one command:
+
+```bash
+npm run test:pilot:release
+```
+
+The gate stops at the first failure and covers TypeScript, product tests, the isolated 100-player guild capacity fixture, production readiness, and a 100-user live load check. Override the production target with `SKILLFI_LIVE_URL` when validating a preview deployment.
+
+The equivalent individual commands are:
+
 ```bash
 npm run typecheck
 npm run test:product
