@@ -1,5 +1,12 @@
 name: SkillFi Arena CI
 
+permissions:
+  contents: read
+
+concurrency:
+  group: skillfi-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -24,10 +31,13 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Type Check
         run: npm run typecheck
+
+      - name: Product Tests
+        run: npm run test:product
 
       - name: Build
         run: npm run build
@@ -48,7 +58,7 @@ jobs:
           node-version: 22
 
       - name: Install
-        run: npm install
+        run: npm ci
 
       - name: Compile Contracts
         run: npx hardhat compile
