@@ -30,6 +30,7 @@ This is an engineering readiness statement, not legal advice or a guarantee that
 npm run typecheck
 npm run test:product
 npm run test:guild:100
+SKILLFI_LIVE_URL=https://skillfi-arena.vercel.app npm run test:live
 SKILLFI_LOAD_URL=https://skillfi-arena.vercel.app npm run test:load:100
 ```
 

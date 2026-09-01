@@ -109,6 +109,14 @@ test("production metadata never falls back to localhost", () => {
   assert.match(robots, /getSiteUrl/);
 });
 
+test("public health endpoint is sanitized and verifies the five-game cohort", () => {
+  const health = readFileSync(join(root, "app/api/health/route.ts"), "utf8");
+  assert.match(health, /pilotGames: \{ ready: pilotGamesReady, published:/);
+  assert.match(health, /betaCohort: \{ active: cohortResult\.count \?\? 0, limit: 100 \}/);
+  assert.match(health, /Cache-Control.*no-store/);
+  assert.doesNotMatch(health, /SERVICE_ROLE|PRIVATE_KEY|wallet_address|privy_user_id/);
+});
+
 test("settlement validates winner and on-chain participants before payout", () => {
   const source = readFileSync(join(root, "lib/settlement.ts"), "utf8");
   assert.match(source, /winnerId !== match\.player_a_id && winnerId !== match\.player_b_id/);
