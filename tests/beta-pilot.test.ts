@@ -49,6 +49,10 @@ test("pilot run tracking requires active enrollment and limits personal feedback
   assert.match(route, /eq\("status", "active"\)/);
   assert.match(route, /Active beta access is required/);
   assert.match(route, /onConflict: "user_id,game_slug"/);
+  const lab = readFileSync("components/PilotGameLab.tsx", "utf8");
+  assert.match(lab, /Saved beta coverage/);
+  assert.match(lab, /\/5 games/);
+  assert.match(lab, /SAVED ·/);
 });
 
 test("challenge UI explains beta access and avoids financial reward claims", () => {
