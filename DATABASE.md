@@ -1,10 +1,10 @@
 # Database
 
-SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/19_public_match_graph_privacy.sql`.
+SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/20_disable_public_match_realtime.sql`.
 
 ## Hosted Release State
 
-Hosted deployments must contain `public.schema_release_state` with `version = 19`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
+Hosted deployments must contain `public.schema_release_state` with `version = 20`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
 
 The release marker is not a substitute for migrations; it is written by the migration chain and exists so application readiness can detect schema drift.
 
@@ -52,6 +52,8 @@ The following security-sensitive tables or paths are service-role only:
 
 Migration 19 revokes anonymous/authenticated reads from challenge rows and participant link tables. Public match reads are column-scoped to the minimum fields required by the live/public match UI; challenge linkage and free-form match context are not directly enumerable through the public Supabase key.
 
+Migration 20 removes `public.matches` from the `supabase_realtime` publication. Lobby and live-match state refreshes use explicit projected reads/polling instead of logical-replication payloads. This prevents a future client/library mismatch from turning Realtime into an alternate full-row data path and removes unauthenticated opponent-progress broadcasts from the match UI.
+
 Settlement coordination RPCs (`claim_match_settlement`, `record_match_settlement_tx`, and `release_match_settlement_lease`) are service-role only. They enforce a database single-writer lease so concurrent serverless invocations cannot independently broadcast settlement transactions for the same match.
 
 Game integration secrets are stored as hashes; raw integration keys are returned once at creation time.
@@ -78,4 +80,4 @@ npm run test:product
 npm run build
 ```
 
-Smart-contract changes also require the Hardhat release-tooling typecheck, compile, and test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 19 and contract/operator configuration are applied.
+Smart-contract changes also require the Hardhat release-tooling typecheck, compile, and test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 20 and contract/operator configuration are applied.
