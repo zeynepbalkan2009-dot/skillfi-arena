@@ -27,11 +27,13 @@ test("public game catalog does not expose internal studio or creator linkage", (
   assert.match(text, /integration_status["']?,\s*["']published["']/);
 });
 
-test("realtime lobby resolves creator through the public profile projection", () => {
+test("realtime lobby resolves creator through the public profile projection and selects safe match columns", () => {
   const text = source("components/LobbyClient.tsx");
   assert.match(text, /\.from\(["']public_profiles["']\)/);
   assert.match(text, /\.select\(["']id,username,display_name,avatar_url,region["']\)/);
   assert.doesNotMatch(text, /\.from\(["']users["']\)[\s\S]{0,180}wallet_address/);
+  assert.match(text, /const REALTIME_MATCH_COLUMNS/);
+  assert.match(text, /select: REALTIME_MATCH_COLUMNS/);
 });
 
 test("invite-token and accepted-challenge payloads exclude wallets and wildcard relations", () => {
