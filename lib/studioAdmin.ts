@@ -2,6 +2,8 @@ import "server-only";
 
 import type { PlayerProfile } from "@/lib/types";
 
+// Security boundary: OPERATOR_WALLET_ADDRESS is intentionally NOT an admin source.
+// Blockchain operator identity and web/studio administration must remain separate.
 function csv(value: string | undefined): string[] {
   return (value ?? "")
     .split(",")
