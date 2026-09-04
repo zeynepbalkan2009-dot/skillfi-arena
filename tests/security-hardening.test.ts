@@ -46,11 +46,36 @@ test("escrow v3 provides permissionless READY recovery and narrows operator canc
   assert.doesNotMatch(contract, /m\.status != MatchStatus\.RESOLVED/);
 });
 
+test("settlement broadcasts are protected by a database single-writer lease", () => {
+  const migration = read("supabase/18_settlement_single_writer.sql");
+  const settlement = read("lib/settlement.ts");
+  const health = read("app/api/health/route.ts");
+  assert.match(migration, /create table if not exists public\.match_settlement_leases/);
+  assert.match(migration, /claim_match_settlement/);
+  assert.match(migration, /record_match_settlement_tx/);
+  assert.match(migration, /grant execute on function public\.claim_match_settlement[^\n]* to service_role/);
+  assert.match(settlement, /claimSettlementLease\(match\.id, leaseToken\)/);
+  assert.match(settlement, /await recordSettlementLeaseTx\(match\.id, leaseToken, settlementHash\)/);
+  assert.match(settlement, /throw new SettlementInProgressError\(\)/);
+  assert.match(health, /EXPECTED_SCHEMA_VERSION = 18/);
+});
+
 test("published integration results reject a conflicting locked winner", () => {
   const route = read("app/api/integrations/v1/results/route.ts");
   assert.match(route, /match\.winner_id && match\.winner_id !== winner\.id/);
   assert.match(route, /Match already has a different authoritative winner/);
   assert.match(route, /Authoritative result conflicts with the locked match winner/);
+});
+
+test("studio listing fee uses explicit economic config and exact token event source", () => {
+  const config = read("lib/studios.ts");
+  const route = read("app/api/studios/fee/route.ts");
+  assert.match(config, /STUDIO_LISTING_FEE_USDC/);
+  assert.match(config, /STUDIO_FEE_TREASURY_ADDRESS/);
+  assert.doesNotMatch(config, /OPERATOR_WALLET_ADDRESS/);
+  assert.doesNotMatch(config, /\?\? "10"/);
+  assert.match(route, /getAddress\(log\.address\) === getAddress\(USDC_TOKEN_ADDRESS\)/);
+  assert.match(route, /Transaction predates this studio fee request/);
 });
 
 test("authenticated profile and one-time studio credentials are explicitly non-cacheable", () => {
