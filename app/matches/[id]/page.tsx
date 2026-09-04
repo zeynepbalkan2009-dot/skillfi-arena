@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatUsdcUnits } from "@/lib/env/public";
 import { SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
-import { supabase } from "@/lib/supabaseClient";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { MatchWithRelations } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +17,51 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+const PUBLIC_MATCH_DETAIL_SELECT = `
+  id,
+  smart_contract_match_id,
+  game_id,
+  player_a_id,
+  player_b_id,
+  stake_amount,
+  status,
+  winner_id,
+  created_at,
+  updated_at,
+  game:games(
+    id,
+    name,
+    type,
+    is_active
+  ),
+  player_a:users!matches_player_a_id_fkey(
+    id,
+    username,
+    display_name,
+    avatar_url,
+    region
+  ),
+  player_b:users!matches_player_b_id_fkey(
+    id,
+    username,
+    display_name,
+    avatar_url,
+    region
+  ),
+  challenge:challenges(
+    id,
+    rules,
+    currency,
+    status,
+    accepted_at,
+    expires_at
+  )
+`;
+
 export default async function MatchDetailPage({ params }: { params: { id: string } }) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("matches")
-    .select(
-      "id, challenge_id, smart_contract_match_id, game_id, player_a_id, player_b_id, stake_amount, status, winner_id, created_at, updated_at, game:games(id,name,type,is_active,created_at), player_a:users!matches_player_a_id_fkey(id,username,display_name,avatar_url,region,wallet_address), player_b:users!matches_player_b_id_fkey(id,username,display_name,avatar_url,region,wallet_address), challenge:challenges(id,rules,currency,status,accepted_at,expires_at)"
-    )
+    .select(PUBLIC_MATCH_DETAIL_SELECT)
     .eq("id", params.id)
     .maybeSingle();
 
