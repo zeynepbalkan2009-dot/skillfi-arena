@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { keccak256, stringToBytes } from "viem";
+import { getAddress, keccak256, stringToBytes } from "viem";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
   if (!profile.wallet_address) {
     return NextResponse.json({ error: "Link an Ethereum wallet before creating a match" }, { status: 400 });
   }
+  const creatorWallet = getAddress(profile.wallet_address);
 
   const { data: game, error: gameError } = await supabaseAdmin
     .from("games")
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
       address: ESCROW_CONTRACT_ADDRESS,
       abi: skillFiEscrowAbi,
       functionName: "createMatch",
-      args: [matchId, stake],
+      args: [matchId, stake, creatorWallet],
     });
   } catch (error) {
     await releaseStakeReservation(reservationKey);
