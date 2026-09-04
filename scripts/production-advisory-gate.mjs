@@ -3,8 +3,10 @@ import { gunzipSync } from "node:zlib";
 
 const lockfilePath = process.argv[2] ?? "package-lock.json";
 const registry = (process.env.NPM_CONFIG_REGISTRY ?? "https://registry.npmjs.org/").replace(/\/+$/, "");
-const advisoryUrl = `${registry}/-/npm/v1/security/advisories/bulk`;
+const npmAdvisoryUrl = `${registry}/-/npm/v1/security/advisories/bulk`;
+const osvBaseUrl = "https://api.osv.dev/v1";
 const FAIL_SEVERITIES = new Set(["high", "critical"]);
+const SAFE_SEVERITIES = new Set(["low", "moderate", "medium"]);
 
 function packageNameFromPath(path) {
   const marker = "node_modules/";
@@ -47,53 +49,61 @@ function decodeAdvisoryBody(buffer) {
   return buffer.toString("utf8");
 }
 
-async function requestAdvisories(payload) {
+async function fetchWithRetry(url, options, label, attempts = 3) {
   let lastError;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
     try {
-      const response = await fetch(advisoryUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Accept-Encoding": "identity",
-          "User-Agent": "skillfi-production-advisory-gate/1.0",
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
+      const response = await fetch(url, { ...options, signal: controller.signal });
       const raw = Buffer.from(await response.arrayBuffer());
       if (!response.ok) {
-        throw new Error(`registry returned HTTP ${response.status}: ${decodeAdvisoryBody(raw).slice(0, 500)}`);
+        throw new Error(`HTTP ${response.status}: ${decodeAdvisoryBody(raw).slice(0, 500)}`);
       }
-      const parsed = JSON.parse(decodeAdvisoryBody(raw));
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error("registry returned an invalid advisory response shape");
-      }
-      for (const [name, entries] of Object.entries(parsed)) {
-        if (!Array.isArray(entries)) throw new Error(`registry returned a non-array advisory list for ${name}`);
-      }
-      return parsed;
+      return JSON.parse(decodeAdvisoryBody(raw));
     } catch (error) {
       lastError = error;
-      console.error(`Production advisory request attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
-      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 5_000));
+      console.error(`${label} attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
+      if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, attempt * 5_000));
     } finally {
       clearTimeout(timeout);
     }
   }
-  throw lastError ?? new Error("Production advisory request failed");
+  throw lastError ?? new Error(`${label} failed`);
 }
 
-function highOrCriticalFindings(advisories) {
+async function requestNpmAdvisories(payload) {
+  const parsed = await fetchWithRetry(
+    npmAdvisoryUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Encoding": "identity",
+        "User-Agent": "skillfi-production-advisory-gate/2.0",
+      },
+      body: JSON.stringify(payload),
+    },
+    "npm Bulk Advisory request",
+  );
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("npm registry returned an invalid advisory response shape");
+  }
+  for (const [name, entries] of Object.entries(parsed)) {
+    if (!Array.isArray(entries)) throw new Error(`npm registry returned a non-array advisory list for ${name}`);
+  }
+  return parsed;
+}
+
+function npmHighOrCriticalFindings(advisories) {
   const findings = [];
   for (const [packageName, entries] of Object.entries(advisories)) {
     for (const advisory of entries) {
       const severity = String(advisory?.severity ?? "unknown").toLowerCase();
       if (!FAIL_SEVERITIES.has(severity)) continue;
       findings.push({
+        source: "npm",
         package: packageName,
         severity,
         title: advisory?.title ?? "Untitled advisory",
@@ -105,25 +115,138 @@ function highOrCriticalFindings(advisories) {
   return findings;
 }
 
-// Canary proves the advisory service is actually returning vulnerability data
-// and exercises the registry's currently problematic >1KB/gzip response path.
-const canary = await requestAdvisories({ lodash: ["4.17.20"] });
-if (highOrCriticalFindings(canary).length === 0) {
-  throw new Error("Advisory registry canary did not return the expected high-severity lodash 4.17.20 finding");
+function inventoryPairs(inventory) {
+  return Object.entries(inventory).flatMap(([name, versions]) =>
+    versions.map((version) => ({ name, version })),
+  );
+}
+
+async function queryOsvBatch(pairs) {
+  const matches = [];
+  for (let start = 0; start < pairs.length; start += 500) {
+    const chunk = pairs.slice(start, start + 500);
+    const response = await fetchWithRetry(
+      `${osvBaseUrl}/querybatch`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          queries: chunk.map(({ name, version }) => ({
+            package: { ecosystem: "npm", name },
+            version,
+          })),
+        }),
+      },
+      "OSV querybatch",
+    );
+    if (!Array.isArray(response?.results) || response.results.length !== chunk.length) {
+      throw new Error("OSV querybatch returned an invalid result shape");
+    }
+    response.results.forEach((result, index) => {
+      if (result?.next_page_token) {
+        throw new Error(`OSV pagination required for ${chunk[index].name}@${chunk[index].version}; refusing an incomplete scan`);
+      }
+      for (const vuln of result?.vulns ?? []) {
+        if (!vuln?.id) throw new Error("OSV returned a vulnerability without an id");
+        matches.push({ ...chunk[index], id: vuln.id });
+      }
+    });
+  }
+  return matches;
+}
+
+async function fetchOsvDetails(ids) {
+  const details = new Map();
+  const unique = [...new Set(ids)];
+  for (let start = 0; start < unique.length; start += 12) {
+    const chunk = unique.slice(start, start + 12);
+    const records = await Promise.all(
+      chunk.map(async (id) => [
+        id,
+        await fetchWithRetry(
+          `${osvBaseUrl}/vulns/${encodeURIComponent(id)}`,
+          { headers: { Accept: "application/json" } },
+          `OSV vulnerability ${id}`,
+        ),
+      ]),
+    );
+    for (const [id, record] of records) details.set(id, record);
+  }
+  return details;
+}
+
+function normalizeSeverity(record, packageName) {
+  const candidates = [
+    record?.database_specific?.severity,
+    record?.ecosystem_specific?.severity,
+  ];
+  for (const affected of record?.affected ?? []) {
+    if (affected?.package?.ecosystem === "npm" && affected?.package?.name === packageName) {
+      candidates.push(affected?.ecosystem_specific?.severity, affected?.database_specific?.severity);
+    }
+  }
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? "").toLowerCase();
+    if (FAIL_SEVERITIES.has(normalized) || SAFE_SEVERITIES.has(normalized)) return normalized;
+  }
+  // OSV records can omit a textual severity even when a vulnerability exists.
+  // Fail closed rather than silently treating an unclassified advisory as safe.
+  return "unknown";
+}
+
+async function scanWithOsv(inventory) {
+  const matches = await queryOsvBatch(inventoryPairs(inventory));
+  if (matches.length === 0) return [];
+  const details = await fetchOsvDetails(matches.map((match) => match.id));
+  const findings = [];
+  const seen = new Set();
+  for (const match of matches) {
+    const key = `${match.name}@${match.version}:${match.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const record = details.get(match.id);
+    if (!record) throw new Error(`Missing OSV detail for ${match.id}`);
+    const severity = normalizeSeverity(record, match.name);
+    if (!FAIL_SEVERITIES.has(severity) && severity !== "unknown") continue;
+    findings.push({
+      source: "OSV",
+      package: `${match.name}@${match.version}`,
+      severity,
+      id: match.id,
+      title: record.summary ?? record.details?.slice(0, 160) ?? "Untitled OSV advisory",
+      url: `https://osv.dev/vulnerability/${match.id}`,
+    });
+  }
+  return findings;
 }
 
 const lock = JSON.parse(await readFile(lockfilePath, "utf8"));
 const inventory = buildProductionInventory(lock);
 const packageCount = Object.keys(inventory).length;
-if (packageCount === 0) throw new Error("Production dependency inventory is empty; refusing to pass the audit gate");
+if (packageCount === 0) throw new Error("Production dependency inventory is empty; refusing to pass the advisory gate");
 
-const advisories = await requestAdvisories(inventory);
-const findings = highOrCriticalFindings(advisories);
+let source = "npm";
+let findings;
+try {
+  const canary = await requestNpmAdvisories({ lodash: ["4.17.20"] });
+  if (npmHighOrCriticalFindings(canary).length === 0) {
+    throw new Error("npm advisory canary did not return the expected high-severity lodash 4.17.20 finding");
+  }
+  findings = npmHighOrCriticalFindings(await requestNpmAdvisories(inventory));
+} catch (npmError) {
+  source = "OSV";
+  console.warn("npm advisory service unavailable or invalid; switching to fail-closed OSV fallback:", npmError instanceof Error ? npmError.message : npmError);
+  const canaryFindings = await scanWithOsv({ lodash: ["4.17.20"] });
+  if (canaryFindings.length === 0) {
+    throw new Error("OSV canary did not return a blocking finding for lodash 4.17.20");
+  }
+  findings = await scanWithOsv(inventory);
+}
 
 if (findings.length > 0) {
-  console.error(`Found ${findings.length} high/critical production dependency advisories:`);
+  console.error(`Found ${findings.length} blocking production dependency advisories via ${source}:`);
   for (const finding of findings) console.error(JSON.stringify(finding));
   process.exit(1);
 }
 
-console.log(`Production advisory gate passed for ${packageCount} installed package names: no high/critical advisories returned.`);
+console.log(`Production advisory gate passed via ${source} for ${packageCount} installed package names: no high/critical or unclassified OSV advisories remain.`);
