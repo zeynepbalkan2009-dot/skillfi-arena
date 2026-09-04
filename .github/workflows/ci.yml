@@ -38,6 +38,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Production dependency audit
+        run: |
+          status=1
+          for attempt in 1 2 3; do
+            set +e
+            timeout 180s npm audit --omit=dev --audit-level=high
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then break; fi
+            echo "npm audit attempt ${attempt} failed with exit ${status}"
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          exit "$status"
+
       - name: Type Check
         run: npm run typecheck
 
@@ -66,6 +80,20 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Production dependency audit
+        run: |
+          status=1
+          for attempt in 1 2 3; do
+            set +e
+            timeout 180s npm audit --omit=dev --audit-level=high
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then break; fi
+            echo "npm audit attempt ${attempt} failed with exit ${status}"
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          exit "$status"
 
       - name: Compile Contracts
         run: npx hardhat compile
