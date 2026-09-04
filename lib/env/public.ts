@@ -38,15 +38,19 @@ function allowLocalBuildPlaceholders(): boolean {
   );
 }
 
-function allowPreviewContractPlaceholder(name: keyof PublicEnv): boolean {
+function allowPreviewPlaceholder(name: keyof PublicEnv): boolean {
   return (
     process.env.VERCEL_ENV === "preview" &&
-    (name === "NEXT_PUBLIC_ESCROW_ADDRESS" || name === "NEXT_PUBLIC_USDC_TOKEN_ADDRESS")
+    (
+      name === "NEXT_PUBLIC_ESCROW_ADDRESS" ||
+      name === "NEXT_PUBLIC_USDC_TOKEN_ADDRESS" ||
+      name === "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"
+    )
   );
 }
 
 function canUsePlaceholder(name: keyof PublicEnv): boolean {
-  return allowLocalBuildPlaceholders() || allowPreviewContractPlaceholder(name);
+  return allowLocalBuildPlaceholders() || allowPreviewPlaceholder(name);
 }
 
 function required(name: keyof PublicEnv): string {
