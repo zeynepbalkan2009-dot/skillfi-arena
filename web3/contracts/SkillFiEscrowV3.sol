@@ -84,6 +84,15 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(_arbiter != address(0), "invalid arbiter");
         require(_treasury != address(0), "invalid treasury");
         require(_feeBps <= 1000, "max fee 10%");
+        require(
+            _operator != _arbiter &&
+                _operator != _treasury &&
+                _arbiter != _treasury &&
+                msg.sender != _operator &&
+                msg.sender != _arbiter &&
+                msg.sender != _treasury,
+            "role overlap"
+        );
 
         token = IERC20(_token);
         treasury = _treasury;
@@ -92,6 +101,40 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, _operator);
         _grantRole(ARBITER_ROLE, _arbiter);
+    }
+
+    // Role separation is a contract invariant, not just a deployment-script
+    // convention. Admin/operator/arbiter/treasury identities cannot be merged
+    // later through AccessControl grants.
+    function grantRole(bytes32 role, address account) public override {
+        _requireRoleSeparation(role, account);
+        super.grantRole(role, account);
+    }
+
+    function _requireRoleSeparation(bytes32 role, address account) internal view {
+        require(account != address(0), "invalid role account");
+        if (role == OPERATOR_ROLE) {
+            require(
+                !hasRole(ARBITER_ROLE, account) &&
+                    !hasRole(DEFAULT_ADMIN_ROLE, account) &&
+                    account != treasury,
+                "role overlap"
+            );
+        } else if (role == ARBITER_ROLE) {
+            require(
+                !hasRole(OPERATOR_ROLE, account) &&
+                    !hasRole(DEFAULT_ADMIN_ROLE, account) &&
+                    account != treasury,
+                "role overlap"
+            );
+        } else if (role == DEFAULT_ADMIN_ROLE) {
+            require(
+                !hasRole(OPERATOR_ROLE, account) &&
+                    !hasRole(ARBITER_ROLE, account) &&
+                    account != treasury,
+                "role overlap"
+            );
+        }
     }
 
     function createMatch(uint256 matchId, uint256 entryFee, address expectedPlayer1)
@@ -284,6 +327,12 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
     function setTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_treasury != address(0), "invalid");
+        require(
+            !hasRole(DEFAULT_ADMIN_ROLE, _treasury) &&
+                !hasRole(OPERATOR_ROLE, _treasury) &&
+                !hasRole(ARBITER_ROLE, _treasury),
+            "role overlap"
+        );
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
     }
