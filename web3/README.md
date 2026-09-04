@@ -30,15 +30,15 @@ BASE_EXPECT_DEPOSITS_ENABLED=0 npm run validate:base-sepolia
 
 The deployment writes `deployments/base-sepolia-v3.json` and records `depositsEnabledAtDeployment: false`. Validation checks the runtime-code hash, role separation, token/treasury configuration, policy timeouts, emergency pause state, and the explicitly expected deposit-gate state.
 
-Before running a value-bearing Base Sepolia smoke, the configured admin/multisig must deliberately enable deposits. The generic calldata encoder can target either V3 deployment:
+Before running a value-bearing Base Sepolia smoke, the configured admin/multisig must deliberately enable deposits. The calldata encoder requires explicit network metadata for non-Arc targets:
 
 ```shell
-ARC_ESCROW_ADDRESS=0x<base-v3-address> npm run admin:calldata -- enable-deposits
+ADMIN_TARGET_NETWORK=baseSepolia ESCROW_ADMIN_TARGET_ADDRESS=0x<base-v3-address> npm run admin:calldata -- enable-deposits
 BASE_EXPECT_DEPOSITS_ENABLED=1 npm run validate:base-sepolia
 npm run smoke:base-sepolia
 ```
 
-The variable name `ARC_ESCROW_ADDRESS` on the calldata-only helper is only the optional target-address input for that helper; the generated transaction data itself is standard EVM calldata and the output includes the target and chain metadata for independent verification. The Base live smoke now checks `depositsEnabled()` before funding temporary player wallets, so a closed gate fails clearly before spending testnet gas.
+The Base live smoke checks `depositsEnabled()` before funding temporary player wallets, so a closed gate fails clearly before spending testnet gas.
 
 ## Arc Testnet
 
@@ -60,16 +60,16 @@ The Arc deployment script refuses the wrong chain ID, zero gas balance, missing 
 
 ### Admin / multisig activation
 
-The repository does not require exporting the admin private key to activate or disable deposits. Generate calldata only:
+The repository does not require exporting the admin private key to activate or disable deposits. Generate calldata only, with target network and escrow address bound into the printed metadata:
 
 ```shell
-ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- enable-deposits
-ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- disable-deposits
-ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- pause
-ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- unpause
+ADMIN_TARGET_NETWORK=arcTestnet ESCROW_ADMIN_TARGET_ADDRESS=0x... npm run admin:calldata -- enable-deposits
+ADMIN_TARGET_NETWORK=arcTestnet ESCROW_ADMIN_TARGET_ADDRESS=0x... npm run admin:calldata -- disable-deposits
+ADMIN_TARGET_NETWORK=arcTestnet ESCROW_ADMIN_TARGET_ADDRESS=0x... npm run admin:calldata -- pause
+ADMIN_TARGET_NETWORK=arcTestnet ESCROW_ADMIN_TARGET_ADDRESS=0x... npm run admin:calldata -- unpause
 ```
 
-`admin:calldata` signs and broadcasts **nothing**. It prints the target/action/function/args/calldata so the configured `DEFAULT_ADMIN_ROLE` signer or multisig can independently verify, simulate, approve, and execute the transaction.
+`admin:calldata` signs and broadcasts **nothing**. It prints the target network, chain ID, target address, action, function, arguments, and calldata so the configured `DEFAULT_ADMIN_ROLE` signer or multisig can independently verify, simulate, approve, and execute the transaction. `ADMIN_TARGET_NETWORK` accepts only `arcTestnet` or `baseSepolia`.
 
 Final activation order:
 
