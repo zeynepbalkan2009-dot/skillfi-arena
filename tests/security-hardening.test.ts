@@ -131,3 +131,21 @@ test("Vercel preview placeholders remain no-value and production-sensitive ident
   const escrow = read("lib/serverEscrow.ts");
   assert.match(escrow, /assertEscrowContractConfigured\(\)/);
 });
+
+test("new value-bearing exposure is fail-closed without blocking funded-match recovery", () => {
+  const guard = read("lib/security/valueBearing.ts");
+  const createRoute = read("app/api/matches/create/route.ts");
+  const joinCheckRoute = read("app/api/matches/join/check/route.ts");
+  const joinConfirmRoute = read("app/api/matches/join/route.ts");
+  const settlement = read("lib/settlement.ts");
+  const health = read("app/api/health/route.ts");
+
+  assert.match(guard, /process\.env\.SKILLFI_VALUE_BEARING_ENABLED === "1"/);
+  assert.match(createRoute, /if \(!isValueBearingEnabled\(\)\)/);
+  assert.match(joinCheckRoute, /if \(!isValueBearingEnabled\(\)\)/);
+  assert.ok(createRoute.indexOf("isValueBearingEnabled()") < createRoute.indexOf("reserveStake("));
+  assert.ok(joinCheckRoute.indexOf("isValueBearingEnabled()") < joinCheckRoute.indexOf("reserveStake("));
+  assert.doesNotMatch(joinConfirmRoute, /isValueBearingEnabled|SKILLFI_VALUE_BEARING_ENABLED/);
+  assert.doesNotMatch(settlement, /isValueBearingEnabled|SKILLFI_VALUE_BEARING_ENABLED/);
+  assert.match(health, /valueBearingEnabled/);
+});
