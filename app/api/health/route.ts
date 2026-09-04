@@ -10,7 +10,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-const EXPECTED_SCHEMA_VERSION = 17;
+const EXPECTED_SCHEMA_VERSION = 18;
 
 async function checkSettlementOperator() {
   try {
