@@ -111,11 +111,8 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
   }
   if (!chainPlayers.includes(winnerWallet)) throw new Error("Winner wallet is not an on-chain participant");
 
-  const feeBps = await escrowPublicClient.readContract({
-    address: ESCROW_CONTRACT_ADDRESS,
-    abi: skillFiEscrowAbi,
-    functionName: "platformFeeBps",
-  });
+  const feeBps = onchain[9];
+  if (feeBps > 1_000n) throw new Error("Escrow match fee exceeds the permitted maximum");
   const totalPrize = onchain[2] * 2n;
   const payout = totalPrize - (totalPrize * feeBps) / 10_000n;
 
@@ -177,7 +174,7 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
             eventType: "settlement_broadcast",
             txHash: settlementHash,
             idempotencyKey: `settlement_broadcast:${match.id}`,
-            payload: { winnerId, winnerWallet, payout: payout.toString() },
+            payload: { winnerId, winnerWallet, payout: payout.toString(), feeBps: feeBps.toString() },
           });
         } catch (auditError) {
           console.error("Settlement broadcast audit failed:", auditError instanceof Error ? auditError.message : auditError);
@@ -258,7 +255,7 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
     eventType: "settlement_confirmed",
     txHash: settlementHash,
     idempotencyKey: `settlement_confirmed:${match.id}`,
-    payload: { winnerId, winnerWallet, payout: payout.toString(), reconciled: !settlementHash },
+    payload: { winnerId, winnerWallet, payout: payout.toString(), feeBps: feeBps.toString(), reconciled: !settlementHash },
   });
 
   const { error: completeError } = await supabaseAdmin
@@ -274,7 +271,7 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
     actorUserId,
     eventType: "match_completed",
     idempotencyKey: `match_completed:${match.id}`,
-    payload: { winnerId, payout: payout.toString(), txHash: settlementHash },
+    payload: { winnerId, payout: payout.toString(), feeBps: feeBps.toString(), txHash: settlementHash },
   });
 
   return { status: "completed" as const, winnerId, payout: payout.toString(), settlementHash };
