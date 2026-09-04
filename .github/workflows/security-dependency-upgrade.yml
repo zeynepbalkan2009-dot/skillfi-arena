@@ -1,5 +1,6 @@
 name: One-time security dependency upgrade
 
+# Retry marker: final security branch state
 permissions:
   contents: write
 
