@@ -1,10 +1,10 @@
 # Database
 
-SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/20_disable_public_match_realtime.sql`.
+SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/21_rotate_game_api_key_hashes.sql`.
 
 ## Hosted Release State
 
-Hosted deployments must contain `public.schema_release_state` with `version = 20`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
+Hosted deployments must contain `public.schema_release_state` with `version = 21`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
 
 The release marker is not a substitute for migrations; it is written by the migration chain and exists so application readiness can detect schema drift.
 
@@ -56,11 +56,15 @@ Migration 20 removes `public.matches` from the `supabase_realtime` publication. 
 
 Settlement coordination RPCs (`claim_match_settlement`, `record_match_settlement_tx`, and `release_match_settlement_lease`) are service-role only. They enforce a database single-writer lease so concurrent serverless invocations cannot independently broadcast settlement transactions for the same match.
 
-Game integration secrets are stored as hashes; raw integration keys are returned once at creation time.
+## Integration Credentials
+
+Raw game integration keys are returned once at credential creation time. New credentials use a 12-hex-character random prefix, a 256-bit random secret, and a deterministic scrypt-derived 32-byte hash. Authentication first resolves the non-secret prefix and only then performs the scrypt comparison, which avoids spending password-KDF work for random unknown prefixes.
+
+Migration 21 revokes every credential created under the previous SHA-256 hash scheme because the original secret is not stored and therefore cannot be re-hashed in place. Studios must create replacement test/live credentials after schema 21 is applied. Historical revoked credential rows remain available for audit references. The key prefix is unique to make lookup deterministic.
 
 ## Challenge And Match Security
 
-Invitation tokens are stored as SHA-256 hashes. Challenge acceptance mutations run through service-role-only server/RPC paths. Invite pages, accepted-challenge responses, public match detail pages, and open-match feeds use explicit field projections and must not return private wallet or internal studio/creator linkage data unless the live on-chain flow strictly requires it.
+Invitation tokens are high-entropy random values stored by SHA-256 hash; unlike human passwords, they are not user-chosen low-entropy secrets. Challenge acceptance mutations run through service-role-only server/RPC paths. Invite pages, accepted-challenge responses, public match detail pages, and open-match feeds use explicit field projections and must not return private wallet or internal studio/creator linkage data unless the live on-chain flow strictly requires it.
 
 Staked match creation uses risk reservations and idempotency keys. Reusing a finalized or already-attached reservation is rejected. API rate-limit buckets provide serverless-safe fixed-window throttling for sensitive routes.
 
@@ -80,4 +84,4 @@ npm run test:product
 npm run build
 ```
 
-Smart-contract changes also require the Hardhat release-tooling typecheck, compile, and test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 20 and contract/operator configuration are applied.
+Smart-contract changes also require the Hardhat release-tooling typecheck, compile, and test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 21 and contract/operator configuration are applied.
