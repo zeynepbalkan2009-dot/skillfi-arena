@@ -37,3 +37,14 @@ export const ESCROW_CONTRACT_ADDRESS = env.NEXT_PUBLIC_ESCROW_ADDRESS;
 export const USDC_TOKEN_ADDRESS = env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS;
 export const GNESS_TOKEN_ADDRESS = USDC_TOKEN_ADDRESS;
 export const SETTLEMENT_ASSET_LABEL = CHAIN_TARGET === "arcTestnet" ? "testnet USDC" : "testnet GNESS";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+export const ESCROW_CONTRACT_CONFIGURED = ESCROW_CONTRACT_ADDRESS.toLowerCase() !== ZERO_ADDRESS;
+export const USDC_TOKEN_CONFIGURED = USDC_TOKEN_ADDRESS.toLowerCase() !== ZERO_ADDRESS;
+
+export function assertEscrowContractConfigured(): void {
+  if (!ESCROW_CONTRACT_CONFIGURED) {
+    throw new Error("Escrow contract is intentionally disabled for this preview environment.");
+  }
+}
