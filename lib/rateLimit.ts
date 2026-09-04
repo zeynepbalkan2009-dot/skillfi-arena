@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
+import { getServerEnv } from "@/lib/env/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type RateLimitResult = {
@@ -10,7 +11,13 @@ export type RateLimitResult = {
 };
 
 function bucket(route: string, subject: string): string {
-  return createHash("sha256").update(`${route}:${subject}`, "utf8").digest("hex");
+  // Subjects are internal identity identifiers, not passwords. Use a keyed
+  // digest anyway so a database leak cannot be used to correlate raw Privy,
+  // user, or integration-credential identifiers across systems.
+  const { SUPABASE_SERVICE_ROLE_KEY } = getServerEnv();
+  return createHmac("sha256", SUPABASE_SERVICE_ROLE_KEY)
+    .update(`${route}:${subject}`, "utf8")
+    .digest("hex");
 }
 
 export async function consumeRateLimit(
@@ -27,7 +34,7 @@ export async function consumeRateLimit(
     })
     .single();
 
-  if (error) throw new Error(`Rate limit check failed: ${error.message}`);
+  if (error) throw new Error("Rate limit check failed.");
   const row = data as { allowed: boolean; remaining: number; retry_after_seconds: number };
   return {
     allowed: Boolean(row.allowed),
