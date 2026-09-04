@@ -82,7 +82,7 @@ test("settlement broadcasts are protected by a database single-writer lease", ()
   assert.match(settlement, /claimSettlementLease\(match\.id, leaseToken\)/);
   assert.match(settlement, /await recordSettlementLeaseTx\(match\.id, leaseToken, settlementHash\)/);
   assert.match(settlement, /throw new SettlementInProgressError\(\)/);
-  assert.match(health, /EXPECTED_SCHEMA_VERSION = 21/);
+  assert.match(health, /EXPECTED_SCHEMA_VERSION = 22/);
 });
 
 test("published integration results reject a conflicting locked winner", () => {
