@@ -120,15 +120,15 @@ export function LobbyClient({
 
     const game = games.find((item) => item.id === row.game_id) ?? null;
     const { data: playerA } = await supabase
-      .from("users")
-      .select("id, username, region, wallet_address")
+      .from("public_profiles")
+      .select("id,username,display_name,avatar_url,region")
       .eq("id", row.player_a_id)
       .maybeSingle();
 
     const withRelations: MatchWithRelations = {
       ...row,
       game,
-      player_a: playerA ?? null,
+      player_a: playerA ? { ...playerA, wallet_address: null } : null,
     };
     setMatches((current) => [
       withRelations,
@@ -304,7 +304,7 @@ export function LobbyClient({
 
       <CreateChallengeModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={onClose}
         games={games}
         currentUser={currentUser}
       />
