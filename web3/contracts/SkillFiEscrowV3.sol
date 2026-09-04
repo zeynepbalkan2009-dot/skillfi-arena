@@ -17,6 +17,12 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     address public treasury;
     uint256 public platformFeeBps;
 
+    // New value-bearing exposure is closed at deployment. The admin must
+    // explicitly enable deposits only after every off-chain release gate is
+    // complete. Disabling this flag does not block already-funded matches from
+    // starting, settling, disputing, cancelling, or reclaiming funds.
+    bool public depositsEnabled;
+
     // Defaults for newly-created matches. Every economic/liveness rule is
     // snapshotted at creation, before any player deposit, so governance changes
     // can affect only future matches.
@@ -71,6 +77,12 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     event ReadyGraceUpdated(uint256 graceSeconds);
     event ActiveTimeoutUpdated(uint256 timeoutSeconds);
     event DisputeTimeoutUpdated(uint256 timeoutSeconds);
+    event DepositsEnabledUpdated(bool enabled);
+
+    modifier whenDepositsEnabled() {
+        require(depositsEnabled, "deposits disabled");
+        _;
+    }
 
     constructor(
         address _token,
@@ -103,6 +115,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         token = IERC20(_token);
         treasury = _treasury;
         platformFeeBps = _feeBps;
+        depositsEnabled = false;
 
         // The deployment key receives no persistent control role. A dedicated
         // admin (ideally a multisig for value-bearing releases) owns governance.
@@ -149,6 +162,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         external
         onlyRole(OPERATOR_ROLE)
         whenNotPaused
+        whenDepositsEnabled
     {
         require(matches[matchId].status == MatchStatus.NONE, "exists");
         require(entryFee > 0, "invalid fee");
@@ -176,7 +190,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         emit MatchCreated(matchId, entryFee);
     }
 
-    function joinMatch(uint256 matchId) external nonReentrant whenNotPaused {
+    function joinMatch(uint256 matchId) external nonReentrant whenNotPaused whenDepositsEnabled {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
         require(block.timestamp <= m.createdAt + m.waitingTimeoutAtCreation, "match expired");
@@ -369,6 +383,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(_timeout <= 30 days, "too high");
         disputeTimeout = _timeout;
         emit DisputeTimeoutUpdated(_timeout);
+    }
+    function setDepositsEnabled(bool _enabled) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        depositsEnabled = _enabled;
+        emit DepositsEnabledUpdated(_enabled);
     }
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) { _pause(); }
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) { _unpause(); }
