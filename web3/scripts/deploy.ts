@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:url";
 import { fileURLToPath } from "node:url";
 import { network } from "hardhat";
 
@@ -48,11 +48,12 @@ async function main() {
   const balance = await ethers.provider.getBalance(deployer.address);
   if (balance === 0n) throw new Error(`Deployer ${deployer.address} has no Base Sepolia ETH for gas`);
 
+  const admin = requiredAddress("BASE_ADMIN_ADDRESS");
   const operator = requiredAddress("BASE_OPERATOR_ADDRESS");
   const arbiter = requiredAddress("BASE_ARBITER_ADDRESS");
   const treasury = requiredAddress("BASE_TREASURY_ADDRESS");
   const platformFeeBps = feeFromEnv();
-  assertRoleSeparation({ operator, arbiter, treasury }, deployer.address);
+  assertRoleSeparation({ admin, operator, arbiter, treasury }, deployer.address);
 
   const MockUSDC = await ethers.getContractFactory("MockUSDC");
   const usdc = await MockUSDC.deploy();
@@ -61,6 +62,7 @@ async function main() {
   const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
   const escrow = await Escrow.deploy(
     await usdc.getAddress(),
+    admin,
     operator,
     arbiter,
     treasury,
@@ -86,6 +88,7 @@ async function main() {
     escrow: escrowAddress,
     mockUsdc: await usdc.getAddress(),
     deployer: deployer.address,
+    admin,
     operator,
     arbiter,
     treasury,
