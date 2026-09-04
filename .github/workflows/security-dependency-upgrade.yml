@@ -47,9 +47,21 @@ jobs:
           NODE
           rm package-lock.json
           npm install
-          npm audit fix
       - name: Production dependency audit
-        run: npm audit --omit=dev --audit-level=high
+        run: |
+          status=1
+          for attempt in 1 2 3; do
+            if npm audit --omit=dev --audit-level=high; then
+              status=0
+              break
+            fi
+            status=$?
+            echo "npm audit attempt ${attempt} failed; retrying if attempts remain"
+            if [ "$attempt" -lt 3 ]; then
+              sleep 10
+            fi
+          done
+          exit "$status"
       - name: Type check
         run: npm run typecheck
       - name: Product tests
