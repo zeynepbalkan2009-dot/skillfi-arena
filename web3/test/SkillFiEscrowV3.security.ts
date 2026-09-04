@@ -3,6 +3,7 @@ import { network } from "hardhat";
 
 const { ethers } = await network.create();
 const MATCH_TIMEOUT = 30n * 60n;
+const READY_GRACE = 10n * 60n;
 
 async function increaseTime(seconds: bigint) {
   await ethers.provider.send("evm_increaseTime", [Number(seconds)]);
@@ -25,7 +26,7 @@ async function fixture() {
     await token.mint(player.address, float);
     await token.connect(player).approve(await escrow.getAddress(), float);
   }
-  return { admin, operator, arbiter, treasury, player1, player2, token, escrow, entryFee };
+  return { admin, operator, arbiter, treasury, player1, player2, token, escrow, entryFee, float };
 }
 
 describe("SkillFiEscrowV3 security regressions", function () {
@@ -50,6 +51,36 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
     await increaseTime(MATCH_TIMEOUT);
     await expect(f.escrow.reclaimActiveMatch(2n)).not.to.be.reverted;
+  });
+
+  it("lets anyone refund a READY match if the operator never starts it", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(4n, f.entryFee);
+    await f.escrow.connect(f.player1).joinMatch(4n);
+    await f.escrow.connect(f.player2).joinMatch(4n);
+
+    await expect(f.escrow.connect(f.player1).reclaimReadyMatch(4n)).to.be.revertedWith("not expired");
+    await increaseTime(MATCH_TIMEOUT + READY_GRACE + 1n);
+    await expect(f.escrow.connect(f.admin).reclaimReadyMatch(4n)).not.to.be.reverted;
+
+    const match = await f.escrow.matches(4n);
+    expect(match.status).to.equal(7n);
+    expect(await f.token.balanceOf(f.player1.address)).to.equal(f.float);
+    expect(await f.token.balanceOf(f.player2.address)).to.equal(f.float);
+  });
+
+  it("does not let the operator poison a nonexistent match id by cancelling it", async function () {
+    const f = await fixture();
+    await expect(f.escrow.connect(f.operator).cancelMatch(999n)).to.be.revertedWith("invalid state");
+  });
+
+  it("does not let the operator cancel a match after gameplay starts", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(5n, f.entryFee);
+    await f.escrow.connect(f.player1).joinMatch(5n);
+    await f.escrow.connect(f.player2).joinMatch(5n);
+    await f.escrow.connect(f.operator).startMatch(5n);
+    await expect(f.escrow.connect(f.operator).cancelMatch(5n)).to.be.revertedWith("invalid state");
   });
 
   it("stores the canonical winner on-chain", async function () {
