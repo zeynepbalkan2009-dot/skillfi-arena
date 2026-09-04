@@ -101,6 +101,12 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
       });
       const receipt = await escrowPublicClient.waitForTransactionReceipt({ hash: settlementHash });
       if (receipt.status !== "success") throw new Error("Settlement transaction reverted");
+      onchain = await escrowPublicClient.readContract({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: skillFiEscrowAbi,
+        functionName: "matches",
+        args: [chainMatchId],
+      });
     } catch (error) {
       // A concurrent retry may have settled the contract first. Re-read the
       // authoritative chain state before deciding that the operation failed.
@@ -114,6 +120,17 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
     }
   } else if (Number(onchain[6]) !== 4) {
     throw new Error(`Unexpected on-chain match state ${Number(onchain[6])}`);
+  }
+
+  if (Number(onchain[6]) !== 4) {
+    throw new Error("Settlement did not reach the resolved on-chain state");
+  }
+  const canonicalWinner = onchain[8]?.toLowerCase();
+  if (!canonicalWinner || canonicalWinner === "0x0000000000000000000000000000000000000000") {
+    throw new Error("Resolved escrow does not expose a canonical winner; SkillFiEscrowV3 is required");
+  }
+  if (canonicalWinner !== winnerWallet) {
+    throw new Error("On-chain winner does not match the database winner; reconciliation aborted");
   }
 
   if (!settlementHash) {
