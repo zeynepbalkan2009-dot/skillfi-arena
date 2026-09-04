@@ -24,6 +24,19 @@ test("join confirmation is bound to the exact escrow transaction and PlayerJoine
   assert.match(route, /getAddress\(log\.args\.player\) === caller/);
 });
 
+test("escrow v3 binds the creator before deposits and rejects first-join front-running", () => {
+  const contract = read("web3/contracts/SkillFiEscrowV3.sol");
+  const createRoute = read("app/api/matches/create/route.ts");
+  const joinRoute = read("app/api/matches/join/route.ts");
+  assert.match(contract, /function createMatch\(uint256 matchId, uint256 entryFee, address expectedPlayer1\)/);
+  assert.match(contract, /player1: expectedPlayer1/);
+  assert.match(contract, /require\(msg\.sender == m\.player1, "not creator"\)/);
+  assert.match(createRoute, /args: \[matchId, stake, creatorWallet\]/);
+  assert.match(joinRoute, /On-chain creator does not match the database match creator/);
+  assert.match(joinRoute, /A valid stake risk reservation is required before joining this match/);
+  assert.match(joinRoute, /getStakeReservation\(`join:\$\{dbMatch\.id\}:\$\{user\.id\}`\)/);
+});
+
 test("escrow v3 provides permissionless READY recovery and narrows operator cancellation", () => {
   const contract = read("web3/contracts/SkillFiEscrowV3.sol");
   assert.match(contract, /uint256 public readyMatchGrace = 10 minutes/);
@@ -56,13 +69,15 @@ test("challenge acceptance response does not return participant wallet fields", 
   assert.match(route, /Challenge accepted but match could not be loaded/);
 });
 
-test("Vercel preview may use only no-value contract placeholders", () => {
+test("Vercel preview placeholders remain no-value and production-sensitive identities stay real", () => {
   const env = read("lib/env/public.ts");
   assert.match(env, /process\.env\.VERCEL_ENV === "preview"/);
-  assert.match(env, /name === "NEXT_PUBLIC_ESCROW_ADDRESS" \|\| name === "NEXT_PUBLIC_USDC_TOKEN_ADDRESS"/);
-  const previewGuard = env.match(/function allowPreviewContractPlaceholder[\s\S]*?\n}\n/)?.[0] ?? "";
+  assert.match(env, /name === "NEXT_PUBLIC_ESCROW_ADDRESS"/);
+  assert.match(env, /name === "NEXT_PUBLIC_USDC_TOKEN_ADDRESS"/);
+  assert.match(env, /name === "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"/);
+  const previewGuard = env.match(/function allowPreviewPlaceholder[\s\S]*?\n}\n/)?.[0] ?? "";
   assert.ok(previewGuard.length > 0);
-  assert.doesNotMatch(previewGuard, /NEXT_PUBLIC_PRIVY_APP_ID|NEXT_PUBLIC_SUPABASE|NEXT_PUBLIC_WALLETCONNECT/);
+  assert.doesNotMatch(previewGuard, /NEXT_PUBLIC_PRIVY_APP_ID|NEXT_PUBLIC_SUPABASE/);
   const escrow = read("lib/serverEscrow.ts");
   assert.match(escrow, /assertEscrowContractConfigured\(\)/);
 });
