@@ -37,11 +37,36 @@ test("escrow v3 binds the creator before deposits and rejects first-join front-r
   assert.match(joinRoute, /getStakeReservation\(`join:\$\{dbMatch\.id\}:\$\{user\.id\}`\)/);
 });
 
-test("escrow v3 provides permissionless READY recovery and narrows operator cancellation", () => {
+test("escrow v3 snapshots economic and timeout policy before deposits", () => {
+  const contract = read("web3/contracts/SkillFiEscrowV3.sol");
+  const settlement = read("lib/settlement.ts");
+  assert.match(contract, /feeBpsAtCreation: platformFeeBps/);
+  assert.match(contract, /waitingTimeoutAtCreation: matchTimeout/);
+  assert.match(contract, /readyGraceAtCreation: readyMatchGrace/);
+  assert.match(contract, /activeTimeoutAtCreation: activeMatchTimeout/);
+  assert.match(contract, /treasuryAtCreation: treasury/);
+  assert.match(contract, /disputeTimeoutAtCreation: disputeTimeout/);
+  assert.match(contract, /totalPrize \* m\.feeBpsAtCreation/);
+  assert.match(contract, /safeTransfer\(m\.treasuryAtCreation, fee\)/);
+  assert.match(settlement, /const feeBps = onchain\[9\]/);
+  assert.doesNotMatch(settlement, /functionName: "platformFeeBps"/);
+});
+
+test("escrow v3 provides permissionless recovery for READY, active, and unresolved disputed matches", () => {
   const contract = read("web3/contracts/SkillFiEscrowV3.sol");
   assert.match(contract, /uint256 public readyMatchGrace = 10 minutes/);
+  assert.match(contract, /uint256 public disputeTimeout = 7 days/);
   assert.match(contract, /function reclaimReadyMatch\(uint256 matchId\) external nonReentrant/);
-  assert.match(contract, /block\.timestamp > m\.createdAt \+ matchTimeout \+ readyMatchGrace/);
+  assert.match(contract, /function reclaimActiveMatch\(uint256 matchId\) external nonReentrant/);
+  assert.match(contract, /function reclaimDisputedMatch\(uint256 matchId\) external nonReentrant/);
+  assert.match(contract, /m\.createdAt \+ m\.waitingTimeoutAtCreation \+ m\.readyGraceAtCreation/);
+  assert.match(contract, /m\.startedAt \+ m\.activeTimeoutAtCreation/);
+  assert.match(contract, /m\.disputedAt \+ m\.disputeTimeoutAtCreation/);
+  assert.match(contract, /require\(block\.timestamp <= m\.startedAt \+ m\.activeTimeoutAtCreation, "match expired"\)/);
+  assert.match(contract, /function resolveDispute[\s\S]*?onlyRole\(ARBITER_ROLE\)[\s\S]*?nonReentrant/);
+  const resolveDisputeBlock = contract.match(/function resolveDispute[\s\S]*?\n    }\n/)?.[0] ?? "";
+  assert.ok(resolveDisputeBlock.length > 0);
+  assert.doesNotMatch(resolveDisputeBlock, /whenNotPaused/);
   assert.match(contract, /m\.status == MatchStatus\.WAITING_FOR_PLAYERS \|\| m\.status == MatchStatus\.READY/);
   assert.doesNotMatch(contract, /m\.status != MatchStatus\.RESOLVED/);
 });
