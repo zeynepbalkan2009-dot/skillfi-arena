@@ -1,6 +1,24 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export type StakeReservation = {
+  idempotency_key: string;
+  user_id: string;
+  match_id: string | null;
+  amount: string;
+  status: "reserved" | "confirmed" | "released";
+};
+
+export async function getStakeReservation(key: string): Promise<StakeReservation | null> {
+  const { data, error } = await supabaseAdmin
+    .from("risk_stake_reservations")
+    .select("idempotency_key,user_id,match_id,amount,status")
+    .eq("idempotency_key", key)
+    .maybeSingle();
+  if (error) throw new Error(`Risk reservation lookup failed: ${error.message}`);
+  return (data as StakeReservation | null) ?? null;
+}
+
 export async function reserveStake(userId: string, amount: bigint, key: string) {
   const { data, error } = await supabaseAdmin
     .rpc("reserve_daily_stake", {
@@ -17,7 +35,9 @@ export async function attachStakeReservation(key: string, matchId: string) {
   const { error } = await supabaseAdmin
     .from("risk_stake_reservations")
     .update({ match_id: matchId, updated_at: new Date().toISOString() })
-    .eq("idempotency_key", key);
+    .eq("idempotency_key", key)
+    .eq("status", "reserved")
+    .is("match_id", null);
   if (error) throw new Error(`Risk reservation update failed: ${error.message}`);
 }
 
