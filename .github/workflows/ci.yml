@@ -98,6 +98,9 @@ jobs:
           done
           exit "$status"
 
+      - name: Type Check Release Tooling
+        run: npm run typecheck
+
       - name: Compile Contracts
         run: npx hardhat compile
 
