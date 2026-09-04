@@ -6,6 +6,7 @@ import {
   getOperatorAddress,
   skillFiEscrowAbi,
 } from "@/lib/serverEscrow";
+import { getStudioFeeConfig } from "@/lib/studios";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,15 @@ async function checkSettlementOperator() {
   }
 }
 
+function checkStudioFeeConfig(): boolean {
+  try {
+    getStudioFeeConfig();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function GET() {
   const startedAt = Date.now();
   const [gamesResult, cohortResult, guildResult, schemaResult, settlementOperatorReady] = await Promise.all([
@@ -49,8 +59,9 @@ export async function GET() {
   const databaseOk = !gamesResult.error && !cohortResult.error && !guildResult.error && !schemaResult.error;
   const pilotGamesReady = gamesResult.count === 5;
   const schemaReady = schemaResult.data?.version === EXPECTED_SCHEMA_VERSION;
+  const studioFeeConfigReady = checkStudioFeeConfig();
   const testAuthDisabled = !process.env.SKILLFI_TEST_PRIVY_TOKEN_MAP && !process.env.SKILLFI_TEST_PRIVY_USERS;
-  const status = databaseOk && pilotGamesReady && schemaReady && settlementOperatorReady && testAuthDisabled
+  const status = databaseOk && pilotGamesReady && schemaReady && settlementOperatorReady && studioFeeConfigReady && testAuthDisabled
     ? "ok"
     : "degraded";
 
@@ -67,6 +78,7 @@ export async function GET() {
       pilotGames: { ready: pilotGamesReady, published: gamesResult.count ?? 0, expected: 5 },
       betaCohort: { active: cohortResult.count ?? 0, limit: 100 },
       settlementOperator: settlementOperatorReady,
+      studioFeeConfig: studioFeeConfigReady,
       testAuthenticationDisabled: testAuthDisabled,
     },
     responseMs: Date.now() - startedAt,
