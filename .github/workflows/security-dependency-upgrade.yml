@@ -22,41 +22,41 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: security-hardening-2026-09-04
+          fetch-depth: 0
       - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Verify peer contracts
-        run: |
-          npm view @privy-io/wagmi@4.0.17 peerDependencies --json
-          npm view @privy-io/react-auth@3.32.2 peerDependencies --json
-          npm view wagmi@2.19.5 peerDependencies --json
-      - name: Regenerate lockfile from validated compatibility lines
+      - name: Apply narrow build-safe security patches
         run: |
           node <<'NODE'
           const fs = require('node:fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           pkg.dependencies.next = '15.5.25';
-          pkg.dependencies['@privy-io/wagmi'] = '4.0.17';
-          pkg.dependencies.viem = '2.56.0';
           pkg.devDependencies['eslint-config-next'] = '15.5.25';
           pkg.devDependencies.postcss = '8.5.28';
-          pkg.overrides = { ...(pkg.overrides || {}), ws: '8.21.3', postcss: '8.5.28', axios: '1.20.0' };
+          pkg.overrides = {
+            ...(pkg.overrides || {}),
+            ws: '8.21.3',
+            postcss: '8.5.28',
+            axios: '1.20.0'
+          };
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
-          rm package-lock.json
           npm install
       - name: Production dependency audit
         run: |
           status=1
           for attempt in 1 2 3; do
-            if npm audit --omit=dev --audit-level=high; then
-              status=0
+            set +e
+            timeout 180s npm audit --omit=dev --audit-level=high
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then
               break
             fi
-            status=$?
-            echo "npm audit attempt ${attempt} failed; retrying if attempts remain"
+            echo "npm audit attempt ${attempt} failed with exit ${status}; retrying if attempts remain"
             if [ "$attempt" -lt 3 ]; then
               sleep 10
             fi
@@ -74,4 +74,5 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add package.json package-lock.json
           git commit -m "security: remediate production dependency advisories"
+          git pull --rebase origin security-hardening-2026-09-04
           git push origin HEAD:security-hardening-2026-09-04
