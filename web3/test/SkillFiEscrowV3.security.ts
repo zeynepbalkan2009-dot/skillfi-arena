@@ -22,6 +22,8 @@ async function fixture() {
     treasury.address,
     500n,
   ]);
+  expect(await escrow.depositsEnabled()).to.equal(false);
+  await escrow.connect(admin).setDepositsEnabled(true);
   const entryFee = ethers.parseUnits("10", 6);
   const float = ethers.parseUnits("100", 6);
   for (const player of [player1, player2]) {
@@ -53,6 +55,30 @@ async function startFundedMatch(f: Awaited<ReturnType<typeof fixture>>, matchId:
 }
 
 describe("SkillFiEscrowV3 security regressions", function () {
+  it("gates new exposure on-chain while keeping funded-match recovery available", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.admin).setDepositsEnabled(false);
+    await expect(
+      f.escrow.connect(f.operator).createMatch(19n, f.entryFee, f.player1.address),
+    ).to.be.revertedWith("deposits disabled");
+
+    await f.escrow.connect(f.admin).setDepositsEnabled(true);
+    await f.escrow.connect(f.operator).createMatch(19n, f.entryFee, f.player1.address);
+    await f.escrow.connect(f.player1).joinMatch(19n);
+    await f.escrow.connect(f.admin).setDepositsEnabled(false);
+    await expect(f.escrow.connect(f.player2).joinMatch(19n)).to.be.revertedWith("deposits disabled");
+    await f.escrow.connect(f.operator).cancelMatch(19n);
+    expect(await f.token.balanceOf(f.player1.address)).to.equal(f.float);
+
+    await f.escrow.connect(f.admin).setDepositsEnabled(true);
+    await startFundedMatch(f, 20n);
+    await f.escrow.connect(f.admin).setDepositsEnabled(false);
+    await f.escrow.connect(f.operator).resolveMatch(20n, f.player2.address);
+    const resolved = await f.escrow.matches(20n);
+    expect(resolved.status).to.equal(4n);
+    expect(resolved.winner).to.equal(f.player2.address);
+  });
+
   it("binds player1 at creation and rejects a third-party first-join front-run", async function () {
     const f = await fixture();
     await f.escrow.connect(f.operator).createMatch(10n, f.entryFee, f.player1.address);
