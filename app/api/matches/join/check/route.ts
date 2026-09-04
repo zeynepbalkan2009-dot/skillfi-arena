@@ -4,32 +4,40 @@ import { attachStakeReservation, reserveStake } from "@/lib/risk";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
 import { isPilotGameId } from "@/lib/pilotGames";
+import { isValueBearingEnabled, VALUE_BEARING_DISABLED_MESSAGE } from "@/lib/security/valueBearing";
 
 export const dynamic = "force-dynamic";
+const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentProfile(request.headers.get("authorization"));
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: PRIVATE_NO_STORE });
+  if (!isValueBearingEnabled()) {
+    return NextResponse.json(
+      { error: VALUE_BEARING_DISABLED_MESSAGE },
+      { status: 503, headers: { ...PRIVATE_NO_STORE, "Retry-After": "300" } },
+    );
+  }
 
   const body = (await request.json().catch(() => null)) as { matchId?: string } | null;
-  if (!body?.matchId) return NextResponse.json({ error: "matchId is required" }, { status: 400 });
+  if (!body?.matchId) return NextResponse.json({ error: "matchId is required" }, { status: 400, headers: PRIVATE_NO_STORE });
 
   const { data: match, error } = await supabaseAdmin
     .from("matches")
     .select("id,player_a_id,player_b_id,stake_amount,status,game:games(slug)")
     .eq("smart_contract_match_id", body.matchId)
     .maybeSingle();
-  if (error) return NextResponse.json({ error: "Could not load match" }, { status: 500 });
-  if (!match || match.status !== "searching") return NextResponse.json({ error: "Match is not open" }, { status: 409 });
-  if (match.player_a_id === user.id) return NextResponse.json({ error: "You already own this match" }, { status: 409 });
+  if (error) return NextResponse.json({ error: "Could not load match" }, { status: 500, headers: PRIVATE_NO_STORE });
+  if (!match || match.status !== "searching") return NextResponse.json({ error: "Match is not open" }, { status: 409, headers: PRIVATE_NO_STORE });
+  if (match.player_a_id === user.id) return NextResponse.json({ error: "You already own this match" }, { status: 409, headers: PRIVATE_NO_STORE });
   const game = match.game as unknown as { slug?: string } | null;
   if (isPilotGameId(game?.slug) && !(await hasActiveBetaAccess(user.id))) {
-    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403 });
+    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403, headers: PRIVATE_NO_STORE });
   }
 
   const reservationKey = `join:${match.id}:${user.id}`;
   const risk = await reserveStake(user.id, BigInt(match.stake_amount), reservationKey);
-  if (!risk.allowed) return NextResponse.json({ error: risk.reason, risk }, { status: 429 });
+  if (!risk.allowed) return NextResponse.json({ error: risk.reason, risk }, { status: 429, headers: PRIVATE_NO_STORE });
   await attachStakeReservation(reservationKey, match.id);
-  return NextResponse.json({ ok: true, risk });
+  return NextResponse.json({ ok: true, risk }, { headers: PRIVATE_NO_STORE });
 }
