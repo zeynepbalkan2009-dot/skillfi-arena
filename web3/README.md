@@ -25,11 +25,20 @@ The Base Sepolia path deploys a mock USDC plus SkillFiEscrowV3. Set explicit and
 ```shell
 cp .env.example .env
 npm run deploy:base-sepolia
-npm run validate:base-sepolia
+BASE_EXPECT_DEPOSITS_ENABLED=0 npm run validate:base-sepolia
+```
+
+The deployment writes `deployments/base-sepolia-v3.json` and records `depositsEnabledAtDeployment: false`. Validation checks the runtime-code hash, role separation, token/treasury configuration, policy timeouts, emergency pause state, and the explicitly expected deposit-gate state.
+
+Before running a value-bearing Base Sepolia smoke, the configured admin/multisig must deliberately enable deposits. The generic calldata encoder can target either V3 deployment:
+
+```shell
+ARC_ESCROW_ADDRESS=0x<base-v3-address> npm run admin:calldata -- enable-deposits
+BASE_EXPECT_DEPOSITS_ENABLED=1 npm run validate:base-sepolia
 npm run smoke:base-sepolia
 ```
 
-The deployment writes `deployments/base-sepolia-v3.json`. Validation checks the runtime-code hash, role separation, token/treasury configuration, policy timeouts, and release pause state.
+The variable name `ARC_ESCROW_ADDRESS` on the calldata-only helper is only the optional target-address input for that helper; the generated transaction data itself is standard EVM calldata and the output includes the target and chain metadata for independent verification. The Base live smoke now checks `depositsEnabled()` before funding temporary player wallets, so a closed gate fails clearly before spending testnet gas.
 
 ## Arc Testnet
 
