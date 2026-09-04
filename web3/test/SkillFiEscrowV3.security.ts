@@ -50,7 +50,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await expect(f.escrow.reclaimActiveMatch(2n)).to.be.revertedWith("not expired");
 
     await increaseTime(MATCH_TIMEOUT);
-    await expect(f.escrow.reclaimActiveMatch(2n)).not.to.be.reverted;
+    await f.escrow.reclaimActiveMatch(2n);
   });
 
   it("lets anyone refund a READY match if the operator never starts it", async function () {
@@ -61,7 +61,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
     await expect(f.escrow.connect(f.player1).reclaimReadyMatch(4n)).to.be.revertedWith("not expired");
     await increaseTime(MATCH_TIMEOUT + READY_GRACE + 1n);
-    await expect(f.escrow.connect(f.admin).reclaimReadyMatch(4n)).not.to.be.reverted;
+    await f.escrow.connect(f.admin).reclaimReadyMatch(4n);
 
     const match = await f.escrow.matches(4n);
     expect(match.status).to.equal(7n);
