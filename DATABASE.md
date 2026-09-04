@@ -1,85 +1,73 @@
-﻿# Database
+# Database
 
-Final shared challenge migration: `03_two_player_challenge_flow.sql`.
+SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/17_disable_test_fixture_games.sql`.
 
-SkillFi Arena keeps one application schema model, with two migration entry paths:
+## Hosted Release State
 
-- Local/embedded validation path for the original compatibility baseline.
-- Hosted Supabase SQL Editor path that avoids managed `auth` schema ownership.
+Hosted deployments must contain `public.schema_release_state` with `version = 17`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
 
-See `MIGRATION_ORDER.md` for exact execution order.
+The release marker is not a substitute for migrations; it is written by the migration chain and exists so application readiness can detect schema drift.
 
-## Local / Embedded Migration Chain
+## Identity And Public Profiles
 
-Use this chain for `npm run test:db`:
+`public.users` stores both public profile data and private identity/account fields. Anonymous and authenticated PostgREST clients do not have table-wide SELECT access.
 
-1. `01_initial_schema.sql`
-2. `02_privy_identity_migration.sql`
-3. `03_two_player_challenge_flow.sql`
+Public access is limited to:
 
-The local baseline includes compatibility objects for embedded PostgreSQL validation, including `auth.users`, an `auth.uid()` helper when absent, and the original auth provisioning trigger expected before migration 02.
+- `id`
+- `username`
+- `display_name`
+- `avatar_url`
+- `region`
+- `wins`
+- `losses`
+- `matches_played`
+- `elo_rating`
+- `created_at`
 
-## Hosted Supabase Migration Chain
+The `public.public_profiles` view exposes the same public-safe projection.
 
-Use this chain in hosted Supabase SQL Editor:
+Do not grant public access to `email`, `privy_user_id`, `last_login_at`, `wallet_address`, `primary_wallet_address`, or `total_earnings` without a separate security review.
 
-1. `01_initial_schema_hosted_supabase.sql`
-2. `02_privy_identity_migration_hosted_supabase.sql`
-3. `03_two_player_challenge_flow.sql`
-4. `NOTIFY pgrst, 'reload schema';`
+## Server-Only Tables
 
-The hosted baseline owns only application objects in `public`. It does not create, replace, or attach triggers to hosted Supabase-managed `auth` objects.
+The following security-sensitive tables are service-role only:
 
-## Baseline Public Objects
+- `user_risk_profiles`
+- `transactions` write paths
+- `risk_stake_reservations`
+- `match_submissions`
+- `match_audit_events` write paths
+- `studios` write paths
+- `studio_fee_payments`
+- `studio_audit_events`
+- `game_api_credentials`
+- `game_result_submissions`
+- `api_rate_limits`
+- `schema_release_state`
 
-Both baseline paths create the application-owned public tables required before migration 03:
+Game integration secrets are stored as hashes; raw integration keys are returned once at creation time.
 
-- `public.users`
-- `public.games`
-- `public.matches`
-- `public.user_risk_profiles`
-- `public.transactions`
+## Challenge And Match Security
 
-The schema uses UUID primary keys where expected by application code. Token amounts use `numeric(78,0)` base units so 6-decimal USDC values remain integer-like at the database boundary.
+Invitation tokens are stored as SHA-256 hashes. Challenge acceptance mutations run through service-role-only server/RPC paths. Public match and challenge feeds must expose only public-safe player fields and must not return private wallet or identity data.
 
-## Challenge Migration Objects
+Staked match creation uses risk reservations and idempotency keys. Reusing a finalized or already-attached reservation is rejected. API rate-limit buckets provide serverless-safe fixed-window throttling for sensitive routes.
 
-`03_two_player_challenge_flow.sql` adds or modifies:
+## Production Fixtures
 
-- `public.users`: profile display fields, email, primary wallet, stats, earnings, last login.
-- `public.challenges`: off-chain challenge records with hashed invitation token.
-- `public.challenge_participants`: challenge creator and accepted participant rows.
-- `public.matches`: challenge linkage and off-chain accepted match metadata.
-- `public.match_participants`: canonical two-player match participants.
-- `public.touch_updated_at()`: update timestamp trigger helper.
-- `public.accept_challenge(uuid, uuid)`: atomic acceptance RPC.
-
-## Invitation Storage
-
-`challenges.invitation_token_hash` stores a SHA-256 hash of the raw token. The raw token is only present in the generated URL returned to the creator and in Player B's request URL.
-
-Column-level grants keep `invitation_token_hash` inaccessible to anon and authenticated PostgREST clients after migration 03. Server-side routes use the service role for private challenge acceptance operations.
-
-## RLS And Grants
-
-The migrations enable RLS and public read policies for lobby-visible user, game, match, challenge, and participant state. Writes happen through server routes using the service role. `accept_challenge` execution is granted to `service_role` only.
+`supabase/17_disable_test_fixture_games.sql` suspends games whose names begin with `HTTP Validation `. Test fixtures must not appear as active production catalog entries.
 
 ## Validation
 
-Database validation commands:
+Required release validation includes:
 
 ```bash
 npm run test:db
 npm run test:db:hosted
+npm run typecheck
+npm run test:product
+npm run build
 ```
 
-Latest required result:
-
-- local/embedded chain: passed
-- hosted-safe chain: passed under embedded PostgreSQL public-schema validation
-- representative existing-schema migration: passed
-- challenge migration rerun: passed
-- concurrent challenge acceptance: 10/10 races produced one success and one controlled conflict
-- RLS/grant checks: passed
-
-HTTP API validation remains intentionally paused until the hosted-safe migrations are manually applied in the Supabase development project and PostgREST schema cache is reloaded.
+Smart-contract changes also require the Hardhat test suite. Production promotion additionally requires `/api/health` to return `status: ok` after the hosted migrations and contract/operator configuration are applied.
