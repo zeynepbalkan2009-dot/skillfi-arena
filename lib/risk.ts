@@ -19,6 +19,17 @@ export async function getStakeReservation(key: string): Promise<StakeReservation
   return (data as StakeReservation | null) ?? null;
 }
 
+export async function countRecentStakeReservations(userId: string, windowMinutes = 10): Promise<number> {
+  const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
+  const { count, error } = await supabaseAdmin
+    .from("risk_stake_reservations")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", since);
+  if (error) throw new Error(`Risk reservation rate lookup failed: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function reserveStake(userId: string, amount: bigint, key: string) {
   const { data, error } = await supabaseAdmin
     .rpc("reserve_daily_stake", {
