@@ -56,14 +56,24 @@ test("arc and base deployments fail closed on deposit activation state", () => {
   assert.match(baseSmoke, /before spending testnet gas|then run the live smoke/i);
 });
 
-test("admin activation tooling emits calldata without signing or broadcasting", () => {
+test("admin activation tooling binds network metadata and emits calldata without signing", () => {
   const encoder = source("web3/scripts/encode-arc-admin-action.mjs");
   const web3Package = source("web3/package.json");
+  const readme = source("web3/README.md");
+
   assert.match(encoder, /enable-deposits/);
   assert.match(encoder, /disable-deposits/);
   assert.match(encoder, /setDepositsEnabled/);
   assert.match(encoder, /encodeFunctionData/);
+  assert.match(encoder, /ADMIN_TARGET_NETWORK/);
+  assert.match(encoder, /ESCROW_ADMIN_TARGET_ADDRESS/);
+  assert.match(encoder, /arcTestnet/);
+  assert.match(encoder, /baseSepolia/);
+  assert.match(encoder, /5_042_002/);
+  assert.match(encoder, /84_532/);
   assert.match(encoder, /signsOrBroadcastsTransaction: false/);
   assert.doesNotMatch(encoder, /PRIVATE_KEY|Wallet\(|sendTransaction|broadcastTransaction/);
   assert.match(web3Package, /"admin:calldata": "node scripts\/encode-arc-admin-action\.mjs"/);
+  assert.match(readme, /ADMIN_TARGET_NETWORK=baseSepolia ESCROW_ADMIN_TARGET_ADDRESS=/);
+  assert.match(readme, /ADMIN_TARGET_NETWORK=arcTestnet ESCROW_ADMIN_TARGET_ADDRESS=/);
 });
