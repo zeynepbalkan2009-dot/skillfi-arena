@@ -56,9 +56,9 @@ async function main() {
   const player1 = ethers.Wallet.createRandom().connect(ethers.provider);
   const player2 = ethers.Wallet.createRandom().connect(ethers.provider);
   const escrowOperator = await ethers.getContractAt("SkillFiEscrowV3", deployment.escrow, operator);
-  const escrowPlayer1 = escrowOperator.connect(player1);
-  const escrowPlayer2 = escrowOperator.connect(player2);
-  const escrowArbiter = escrowOperator.connect(arbiter);
+  const escrowPlayer1 = escrowOperator.connect(player1) as typeof escrowOperator;
+  const escrowPlayer2 = escrowOperator.connect(player2) as typeof escrowOperator;
+  const escrowArbiter = escrowOperator.connect(arbiter) as typeof escrowOperator;
   const tokenAbi = ["function approve(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"];
   const token1 = new ethers.Contract(USDC, tokenAbi, player1);
   const token2 = new ethers.Contract(USDC, tokenAbi, player2);
