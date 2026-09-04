@@ -60,7 +60,9 @@ test("Vercel preview may use only no-value contract placeholders", () => {
   const env = read("lib/env/public.ts");
   assert.match(env, /process\.env\.VERCEL_ENV === "preview"/);
   assert.match(env, /name === "NEXT_PUBLIC_ESCROW_ADDRESS" \|\| name === "NEXT_PUBLIC_USDC_TOKEN_ADDRESS"/);
-  assert.doesNotMatch(env, /allowPreviewContractPlaceholder[\s\S]*NEXT_PUBLIC_PRIVY_APP_ID[\s\S]*return/);
+  const previewGuard = env.match(/function allowPreviewContractPlaceholder[\s\S]*?\n}\n/)?.[0] ?? "";
+  assert.ok(previewGuard.length > 0);
+  assert.doesNotMatch(previewGuard, /NEXT_PUBLIC_PRIVY_APP_ID|NEXT_PUBLIC_SUPABASE|NEXT_PUBLIC_WALLETCONNECT/);
   const escrow = read("lib/serverEscrow.ts");
   assert.match(escrow, /assertEscrowContractConfigured\(\)/);
 });
