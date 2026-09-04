@@ -42,3 +42,15 @@ test("arc deployment and validator fail closed on deposit activation state", () 
   assert.match(validate, /depositsWereClosedAtDeployment/);
   assert.match(validate, /depositsMatchExplicitExpectation/);
 });
+
+test("admin activation tooling emits calldata without signing or broadcasting", () => {
+  const encoder = source("web3/scripts/encode-arc-admin-action.mjs");
+  const web3Package = source("web3/package.json");
+  assert.match(encoder, /enable-deposits/);
+  assert.match(encoder, /disable-deposits/);
+  assert.match(encoder, /setDepositsEnabled/);
+  assert.match(encoder, /encodeFunctionData/);
+  assert.match(encoder, /signsOrBroadcastsTransaction: false/);
+  assert.doesNotMatch(encoder, /PRIVATE_KEY|Wallet\(|sendTransaction|broadcastTransaction/);
+  assert.match(web3Package, /"admin:calldata": "node scripts\/encode-arc-admin-action\.mjs"/);
+});
