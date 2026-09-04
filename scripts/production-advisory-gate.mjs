@@ -68,7 +68,14 @@ async function requestAdvisories(payload) {
       if (!response.ok) {
         throw new Error(`registry returned HTTP ${response.status}: ${decodeAdvisoryBody(raw).slice(0, 500)}`);
       }
-      return JSON.parse(decodeAdvisoryBody(raw));
+      const parsed = JSON.parse(decodeAdvisoryBody(raw));
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("registry returned an invalid advisory response shape");
+      }
+      for (const [name, entries] of Object.entries(parsed)) {
+        if (!Array.isArray(entries)) throw new Error(`registry returned a non-array advisory list for ${name}`);
+      }
+      return parsed;
     } catch (error) {
       lastError = error;
       console.error(`Production advisory request attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
@@ -80,27 +87,38 @@ async function requestAdvisories(payload) {
   throw lastError ?? new Error("Production advisory request failed");
 }
 
+function highOrCriticalFindings(advisories) {
+  const findings = [];
+  for (const [packageName, entries] of Object.entries(advisories)) {
+    for (const advisory of entries) {
+      const severity = String(advisory?.severity ?? "unknown").toLowerCase();
+      if (!FAIL_SEVERITIES.has(severity)) continue;
+      findings.push({
+        package: packageName,
+        severity,
+        title: advisory?.title ?? "Untitled advisory",
+        url: advisory?.url ?? null,
+        vulnerableVersions: advisory?.vulnerable_versions ?? null,
+      });
+    }
+  }
+  return findings;
+}
+
+// Canary proves the advisory service is actually returning vulnerability data
+// and exercises the registry's currently problematic >1KB/gzip response path.
+const canary = await requestAdvisories({ lodash: ["4.17.20"] });
+if (highOrCriticalFindings(canary).length === 0) {
+  throw new Error("Advisory registry canary did not return the expected high-severity lodash 4.17.20 finding");
+}
+
 const lock = JSON.parse(await readFile(lockfilePath, "utf8"));
 const inventory = buildProductionInventory(lock);
 const packageCount = Object.keys(inventory).length;
 if (packageCount === 0) throw new Error("Production dependency inventory is empty; refusing to pass the audit gate");
 
 const advisories = await requestAdvisories(inventory);
-const findings = [];
-for (const [packageName, entries] of Object.entries(advisories ?? {})) {
-  if (!Array.isArray(entries)) continue;
-  for (const advisory of entries) {
-    const severity = String(advisory?.severity ?? "unknown").toLowerCase();
-    if (!FAIL_SEVERITIES.has(severity)) continue;
-    findings.push({
-      package: packageName,
-      severity,
-      title: advisory?.title ?? "Untitled advisory",
-      url: advisory?.url ?? null,
-      vulnerableVersions: advisory?.vulnerable_versions ?? null,
-    });
-  }
-}
+const findings = highOrCriticalFindings(advisories);
 
 if (findings.length > 0) {
   console.error(`Found ${findings.length} high/critical production dependency advisories:`);
