@@ -269,7 +269,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(migration, /create table if not exists public\.game_api_credentials/);
   assert.match(migration, /secret_hash text not null unique/);
   assert.doesNotMatch(migration, /secret text/);
-  assert.match(credentialService, /createHash\("sha256"\)/);
+  assert.match(credentialService, /scryptSync\(/);
+  assert.doesNotMatch(credentialService, /createHash\("sha256"\)\.update\(secret/);
   assert.match(credentialService, /randomBytes\(32\)/);
   assert.match(credentialService, /revoked_at/);
   assert.match(credentialService, /expires_at/);
