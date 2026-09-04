@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
