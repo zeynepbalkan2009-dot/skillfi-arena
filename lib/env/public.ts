@@ -18,8 +18,6 @@ const BUILD_DEFAULTS: PublicEnv = {
   NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: "https://sepolia.base.org",
 };
 
-// Next.js replaces only statically analyzable NEXT_PUBLIC_* references in
-// browser bundles. Do not change these to process.env[name].
 const RAW_PUBLIC_ENV: Record<keyof PublicEnv, string | undefined> = {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY:
@@ -31,15 +29,34 @@ const RAW_PUBLIC_ENV: Record<keyof PublicEnv, string | undefined> = {
   NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
 };
 
-function isProductionBuild(): boolean {
-  return process.env.npm_lifecycle_event === "build";
+function allowBuildPlaceholders(): boolean {
+  return (
+    process.env.npm_lifecycle_event === "build" &&
+    process.env.SKILLFI_ALLOW_BUILD_PLACEHOLDERS === "1" &&
+    !process.env.VERCEL &&
+    !process.env.VERCEL_ENV
+  );
 }
 
 function required(name: keyof PublicEnv): string {
-  const value = RAW_PUBLIC_ENV[name];
+  const value = RAW_PUBLIC_ENV[name]?.trim();
   if (!value) {
-    if (isProductionBuild()) return BUILD_DEFAULTS[name];
-    throw new Error(`Missing ${name}. Copy .env.local.example to .env.local and set a value.`);
+    if (allowBuildPlaceholders()) return BUILD_DEFAULTS[name];
+    throw new Error(`Missing ${name}. Production and hosted builds fail closed.`);
+  }
+  return value;
+}
+
+function nonPlaceholder(name: keyof PublicEnv): string {
+  const value = required(name);
+  const knownBad = new Set([
+    BUILD_DEFAULTS[name],
+    "your-walletconnect-project-id",
+    "your-privy-app-id",
+    "your-supabase-anon-key",
+  ]);
+  if (knownBad.has(value) && !allowBuildPlaceholders()) {
+    throw new Error(`${name} still contains a placeholder value.`);
   }
   return value;
 }
@@ -47,8 +64,11 @@ function required(name: keyof PublicEnv): string {
 function address(name: keyof PublicEnv): `0x${string}` {
   const value = required(name);
   if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
-    if (isProductionBuild()) return BUILD_DEFAULTS[name] as `0x${string}`;
+    if (allowBuildPlaceholders()) return BUILD_DEFAULTS[name] as `0x${string}`;
     throw new Error(`${name} must be a 0x-prefixed 20-byte EVM address.`);
+  }
+  if (/^0x0{40}$/i.test(value) && !allowBuildPlaceholders()) {
+    throw new Error(`${name} must not be the zero address.`);
   }
   return value as `0x${string}`;
 }
@@ -56,10 +76,14 @@ function address(name: keyof PublicEnv): `0x${string}` {
 function url(name: keyof PublicEnv): string {
   const value = required(name);
   try {
-    new URL(value);
+    const parsed = new URL(value);
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("unsupported protocol");
+    if ((process.env.VERCEL || process.env.VERCEL_ENV) && parsed.protocol !== "https:") {
+      throw new Error("hosted URLs must use https");
+    }
   } catch {
-    if (isProductionBuild()) return BUILD_DEFAULTS[name];
-    throw new Error(`${name} must be a valid URL.`);
+    if (allowBuildPlaceholders()) return BUILD_DEFAULTS[name];
+    throw new Error(`${name} must be a valid HTTP(S) URL; hosted builds require HTTPS.`);
   }
   return value;
 }
@@ -67,11 +91,11 @@ function url(name: keyof PublicEnv): string {
 export function getPublicEnv(): PublicEnv {
   return {
     NEXT_PUBLIC_SUPABASE_URL: url("NEXT_PUBLIC_SUPABASE_URL"),
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: required("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    NEXT_PUBLIC_PRIVY_APP_ID: required("NEXT_PUBLIC_PRIVY_APP_ID"),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: nonPlaceholder("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    NEXT_PUBLIC_PRIVY_APP_ID: nonPlaceholder("NEXT_PUBLIC_PRIVY_APP_ID"),
     NEXT_PUBLIC_ESCROW_ADDRESS: address("NEXT_PUBLIC_ESCROW_ADDRESS"),
     NEXT_PUBLIC_USDC_TOKEN_ADDRESS: address("NEXT_PUBLIC_USDC_TOKEN_ADDRESS"),
-    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: required("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),
+    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: nonPlaceholder("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),
     NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: url("NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL"),
   };
 }
