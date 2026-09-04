@@ -6,6 +6,7 @@ import {
   getOperatorAddress,
   skillFiEscrowAbi,
 } from "@/lib/serverEscrow";
+import { isValueBearingEnabled } from "@/lib/security/valueBearing";
 import { getStudioFeeConfig } from "@/lib/studios";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -61,6 +62,7 @@ export async function GET() {
   const schemaReady = schemaResult.data?.version === EXPECTED_SCHEMA_VERSION;
   const studioFeeConfigReady = checkStudioFeeConfig();
   const testAuthDisabled = !process.env.SKILLFI_TEST_PRIVY_TOKEN_MAP && !process.env.SKILLFI_TEST_PRIVY_USERS;
+  const valueBearingEnabled = isValueBearingEnabled();
   const status = databaseOk && pilotGamesReady && schemaReady && settlementOperatorReady && studioFeeConfigReady && testAuthDisabled
     ? "ok"
     : "degraded";
@@ -80,6 +82,7 @@ export async function GET() {
       settlementOperator: settlementOperatorReady,
       studioFeeConfig: studioFeeConfigReady,
       testAuthenticationDisabled: testAuthDisabled,
+      valueBearingEnabled,
     },
     responseMs: Date.now() - startedAt,
     checkedAt: new Date().toISOString(),
