@@ -18,10 +18,17 @@ function requiredAddress(name: string): string {
 async function main() {
   const escrowAddress = requiredAddress("ARC_ESCROW_ADDRESS");
   const operatorAddress = requiredAddress("ARC_APP_OPERATOR_ADDRESS");
+  const verifyOnly = process.env.ARC_OPERATOR_VERIFY_ONLY === "1";
   const previousOperatorAddress = process.env.ARC_PREVIOUS_OPERATOR_ADDRESS?.trim()
     ? requiredAddress("ARC_PREVIOUS_OPERATOR_ADDRESS")
     : null;
 
+  if (!verifyOnly && !previousOperatorAddress) {
+    throw new Error("ARC_PREVIOUS_OPERATOR_ADDRESS is required for operator rotation; use ARC_OPERATOR_VERIFY_ONLY=1 only for read/verify configuration");
+  }
+  if (verifyOnly && previousOperatorAddress) {
+    throw new Error("Do not set ARC_PREVIOUS_OPERATOR_ADDRESS in ARC_OPERATOR_VERIFY_ONLY mode");
+  }
   if (previousOperatorAddress && previousOperatorAddress.toLowerCase() === operatorAddress.toLowerCase()) {
     throw new Error("ARC_PREVIOUS_OPERATOR_ADDRESS must differ from ARC_APP_OPERATOR_ADDRESS");
   }
@@ -34,34 +41,55 @@ async function main() {
   const [admin] = await ethers.getSigners();
   const escrow = await ethers.getContractAt("SkillFiEscrowV3", escrowAddress);
   const operatorRole = await escrow.OPERATOR_ROLE();
+  const arbiterRole = await escrow.ARBITER_ROLE();
+  const defaultAdminRole = await escrow.DEFAULT_ADMIN_ROLE();
+  const treasury = await escrow.treasury();
 
-  if (!(await escrow.hasRole(operatorRole, operatorAddress))) {
-    const grantTx = await escrow.grantRole(operatorRole, operatorAddress, {
-      maxFeePerGas: MAX_FEE_PER_GAS,
-      maxPriorityFeePerGas: PRIORITY_FEE_PER_GAS,
-    });
-    await grantTx.wait();
-    console.log("Granted OPERATOR_ROLE", { operatorAddress, transactionHash: grantTx.hash });
+  if (!(await escrow.hasRole(defaultAdminRole, admin.address))) {
+    throw new Error(`Signer ${admin.address} does not hold DEFAULT_ADMIN_ROLE`);
+  }
+  if (operatorAddress.toLowerCase() === admin.address.toLowerCase()) {
+    throw new Error("Application operator must not reuse the admin signer");
+  }
+  if (operatorAddress.toLowerCase() === treasury.toLowerCase()) {
+    throw new Error("Application operator must not reuse the treasury address");
+  }
+  if (await escrow.hasRole(arbiterRole, operatorAddress)) {
+    throw new Error("Application operator must not also hold ARBITER_ROLE");
   }
 
-  if (!(await escrow.hasRole(operatorRole, operatorAddress))) {
-    throw new Error("New operator role verification failed; refusing to revoke the old operator");
-  }
+  const operatorAlreadyAuthorized = await escrow.hasRole(operatorRole, operatorAddress);
+  if (verifyOnly) {
+    if (!operatorAlreadyAuthorized) throw new Error("Verify-only operator does not hold OPERATOR_ROLE");
+  } else {
+    if (!operatorAlreadyAuthorized) {
+      const grantTx = await escrow.grantRole(operatorRole, operatorAddress, {
+        maxFeePerGas: MAX_FEE_PER_GAS,
+        maxPriorityFeePerGas: PRIORITY_FEE_PER_GAS,
+      });
+      await grantTx.wait();
+      console.log("Granted OPERATOR_ROLE", { operatorAddress, transactionHash: grantTx.hash });
+    }
 
-  if (previousOperatorAddress && (await escrow.hasRole(operatorRole, previousOperatorAddress))) {
-    const revokeTx = await escrow.revokeRole(operatorRole, previousOperatorAddress, {
-      maxFeePerGas: MAX_FEE_PER_GAS,
-      maxPriorityFeePerGas: PRIORITY_FEE_PER_GAS,
-    });
-    await revokeTx.wait();
-    console.log("Revoked previous OPERATOR_ROLE", {
-      previousOperatorAddress,
-      transactionHash: revokeTx.hash,
-    });
-  }
+    if (!(await escrow.hasRole(operatorRole, operatorAddress))) {
+      throw new Error("New operator role verification failed; refusing to revoke the old operator");
+    }
 
-  if (previousOperatorAddress && (await escrow.hasRole(operatorRole, previousOperatorAddress))) {
-    throw new Error("Previous operator still has OPERATOR_ROLE after rotation");
+    if (await escrow.hasRole(operatorRole, previousOperatorAddress!)) {
+      const revokeTx = await escrow.revokeRole(operatorRole, previousOperatorAddress!, {
+        maxFeePerGas: MAX_FEE_PER_GAS,
+        maxPriorityFeePerGas: PRIORITY_FEE_PER_GAS,
+      });
+      await revokeTx.wait();
+      console.log("Revoked previous OPERATOR_ROLE", {
+        previousOperatorAddress,
+        transactionHash: revokeTx.hash,
+      });
+    }
+
+    if (await escrow.hasRole(operatorRole, previousOperatorAddress!)) {
+      throw new Error("Previous operator still has OPERATOR_ROLE after rotation");
+    }
   }
 
   const operatorBalance = await ethers.provider.getBalance(operatorAddress);
@@ -87,6 +115,7 @@ async function main() {
   }
 
   console.log("Arc application operator ready", {
+    mode: verifyOnly ? "verify-only" : "rotation",
     operatorAddress,
     previousOperatorRevoked: previousOperatorAddress ? true : null,
     nativeGasBalance: finalBalance.toString(),
