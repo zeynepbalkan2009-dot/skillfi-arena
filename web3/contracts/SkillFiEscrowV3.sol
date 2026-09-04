@@ -86,16 +86,17 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         _grantRole(ARBITER_ROLE, _arbiter);
     }
 
-    function createMatch(uint256 matchId, uint256 entryFee)
+    function createMatch(uint256 matchId, uint256 entryFee, address expectedPlayer1)
         external
         onlyRole(OPERATOR_ROLE)
         whenNotPaused
     {
         require(matches[matchId].status == MatchStatus.NONE, "exists");
         require(entryFee > 0, "invalid fee");
+        require(expectedPlayer1 != address(0), "invalid player1");
 
         matches[matchId] = Match({
-            player1: address(0),
+            player1: expectedPlayer1,
             player2: address(0),
             entryFee: entryFee,
             createdAt: block.timestamp,
@@ -115,21 +116,21 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
         require(block.timestamp <= m.createdAt + matchTimeout, "match expired");
 
-        token.safeTransferFrom(msg.sender, address(this), m.entryFee);
-
-        if (m.player1 == address(0)) {
-            m.player1 = msg.sender;
+        if (!m.player1Deposited) {
+            require(msg.sender == m.player1, "not creator");
+            token.safeTransferFrom(msg.sender, address(this), m.entryFee);
             m.player1Deposited = true;
-        } else if (m.player2 == address(0)) {
-            require(msg.sender != m.player1, "already joined");
-            m.player2 = msg.sender;
-            m.player2Deposited = true;
-            m.status = MatchStatus.READY;
-            emit MatchReady(matchId);
-        } else {
-            revert("full");
+            emit PlayerJoined(matchId, msg.sender);
+            return;
         }
 
+        require(m.player2 == address(0), "full");
+        require(msg.sender != m.player1, "already joined");
+        token.safeTransferFrom(msg.sender, address(this), m.entryFee);
+        m.player2 = msg.sender;
+        m.player2Deposited = true;
+        m.status = MatchStatus.READY;
+        emit MatchReady(matchId);
         emit PlayerJoined(matchId, msg.sender);
     }
 
