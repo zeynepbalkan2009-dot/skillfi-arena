@@ -4,7 +4,7 @@ import { getAddress } from "viem";
 import { recordAuditEvent } from "@/lib/audit";
 import { authenticateGameApiKey, readBearerSecret, verifyGameRequestSignature } from "@/lib/gameCredentials";
 import { consumeRateLimit } from "@/lib/rateLimit";
-import { settleAndReconcileMatch } from "@/lib/settlement";
+import { SettlementInProgressError, settleAndReconcileMatch } from "@/lib/settlement";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type ResultBody = { eventId?: string; matchId?: string; winnerWallet?: string; occurredAt?: string };
@@ -99,6 +99,9 @@ export async function POST(request: NextRequest) {
     const settlement = await settleAndReconcileMatch({ ...match, status: match.status === "completed" ? "completed" : "settling", winner_id: winner.id }, null);
     return NextResponse.json({ status: settlement.status, matchId: match.id, winnerId: winner.id, settlementHash: settlement.settlementHash });
   } catch (error) {
+    if (error instanceof SettlementInProgressError) {
+      return NextResponse.json({ status: "settling", matchId: match.id, winnerId: winner.id }, { status: 202 });
+    }
     console.error("Authoritative integration settlement failed:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Authoritative result accepted; settlement requires reconciliation", status: "settling" }, { status: 502 });
   }
