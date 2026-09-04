@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrivyIdentityFromRequest, MissingProfileFieldsError, syncProfile } from "@/lib/auth/server";
+import { consumeRateLimit } from "@/lib/rateLimit";
 import type { UserRegion } from "@/lib/types";
 
 interface SyncRequestBody {
@@ -13,6 +14,14 @@ export async function POST(request: NextRequest) {
   const identity = await getPrivyIdentityFromRequest(request.headers.get("authorization"));
   if (!identity) {
     return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401 });
+  }
+
+  const rate = await consumeRateLimit("auth-sync", identity.privyUserId, 20, 60);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Too many account sync requests" },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } },
+    );
   }
 
   let body: SyncRequestBody = {};
