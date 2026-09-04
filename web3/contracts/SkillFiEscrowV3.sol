@@ -22,6 +22,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     uint256 public matchTimeout = 30 minutes;
     uint256 public readyMatchGrace = 10 minutes;
     uint256 public activeMatchTimeout = 30 minutes;
+    uint256 public disputeTimeout = 7 days;
 
     enum MatchStatus {
         NONE,
@@ -48,6 +49,9 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         uint256 waitingTimeoutAtCreation;
         uint256 readyGraceAtCreation;
         uint256 activeTimeoutAtStart;
+        address treasuryAtCreation;
+        uint256 disputedAt;
+        uint256 disputeTimeoutAtDispute;
     }
 
     mapping(uint256 => Match) public matches;
@@ -65,6 +69,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     event WaitingTimeoutUpdated(uint256 timeoutSeconds);
     event ReadyGraceUpdated(uint256 graceSeconds);
     event ActiveTimeoutUpdated(uint256 timeoutSeconds);
+    event DisputeTimeoutUpdated(uint256 timeoutSeconds);
 
     constructor(
         address _token,
@@ -110,7 +115,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
             feeBpsAtCreation: platformFeeBps,
             waitingTimeoutAtCreation: matchTimeout,
             readyGraceAtCreation: readyMatchGrace,
-            activeTimeoutAtStart: 0
+            activeTimeoutAtStart: 0,
+            treasuryAtCreation: treasury,
+            disputedAt: 0,
+            disputeTimeoutAtDispute: 0
         });
 
         emit MatchCreated(matchId, entryFee);
@@ -176,14 +184,17 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(m.status == MatchStatus.IN_PROGRESS, "invalid state");
 
         m.status = MatchStatus.DISPUTED;
+        m.disputedAt = block.timestamp;
+        m.disputeTimeoutAtDispute = disputeTimeout;
         emit MatchDisputed(matchId);
     }
 
+    // Dispute resolution remains available while paused so an emergency pause
+    // cannot strand already-disputed player funds.
     function resolveDispute(uint256 matchId, address winner)
         external
         onlyRole(ARBITER_ROLE)
         nonReentrant
-        whenNotPaused
     {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.DISPUTED, "not disputed");
@@ -243,6 +254,18 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         emit MatchExpired(matchId);
     }
 
+    function reclaimDisputedMatch(uint256 matchId) external nonReentrant {
+        Match storage m = matches[matchId];
+        require(m.status == MatchStatus.DISPUTED, "invalid state");
+        require(m.disputedAt != 0, "not disputed");
+        require(m.disputeTimeoutAtDispute >= 1 days, "invalid timeout");
+        require(block.timestamp > m.disputedAt + m.disputeTimeoutAtDispute, "not expired");
+
+        m.status = MatchStatus.EXPIRED;
+        _refund(matchId);
+        emit MatchExpired(matchId);
+    }
+
     function _expireWaitingMatch(uint256 matchId) internal {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
@@ -259,7 +282,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         uint256 payout = totalPrize - fee;
 
         token.safeTransfer(winner, payout);
-        if (fee > 0) token.safeTransfer(treasury, fee);
+        if (fee > 0) token.safeTransfer(m.treasuryAtCreation, fee);
 
         emit MatchResolved(matchId, winner, payout);
     }
@@ -308,6 +331,13 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(_timeout >= 5 minutes, "too low");
         activeMatchTimeout = _timeout;
         emit ActiveTimeoutUpdated(_timeout);
+    }
+
+    function setDisputeTimeout(uint256 _timeout) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_timeout >= 1 days, "too low");
+        require(_timeout <= 30 days, "too high");
+        disputeTimeout = _timeout;
+        emit DisputeTimeoutUpdated(_timeout);
     }
 
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
