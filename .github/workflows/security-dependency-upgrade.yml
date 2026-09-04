@@ -29,8 +29,12 @@ jobs:
           cache: npm
       - name: Upgrade within existing compatibility lines
         run: |
-          npm install --save-exact next@15.5.25 @privy-io/react-auth@3.40.0 @privy-io/wagmi@4.0.17 viem@2.56.3
-          npm pkg set 'overrides.ws=^8.20.2' 'overrides.postcss=^8.5.23' 'overrides.axios=^1.17.1'
+          npm view ws@8.21.3 version
+          npm view postcss@8.5.28 version
+          npm view axios@1.20.0 version
+          npm install --save-exact next@15.5.25 @privy-io/react-auth@3.40.0 @privy-io/wagmi@4.0.17 viem@2.56.0
+          npm install --save-dev --save-exact eslint-config-next@15.5.25 postcss@8.5.28
+          npm pkg set 'overrides.ws=8.21.3' 'overrides.postcss=8.5.28' 'overrides.axios=1.20.0'
           npm install
           npm audit fix
       - name: Production dependency audit
