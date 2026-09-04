@@ -84,5 +84,5 @@ test("schema 20 removes matches from the realtime publication", () => {
   const health = source("app/api/health/route.ts");
   assert.match(migration, /alter publication supabase_realtime drop table public\.matches/);
   assert.match(migration, /set version = 20/);
-  assert.match(health, /EXPECTED_SCHEMA_VERSION = 21/);
+  assert.match(health, /EXPECTED_SCHEMA_VERSION = 22/);
 });
