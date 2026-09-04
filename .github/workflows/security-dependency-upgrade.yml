@@ -75,5 +75,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add package.json package-lock.json
           git commit -m "security: remediate production dependency advisories"
+          git restore .
+          git status --short
           git pull --rebase origin security-hardening-2026-09-04
           git push origin HEAD:security-hardening-2026-09-04
