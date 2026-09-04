@@ -13,6 +13,7 @@ The current production deployment still points at the legacy `SkillFiEscrowV2` c
 - Required Next.js line: `15.5.25`
 - Required escrow implementation: `SkillFiEscrowV3`
 - Required critical identities: five distinct addresses — deployer, admin, operator, arbiter, and treasury
+- New value-bearing exposure is fail-closed unless `SKILLFI_VALUE_BEARING_ENABLED=1`
 
 ## Required hosting environment variables
 
@@ -40,6 +41,9 @@ Copy values from secure provider dashboards or secret stores. Never paste privat
 - `OPERATOR_WALLET_ADDRESS=<dedicated V3 operator address>`
 - `STUDIO_ADMIN_USER_IDS` and/or `STUDIO_ADMIN_WALLET_ADDRESSES` for explicit web-admin identities
 - `STUDIO_LISTING_FEE_USDC` and `STUDIO_FEE_TREASURY_ADDRESS` where studio listing fees are enabled
+- `SKILLFI_VALUE_BEARING_ENABLED=1` **only as the final value-bearing activation step**. Keep it unset or `0` during development, Preview, schema migration, V3 deployment, production smoke tests, and any degraded/incident state.
+
+The value-bearing switch blocks **new** staked match creation and join preflight when disabled. It intentionally does not block join confirmation, settlement, cancellation, dispute handling, or recovery paths, because switching value mode off must never strand funds already deposited.
 
 The following variables must not exist in hosted production or preview environments:
 
@@ -96,8 +100,8 @@ Required checks after cutover:
 - Run web3 release-tooling typecheck, Hardhat compile, and the full Hardhat test suite including `SkillFiEscrowV3.security.ts`.
 - Require CodeQL and Live Match Type Check to pass on the exact release head.
 - Verify Privy login, embedded/external wallet connection, challenge lobby, studio portal, polling-based live match state, CSP, HSTS, and no-store behavior in an exact-head Preview.
-- Confirm `/api/health` returns HTTP 200 with `status: ok` only after schema 22, V3/operator, and studio economic configuration are applied.
-- Keep real-value/mainnet deposits disabled until every release gate below is complete.
+- Confirm `/api/health` returns HTTP 200 with `status: ok` only after schema 22, V3/operator, and studio economic configuration are applied. The health payload also reports `checks.valueBearingEnabled`; this is informational and is expected to be `false` until the final activation step.
+- Keep `SKILLFI_VALUE_BEARING_ENABLED` unset/`0` throughout all pre-activation validation.
 
 ## GitHub / CI release gate
 
@@ -119,16 +123,18 @@ Required checks after cutover:
 Coordinate this sequence so GitHub-to-Vercel automatic production deployment cannot expose a code/schema/contract mismatch and studio integrations are not needlessly interrupted.
 
 1. Freeze the release head after exact-head GitHub CI, CodeQL, Live Match Type Check, and Preview validation are green.
-2. Prepare and validate the V3 Arc deployment with five distinct critical identities, but do not point production at it yet.
-3. Apply hosted migrations only through **schema 21**. This safely enables the new credential format without revoking existing keys.
-4. Generate replacement 12-hex/scrypt credentials and securely distribute/validate them with every active studio integration while legacy keys remain active.
-5. Before the final cutover, ensure automatic production promotion is paused/controlled or use a coordinated maintenance window.
-6. Apply **schema 22** to revoke only legacy credentials, then reload PostgREST schema cache.
-7. Configure production environment values to the validated V3 escrow, dedicated operator, valid WalletConnect project ID, and required studio economic configuration. Ensure test-auth variables are absent.
-8. Merge/promote the exact validated application commit and switch studio integrations to the pre-staged replacement credentials.
-9. Verify `/api/health`, authentication, lobby/match flows, integration authentication, settlement/refund/dispute smoke paths, CSP/HSTS/no-store headers, and runtime error logs.
-10. Enable any real-value settlement mode only after every check above is complete and repository release protections are active.
+2. Keep `SKILLFI_VALUE_BEARING_ENABLED` unset or `0`.
+3. Prepare and validate the V3 Arc deployment with five distinct critical identities, but do not point production at it yet.
+4. Apply hosted migrations only through **schema 21**. This safely enables the new credential format without revoking existing keys.
+5. Generate replacement 12-hex/scrypt credentials and securely distribute/validate them with every active studio integration while legacy keys remain active.
+6. Before the final cutover, ensure automatic production promotion is paused/controlled or use a coordinated maintenance window.
+7. Apply **schema 22** to revoke only legacy credentials, then reload PostgREST schema cache.
+8. Configure production environment values to the validated V3 escrow, dedicated operator, valid WalletConnect project ID, required studio economic configuration, and ensure test-auth variables are absent. Keep value-bearing mode disabled.
+9. Merge/promote the exact validated application commit and switch studio integrations to the pre-staged replacement credentials.
+10. Verify `/api/health`, authentication, lobby/match flows, integration authentication, settlement/refund/dispute smoke paths, CSP/HSTS/no-store headers, and runtime error logs while `checks.valueBearingEnabled` remains `false`.
+11. Enable `SKILLFI_VALUE_BEARING_ENABLED=1` only after schema 22, V3 validation, production env validation, exact-head application smoke tests, and repository release protections are all confirmed.
+12. Immediately re-check `/api/health`, a controlled new-match create/join flow, runtime errors, and operator activity. If any release invariant fails, set the switch back to `0`; funded-match recovery paths remain available.
 
 ## Release rule
 
-Do not enable value-bearing deposits or stakes until the V3 deployment validator and smoke paths pass, application production environment points to the validated V3 address, hosted database migrations are current at schema 22, legacy integration credentials are revoked only after replacement credentials are staged, exact-head Preview validation passes, and repository release protections/CI gates are active.
+Do not enable value-bearing deposits or stakes until the V3 deployment validator and smoke paths pass, application production environment points to the validated V3 address, hosted database migrations are current at schema 22, legacy integration credentials are revoked only after replacement credentials are staged, exact-head Preview validation passes, repository release protections/CI gates are active, and `SKILLFI_VALUE_BEARING_ENABLED=1` is deliberately enabled as the final release action.
