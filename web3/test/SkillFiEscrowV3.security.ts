@@ -110,6 +110,30 @@ describe("SkillFiEscrowV3 security regressions", function () {
     expect(match.winner).to.equal(f.player2.address);
   });
 
+  it("locks the platform fee when the match is created", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(6n, f.entryFee, f.player1.address);
+    const created = await f.escrow.matches(6n);
+    expect(created.feeBpsAtCreation).to.equal(500n);
+
+    await f.escrow.connect(f.admin).setFee(1000n);
+    expect(await f.escrow.platformFeeBps()).to.equal(1000n);
+
+    await f.escrow.connect(f.player1).joinMatch(6n);
+    await f.escrow.connect(f.player2).joinMatch(6n);
+    await f.escrow.connect(f.operator).startMatch(6n);
+
+    const winnerBalanceBefore = await f.token.balanceOf(f.player1.address);
+    const treasuryBalanceBefore = await f.token.balanceOf(f.treasury.address);
+    await f.escrow.connect(f.operator).resolveMatch(6n, f.player1.address);
+
+    const totalPrize = f.entryFee * 2n;
+    const lockedFee = (totalPrize * 500n) / 10_000n;
+    const lockedPayout = totalPrize - lockedFee;
+    expect((await f.token.balanceOf(f.player1.address)) - winnerBalanceBefore).to.equal(lockedPayout);
+    expect((await f.token.balanceOf(f.treasury.address)) - treasuryBalanceBefore).to.equal(lockedFee);
+  });
+
   it("requires explicit non-zero operator and arbiter roles", async function () {
     const f = await fixture();
     const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
