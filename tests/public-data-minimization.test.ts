@@ -44,3 +44,21 @@ test("invite-token and accepted-challenge payloads exclude wallets and wildcard 
     assert.doesNotMatch(text, /studio_id/);
   }
 });
+
+test("public match detail excludes private player wallet fields", () => {
+  const text = source("app/matches/[id]/page.tsx");
+  assert.doesNotMatch(text, /wallet_address/);
+  assert.doesNotMatch(text, /games\(\*\)/);
+  assert.match(text, /PUBLIC_MATCH_DETAIL_SELECT/);
+});
+
+test("schema 19 closes direct challenge and participant graph enumeration", () => {
+  const migration = source("supabase/19_public_match_graph_privacy.sql");
+  assert.match(migration, /revoke all on public\.challenges from anon, authenticated/);
+  assert.match(migration, /revoke all on public\.challenge_participants from anon, authenticated/);
+  assert.match(migration, /revoke all on public\.match_participants from anon, authenticated/);
+  assert.match(migration, /drop policy if exists "challenges_public_read"/);
+  assert.match(migration, /grant select \([\s\S]*smart_contract_match_id[\s\S]*started_at[\s\S]*\) on public\.matches to anon, authenticated/);
+  assert.doesNotMatch(migration, /grant select[\s\S]*challenge_id[\s\S]*on public\.matches/);
+  assert.match(migration, /set version = 19/);
+});
