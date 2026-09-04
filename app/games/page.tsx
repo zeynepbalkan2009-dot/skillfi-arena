@@ -4,5 +4,64 @@ import { supabase } from "@/lib/supabaseClient";
 import type { Game } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-const palettes=["from-cyan-500/30 via-blue-600/15 to-slate-950","from-fuchsia-500/25 via-indigo-600/15 to-slate-950","from-amber-400/25 via-rose-600/15 to-slate-950","from-emerald-400/25 via-cyan-700/15 to-slate-950"];
-export default async function GamesPage(){const {data}=await supabase.from("games").select("*").eq("is_active",true).order("name");const games=(data as Game[]|null)??[];const catalog=games.length?games:[{id:"neon",name:"Neon Tactics",description:"Squad tactics under pressure.",type:"web2"},{id:"aim",name:"Aim Protocol",description:"Pure mechanical precision.",type:"web2"},{id:"cipher",name:"Cipher Duel",description:"Fast strategic code battles.",type:"web3"}] as Game[];return <GameShell><main className="mx-auto max-w-[1480px] px-4 py-7 sm:px-7 lg:py-9"><div><p className="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">Your competitive library</p><h1 className="mt-2 font-display text-4xl font-black uppercase italic sm:text-5xl">Game Library</h1><p className="mt-2 text-sm text-slate-500">Discover games with verified results and programmable USDC settlement.</p></div><section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{catalog.map((game,i)=><article key={game.id} className="group overflow-hidden rounded-3xl border border-white/8 bg-white/[.03] transition hover:-translate-y-1 hover:border-cyan-300/25"><div className={`relative h-52 bg-gradient-to-br ${palettes[i%palettes.length]} p-6`}><div className="absolute inset-0 bg-arena-grid opacity-20"/><span className="relative rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-slate-300">{game.type} · Verified</span><div className="absolute bottom-6 left-6 right-6"><p className="text-xs font-bold text-cyan-300">COMPETITIVE</p><h2 className="mt-1 font-display text-4xl font-black uppercase italic text-white">{game.name}</h2></div></div><div className="p-5"><p className="min-h-12 text-sm leading-6 text-slate-500">{game.description??"Challenge players, verify the result and settle transparently on Arc."}</p><div className="mt-5 flex items-center justify-between"><div className="flex gap-2"><span className="rounded bg-white/5 px-2 py-1 text-[10px] text-slate-500">PVP</span><span className="rounded bg-white/5 px-2 py-1 text-[10px] text-slate-500">USDC</span></div><Link href="/challenges" className="rounded-lg bg-white px-4 py-2 text-xs font-black text-black">PLAY →</Link></div></div></article>)}</section></main></GameShell>}
+
+const PUBLIC_GAME_SELECT = "id,slug,name,type,description,website_url,is_active";
+const palettes = [
+  "from-cyan-500/30 via-blue-600/15 to-slate-950",
+  "from-fuchsia-500/25 via-indigo-600/15 to-slate-950",
+  "from-amber-400/25 via-rose-600/15 to-slate-950",
+  "from-emerald-400/25 via-cyan-700/15 to-slate-950",
+];
+
+export default async function GamesPage() {
+  const { data } = await supabase
+    .from("games")
+    .select(PUBLIC_GAME_SELECT)
+    .eq("is_active", true)
+    .eq("integration_status", "published")
+    .order("name");
+  const games = (data as Game[] | null) ?? [];
+  const catalog = games.length
+    ? games
+    : ([
+        { id: "neon", name: "Neon Tactics", description: "Squad tactics under pressure.", type: "web2" },
+        { id: "aim", name: "Aim Protocol", description: "Pure mechanical precision.", type: "web2" },
+        { id: "cipher", name: "Cipher Duel", description: "Fast strategic code battles.", type: "web3" },
+      ] as Game[]);
+
+  return (
+    <GameShell>
+      <main className="mx-auto max-w-[1480px] px-4 py-7 sm:px-7 lg:py-9">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">Your competitive library</p>
+          <h1 className="mt-2 font-display text-4xl font-black uppercase italic sm:text-5xl">Game Library</h1>
+          <p className="mt-2 text-sm text-slate-500">Discover games with verified results and programmable USDC settlement.</p>
+        </div>
+        <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {catalog.map((game, i) => (
+            <article key={game.id} className="group overflow-hidden rounded-3xl border border-white/8 bg-white/[.03] transition hover:-translate-y-1 hover:border-cyan-300/25">
+              <div className={`relative h-52 bg-gradient-to-br ${palettes[i % palettes.length]} p-6`}>
+                <div className="absolute inset-0 bg-arena-grid opacity-20" />
+                <span className="relative rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-slate-300">{game.type} · Verified</span>
+                <div className="absolute bottom-6 left-6 right-6">
+                  <p className="text-xs font-bold text-cyan-300">COMPETITIVE</p>
+                  <h2 className="mt-1 font-display text-4xl font-black uppercase italic text-white">{game.name}</h2>
+                </div>
+              </div>
+              <div className="p-5">
+                <p className="min-h-12 text-sm leading-6 text-slate-500">{game.description ?? "Challenge players, verify the result and settle transparently on Arc."}</p>
+                <div className="mt-5 flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <span className="rounded bg-white/5 px-2 py-1 text-[10px] text-slate-500">PVP</span>
+                    <span className="rounded bg-white/5 px-2 py-1 text-[10px] text-slate-500">USDC</span>
+                  </div>
+                  <Link href="/challenges" className="rounded-lg bg-white px-4 py-2 text-xs font-black text-black">PLAY →</Link>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
+    </GameShell>
+  );
+}

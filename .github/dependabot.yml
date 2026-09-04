@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      production-security-stack:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor
+
+  - package-ecosystem: npm
+    directory: /web3
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      web3-production-dependencies:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

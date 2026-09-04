@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type GameCredential = {
@@ -13,15 +13,32 @@ export type GameCredential = {
   expires_at: string | null;
 };
 
-export function hashGameApiKey(secret: string): string {
-  return createHash("sha256").update(secret, "utf8").digest("hex");
+const SCRYPT_OPTIONS = {
+  N: 16_384,
+  r: 8,
+  p: 1,
+  maxmem: 64 * 1024 * 1024,
+} as const;
+
+function readGameApiKeyPrefix(secret: string): string | null {
+  const match = /^(sk_(?:test|live)_[0-9a-f]{12})_[a-zA-Z0-9_-]{40,}$/i.exec(secret);
+  return match?.[1] ?? null;
+}
+
+export function hashGameApiKey(secret: string, prefix: string): string {
+  return scryptSync(
+    secret,
+    `skillfi-game-api:${prefix.toLowerCase()}`,
+    32,
+    SCRYPT_OPTIONS,
+  ).toString("hex");
 }
 
 export function createGameApiKey(environment: "test" | "live") {
+  const prefix = `sk_${environment}_${randomBytes(6).toString("hex")}`;
   const token = randomBytes(32).toString("base64url");
-  const prefix = `sk_${environment}_${token.slice(0, 8)}`;
   const secret = `${prefix}_${token}`;
-  return { prefix, secret, secretHash: hashGameApiKey(secret) };
+  return { prefix, secret, secretHash: hashGameApiKey(secret, prefix) };
 }
 
 export function verifyGameRequestSignature(secret: string, timestamp: string | null, rawBody: string, signature: string | null) {
@@ -36,16 +53,31 @@ export function verifyGameRequestSignature(secret: string, timestamp: string | n
 export function readBearerSecret(authorization: string | null): string | null {
   if (!authorization?.startsWith("Bearer ")) return null;
   const secret = authorization.slice(7).trim();
-  return /^sk_(test|live)_[a-zA-Z0-9_-]{20,}$/.test(secret) ? secret : null;
+  return readGameApiKeyPrefix(secret) ? secret : null;
 }
 
 export async function authenticateGameApiKey(authorization: string | null, requiredScope: string) {
   const secret = readBearerSecret(authorization);
   if (!secret) return null;
-  const { data, error } = await supabaseAdmin.from("game_api_credentials")
-    .select("id,game_id,studio_id,key_prefix,scopes,revoked_at,expires_at").eq("secret_hash", hashGameApiKey(secret)).maybeSingle();
+  const prefix = readGameApiKeyPrefix(secret);
+  if (!prefix) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from("game_api_credentials")
+    .select("id,game_id,studio_id,key_prefix,secret_hash,scopes,revoked_at,expires_at")
+    .eq("key_prefix", prefix)
+    .maybeSingle();
   if (error || !data || data.revoked_at || !data.scopes?.includes(requiredScope)) return null;
   if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null;
-  await supabaseAdmin.from("game_api_credentials").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
-  return data as GameCredential;
+
+  const expected = Buffer.from(String(data.secret_hash), "hex");
+  const candidate = Buffer.from(hashGameApiKey(secret, prefix), "hex");
+  if (expected.length !== candidate.length || !timingSafeEqual(expected, candidate)) return null;
+
+  await supabaseAdmin
+    .from("game_api_credentials")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", data.id);
+  const { secret_hash: _secretHash, ...credential } = data;
+  return credential as GameCredential;
 }

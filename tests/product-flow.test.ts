@@ -141,7 +141,10 @@ test("settlement reconciliation is participant-authorized and recoverable", () =
   assert.match(route, /getCurrentProfile/);
   assert.match(route, /Not a participant/);
   assert.match(route, /match\.status !== "settling" && match\.status !== "completed"/);
-  assert.match(service, /A concurrent retry may have settled the contract first/);
+  assert.match(service, /claim_match_settlement/);
+  assert.match(service, /record_match_settlement_tx/);
+  assert.match(service, /SettlementInProgressError/);
+  assert.ok(service.indexOf("claim_match_settlement") < service.indexOf("resolveMatch"));
   assert.match(service, /Number\(onchain\[6\]\) !== 4/);
   assert.match(service, /from\("transactions"\)\.upsert/);
   assert.match(service, /kind: "settlement"/);
@@ -234,7 +237,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(migration, /studio_audit_events/);
   assert.match(migration, /studio audit events are immutable/);
   assert.match(adminGuard, /STUDIO_ADMIN_USER_IDS/);
-  assert.match(adminGuard, /OPERATOR_WALLET_ADDRESS/);
+  assert.match(adminGuard, /STUDIO_ADMIN_WALLET_ADDRESSES/);
+  assert.doesNotMatch(adminGuard, /process\.env\.OPERATOR_WALLET_ADDRESS/);
   assert.match(adminRoute, /Approve the studio before publishing its game/);
   assert.match(adminRoute, /Move the game through sandbox before publishing/);
   assert.match(adminRoute, /credential\.scopes\.includes\("results:write"\)/);
@@ -265,7 +269,8 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.match(migration, /create table if not exists public\.game_api_credentials/);
   assert.match(migration, /secret_hash text not null unique/);
   assert.doesNotMatch(migration, /secret text/);
-  assert.match(credentialService, /createHash\("sha256"\)/);
+  assert.match(credentialService, /scryptSync\(/);
+  assert.doesNotMatch(credentialService, /createHash\("sha256"\)\.update\(secret/);
   assert.match(credentialService, /randomBytes\(32\)/);
   assert.match(credentialService, /revoked_at/);
   assert.match(credentialService, /expires_at/);

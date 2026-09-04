@@ -2,7 +2,12 @@ import "server-only";
 
 import { createPublicClient, createWalletClient, http, type Address, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { ACTIVE_CHAIN, ACTIVE_RPC_URL, ESCROW_CONTRACT_ADDRESS } from "@/lib/contracts";
+import {
+  ACTIVE_CHAIN,
+  ACTIVE_RPC_URL,
+  ESCROW_CONTRACT_ADDRESS,
+  assertEscrowContractConfigured,
+} from "@/lib/contracts";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 
 const activeChain: Chain = ACTIVE_CHAIN;
@@ -27,6 +32,7 @@ export const escrowPublicClient = createPublicClient({
 });
 
 export function getEscrowWalletClient() {
+  assertEscrowContractConfigured();
   const operator = privateKeyToAccount(getOperatorPrivateKey());
   return createWalletClient({
     account: operator,

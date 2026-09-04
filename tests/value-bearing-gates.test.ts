@@ -1,0 +1,79 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+function source(path: string) {
+  return readFileSync(path, "utf8");
+}
+
+test("v3 deploys with deposits closed and only admin can activate new exposure", () => {
+  const contract = source("web3/contracts/SkillFiEscrowV3.sol");
+  assert.match(contract, /bool public depositsEnabled/);
+  assert.match(contract, /depositsEnabled = false/);
+  assert.match(contract, /modifier whenDepositsEnabled\(\)/);
+  assert.match(contract, /require\(depositsEnabled, "deposits disabled"\)/);
+  assert.match(contract, /function createMatch[\s\S]*?whenNotPaused[\s\S]*?whenDepositsEnabled/);
+  assert.match(contract, /function joinMatch[^\n]*whenNotPaused whenDepositsEnabled/);
+  assert.match(contract, /function setDepositsEnabled\(bool _enabled\) external onlyRole\(DEFAULT_ADMIN_ROLE\)/);
+
+  const startBlock = contract.match(/function startMatch[\s\S]*?\n    }\n/)?.[0] ?? "";
+  const resolveBlock = contract.match(/function resolveMatch[\s\S]*?\n    }\n/)?.[0] ?? "";
+  assert.ok(startBlock.length > 0 && resolveBlock.length > 0);
+  assert.doesNotMatch(startBlock, /whenDepositsEnabled/);
+  assert.doesNotMatch(resolveBlock, /whenDepositsEnabled/);
+});
+
+test("release health requires application and onchain exposure gates to agree", () => {
+  const health = source("app/api/health/route.ts");
+  assert.match(health, /functionName: "depositsEnabled"/);
+  assert.match(health, /onchainDepositsEnabled !== null && onchainDepositsEnabled === valueBearingEnabled/);
+  assert.match(health, /&& valueBearingAligned/);
+  assert.match(health, /applicationEnabled: valueBearingEnabled/);
+  assert.match(health, /onchainDepositsEnabled/);
+  assert.match(health, /aligned: valueBearingAligned/);
+});
+
+test("arc and base deployments fail closed on deposit activation state", () => {
+  const arcDeploy = source("web3/scripts/deploy-arc.ts");
+  const arcValidate = source("web3/scripts/validate-arc-deployment.mjs");
+  const baseDeploy = source("web3/scripts/deploy.ts");
+  const baseValidate = source("web3/scripts/validate-deployment.mjs");
+  const baseSmoke = source("web3/scripts/smoke-live-match.mjs");
+
+  for (const deploy of [arcDeploy, baseDeploy]) {
+    assert.match(deploy, /depositsEnabledAtDeployment: false/);
+    assert.match(deploy, /V3 deposits must be disabled at deployment/);
+  }
+  assert.match(arcValidate, /ARC_EXPECT_DEPOSITS_ENABLED/);
+  assert.match(baseValidate, /BASE_EXPECT_DEPOSITS_ENABLED/);
+  for (const validate of [arcValidate, baseValidate]) {
+    assert.match(validate, /from "ethers"/);
+    assert.doesNotMatch(validate, /from "viem"|from 'viem'/);
+    assert.match(validate, /depositsWereClosedAtDeployment/);
+    assert.match(validate, /depositsMatchExplicitExpectation/);
+  }
+  assert.match(baseSmoke, /await escrowOperator\.depositsEnabled\(\)/);
+  assert.match(baseSmoke, /before spending testnet gas|then run the live smoke/i);
+});
+
+test("admin activation tooling binds network metadata and emits calldata without signing", () => {
+  const encoder = source("web3/scripts/encode-arc-admin-action.mjs");
+  const web3Package = source("web3/package.json");
+  const readme = source("web3/README.md");
+
+  assert.match(encoder, /enable-deposits/);
+  assert.match(encoder, /disable-deposits/);
+  assert.match(encoder, /setDepositsEnabled/);
+  assert.match(encoder, /encodeFunctionData/);
+  assert.match(encoder, /ADMIN_TARGET_NETWORK/);
+  assert.match(encoder, /ESCROW_ADMIN_TARGET_ADDRESS/);
+  assert.match(encoder, /arcTestnet/);
+  assert.match(encoder, /baseSepolia/);
+  assert.match(encoder, /5_042_002/);
+  assert.match(encoder, /84_532/);
+  assert.match(encoder, /signsOrBroadcastsTransaction: false/);
+  assert.doesNotMatch(encoder, /PRIVATE_KEY|Wallet\(|sendTransaction|broadcastTransaction/);
+  assert.match(web3Package, /"admin:calldata": "node scripts\/encode-arc-admin-action\.mjs"/);
+  assert.match(readme, /ADMIN_TARGET_NETWORK=baseSepolia ESCROW_ADMIN_TARGET_ADDRESS=/);
+  assert.match(readme, /ADMIN_TARGET_NETWORK=arcTestnet ESCROW_ADMIN_TARGET_ADDRESS=/);
+});

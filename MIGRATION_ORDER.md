@@ -1,108 +1,81 @@
-﻿# Migration Order
+# Migration Order
 
-SkillFi Arena now has two validated migration chains:
+SkillFi Arena has a local compatibility chain and one canonical hosted Supabase release chain.
 
-- Local/embedded PostgreSQL validation uses the original compatibility chain.
-- Hosted Supabase SQL Editor execution uses hosted-safe variants that do not require permissions in the managed `auth` schema.
+## Local / Embedded Validation
 
-No migration number conflicts are present.
-
-## Local / Embedded Validation Order
-
-Run this order only for local embedded PostgreSQL validation and other non-hosted environments where the validation harness owns the compatibility `auth` schema:
+Use only for local database validation:
 
 1. `01_initial_schema.sql`
 2. `02_privy_identity_migration.sql`
 3. `03_two_player_challenge_flow.sql`
 
-`npm run test:db` validates this order.
+Run with `npm run test:db`.
 
-## Hosted Supabase SQL Editor Order
+## Canonical Hosted Supabase Release Chain
 
-Run this exact order in the hosted Supabase development project SQL Editor:
+Apply these files in this exact order. Do not stop at the original three-file baseline.
 
-1. Open `01_initial_schema_hosted_supabase.sql`, paste the entire file, and run it as one batch.
-2. Wait for success before continuing.
-3. Open `02_privy_identity_migration_hosted_supabase.sql`, paste the entire file, and run it as one batch.
-4. Wait for success before continuing.
-5. Open `03_two_player_challenge_flow.sql`, paste the entire file, and run it as one batch.
-6. Wait for success before continuing.
-7. Run this cache refresh statement as its own batch:
+1. `01_initial_schema_hosted_supabase.sql`
+2. `02_privy_identity_migration_hosted_supabase.sql`
+3. `03_two_player_challenge_flow.sql`
+4. `supabase/03_live_matches.sql`
+5. `supabase/04_match_audit_events.sql`
+6. `supabase/05_risk_stake_reservations.sql`
+7. `supabase/06_transaction_event_identity.sql`
+8. `supabase/07_match_disputes.sql`
+9. `supabase/08_studio_game_onboarding.sql`
+10. `supabase/09_guild_dao.sql`
+11. `supabase/10_pilot_games.sql`
+12. `supabase/11_beta_pilot.sql`
+13. `supabase/12_pilot_game_runs.sql`
+14. `supabase/13_public_profile_privacy.sql`
+15. `supabase/14_risk_idempotency_hardening.sql`
+16. `supabase/15_release_schema_state.sql`
+17. `supabase/16_api_rate_limits.sql`
+18. `supabase/17_disable_test_fixture_games.sql`
+19. `supabase/18_settlement_single_writer.sql`
+20. `supabase/19_public_match_graph_privacy.sql`
+21. `supabase/20_disable_public_match_realtime.sql`
+22. `supabase/21_rotate_game_api_key_hashes.sql`
+23. `supabase/22_revoke_legacy_game_api_keys.sql`
+24. `NOTIFY pgrst, 'reload schema';`
 
-```sql
-NOTIFY pgrst, 'reload schema';
-```
+The latest hosted schema marker after the complete cutover chain is `22` in `public.schema_release_state`.
 
-Short form:
+## Two-Phase Integration Credential Cutover
 
-```text
-01_initial_schema_hosted_supabase.sql
-02_privy_identity_migration_hosted_supabase.sql
-03_two_player_challenge_flow.sql
-NOTIFY pgrst, 'reload schema';
-```
+Credential rotation is deliberately split so schema work does not unnecessarily interrupt active studio integrations:
 
-Do not run the original `01_initial_schema.sql` in hosted Supabase SQL Editor. It creates local-validation compatibility objects in the managed `auth` schema, which hosted Supabase owns.
+1. Apply migrations through **schema 21**. Migration 21 is non-destructive: it permits both legacy 8-character prefixes and new 12-hex prefixes, and adds unique prefix lookup. It does **not** revoke active credentials.
+2. While the legacy application/integrations are still available, create the replacement scrypt credentials in a controlled environment and securely distribute them to each studio. Validate that each replacement credential is recorded and ready for the new application cutover.
+3. During the coordinated application cutover, apply **schema 22**. Migration 22 revokes only active legacy 8-character-prefix credentials and asserts that no active legacy credential remains.
+4. Promote the scrypt-only application and switch integrations to the pre-staged replacement credentials.
 
-## Local Compatibility Baseline
+Do not apply schema 22 before replacement credentials have been staged and the cutover is coordinated.
 
-`01_initial_schema.sql` creates the original embedded/local baseline expected by migration 02:
+## Release Gate
 
-- `auth.users`
-- `public.users`
-- `public.games`
-- `public.matches`
-- `public.user_risk_profiles`
-- `public.transactions`
-- `auth.uid()` compatibility helper when absent
-- `public.handle_new_user()`
-- `trg_handle_new_user` on `auth.users`
-- public timestamp triggers
-- baseline constraints, indexes, grants, and RLS policies
+A production release is not ready until all of the following are true:
 
-`public.users.id` initially references `auth.users(id)` so `02_privy_identity_migration.sql` can detach the app identity model from Supabase Auth with:
+- every hosted migration above has succeeded through schema 22;
+- `public.schema_release_state.version = 22`;
+- service-role access to `guilds` succeeds;
+- public profile access is column-scoped and does not expose email, Privy IDs, login timestamps, earnings, or private wallet fields;
+- anonymous/authenticated clients cannot enumerate `challenges`, `challenge_participants`, or `match_participants` directly;
+- direct public match access is column-scoped to the live/public UI projection and does not expose challenge linkage or free-form context columns;
+- `public.matches` is not present in the `supabase_realtime` publication; live/public clients use explicit safe projections and polling instead;
+- replacement integration credentials use 12-hex prefixes with scrypt-derived secret hashes;
+- no active legacy 8-character-prefix integration credential remains after schema 22;
+- `HTTP Validation %` fixture games are not active;
+- settlement RPCs (`claim_match_settlement`, `record_match_settlement_tx`, `release_match_settlement_lease`) are available only to `service_role`;
+- PostgREST schema cache has been reloaded;
+- `/api/health` reports `status: ok` against the target deployment.
 
-```sql
-ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_id_fkey;
-```
+Vercel deployment status alone is not a database migration signal.
 
-## Hosted-Safe Baseline
+## Hosted Safety Notes
 
-`01_initial_schema_hosted_supabase.sql` creates only application-owned public schema objects:
+Do not run `01_initial_schema.sql` in hosted Supabase. It contains local compatibility objects for the managed `auth` schema. Use `01_initial_schema_hosted_supabase.sql` instead.
 
-- `public.users`
-- `public.games`
-- `public.matches`
-- `public.user_risk_profiles`
-- `public.transactions`
-- `public.touch_updated_at()`
-- public timestamp triggers
-- primary keys, foreign keys, unique constraints, indexes, grants, and baseline RLS policies
-
-It intentionally does not create or modify:
-
-- `auth` schema
-- `auth.users`
-- `auth.uid()`
-- triggers on `auth.users`
-
-`02_privy_identity_migration_hosted_supabase.sql` keeps the Privy identity migration compatible with hosted Supabase by avoiding trigger operations on `auth.users`. It still adds `privy_user_id`, sets the UUID default for `public.users.id`, removes legacy auth-owner policies, and preserves the service-role server route model expected by migration 03.
-
-## Final Challenge Migration
-
-`03_two_player_challenge_flow.sql` is shared by both migration chains. It adds:
-
-- `public.challenges`
-- `public.challenge_participants`
-- challenge linkage and accepted-match metadata on `public.matches`
-- `public.match_participants`
-- `public.accept_challenge(uuid, uuid)`
-- invitation token hashing protections
-- service-role-only mutation/RPC access
-
-## Validation Status
-
-Latest required validation:
-
-- `npm run test:db`: passed for the local/embedded chain.
-- `npm run test:db:hosted`: passed for the hosted-safe chain under embedded PostgreSQL, validating public schema compatibility. Hosted `auth` permission behavior is hosted-specific and is addressed by using the hosted-safe SQL files in SQL Editor.
+All application mutations that require elevated database privileges are performed by server routes using `service_role`. Sensitive tables, including integration credentials, result submissions, risk reservations, API rate-limit buckets, settlement leases, challenge participant link tables, and release schema state, must remain inaccessible to `anon` and `authenticated` roles except where a migration explicitly grants a public-safe projection.

@@ -4,9 +4,12 @@ import { getAddress } from "viem";
 import { parseUsdcUnits } from "@/lib/env/public";
 
 export function getStudioFeeConfig() {
-  const amount = parseUsdcUnits(process.env.STUDIO_LISTING_FEE_USDC ?? "10");
-  const rawTreasury = process.env.STUDIO_FEE_TREASURY_ADDRESS ?? process.env.OPERATOR_WALLET_ADDRESS;
-  if (!rawTreasury) throw new Error("Studio fee treasury is not configured");
+  const rawAmount = process.env.STUDIO_LISTING_FEE_USDC?.trim();
+  const rawTreasury = process.env.STUDIO_FEE_TREASURY_ADDRESS?.trim();
+  if (!rawAmount) throw new Error("STUDIO_LISTING_FEE_USDC is not configured");
+  if (!rawTreasury) throw new Error("STUDIO_FEE_TREASURY_ADDRESS is not configured");
+  const amount = parseUsdcUnits(rawAmount);
+  if (amount <= 0n) throw new Error("Studio listing fee must be positive");
   return { amount, treasury: getAddress(rawTreasury) };
 }
 

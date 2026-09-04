@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useAccount, useWriteContract } from "wagmi";
+import { useWriteContract } from "wagmi";
 import { ESCROW_CONTRACT_ADDRESS } from "@/lib/contracts";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 import { passageForMatch, scoreTyping } from "@/lib/typingGame";
@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import type { Game } from "@/lib/types";
 import { WaitingMotion } from "@/components/motion/WaitingMotion";
+import { useSkillFiUser } from "@/components/AuthSync";
 
 type MatchView = {
   id: string;
@@ -27,29 +28,22 @@ type MatchView = {
   player_a: {
     id: string;
     username: string;
-    wallet_address: string | null;
   } | null;
   player_b: {
     id: string;
     username: string;
-    wallet_address: string | null;
   } | null;
 };
 
-type Progress = { wpm: number; accuracy: number; chars: number };
-
 export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
   const { getAccessToken } = usePrivy();
-  const { address } = useAccount();
+  const { profile, loading: profileLoading } = useSkillFiUser();
   const { writeContractAsync } = useWriteContract();
   const [match, setMatch] = useState(initialMatch);
   const [text, setText] = useState("");
   const [remaining, setRemaining] = useState(60000);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [opponentProgress, setOpponentProgress] = useState<Progress | null>(
-    null,
-  );
   const [disputeBusy, setDisputeBusy] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
@@ -59,7 +53,6 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
       ? new Date(initialMatch.started_at).getTime()
       : null,
   );
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const passage = useMemo(
     () => passageForMatch(initialMatch.smart_contract_match_id),
     [initialMatch.smart_contract_match_id],
@@ -73,16 +66,8 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
     [initialMatch.smart_contract_match_id, pilotGameId],
   );
   const challengePrompt = pilotRound?.prompt ?? passage;
-  const isPlayerA = Boolean(
-    address &&
-    match.player_a?.wallet_address &&
-    address.toLowerCase() === match.player_a.wallet_address.toLowerCase(),
-  );
-  const isPlayerB = Boolean(
-    address &&
-    match.player_b?.wallet_address &&
-    address.toLowerCase() === match.player_b.wallet_address.toLowerCase(),
-  );
+  const isPlayerA = Boolean(profile?.id && profile.id === match.player_a_id);
+  const isPlayerB = Boolean(profile?.id && profile.id === match.player_b_id);
   const isParticipant = isPlayerA || isPlayerB;
 
   async function disputeMatch() {
@@ -175,37 +160,6 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
   ]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel(`match:${match.id}`)
-      .on("broadcast", { event: "progress" }, ({ payload }) => {
-        if (payload?.player !== address)
-          setOpponentProgress(payload?.progress ?? null);
-      })
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "matches",
-          filter: `id=eq.${match.id}`,
-        },
-        (payload) => {
-          const next = payload.new as MatchView;
-          setMatch((current) => ({ ...current, ...next }));
-          if (next.started_at)
-            startedAtRef.current = new Date(next.started_at).getTime();
-        },
-      )
-      .subscribe();
-    channelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-      channelRef.current = null;
-    };
-  }, [address, match.id]);
-
-  useEffect(() => {
     let active = true;
 
     async function refreshMatchState() {
@@ -254,31 +208,6 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
     }
   }, [match.status, remaining, submitResult, submitted]);
 
-  function broadcastProgress(value: string) {
-    if (!channelRef.current || submitted || match.status !== "active") return;
-    const elapsed = Math.max(1000, 60000 - remaining);
-    const typingScore = scoreTyping(passage, value, elapsed);
-    const pilotScore = pilotRound ? scorePilotRound(pilotRound, value) : null;
-    channelRef.current.send({
-      type: "broadcast",
-      event: "progress",
-      payload: {
-        player: address,
-        progress: pilotScore
-          ? {
-              wpm: pilotScore.points,
-              accuracy: pilotScore.percent / 100,
-              chars: pilotScore.points,
-            }
-          : {
-              wpm: typingScore.wpm,
-              accuracy: typingScore.accuracy,
-              chars: typingScore.correctChars,
-            },
-      },
-    });
-  }
-
   const typingScore = scoreTyping(
     passage,
     text,
@@ -293,6 +222,16 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
         : match.status === "completed"
           ? "MATCH COMPLETE"
           : match.status.toUpperCase();
+
+  if (profileLoading) {
+    return (
+      <main className="min-h-screen bg-arena-bg p-8 text-arena-text">
+        <div className="mx-auto max-w-4xl rounded-xl border border-arena-border bg-arena-surface p-8">
+          <WaitingMotion label="Verifying player access" />
+        </div>
+      </main>
+    );
+  }
 
   if (!isParticipant && match.status === "active") {
     return (
@@ -369,7 +308,6 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
                     !submitted
                   ) {
                     setText(event.target.value);
-                    broadcastProgress(event.target.value);
                   }
                 }}
                 disabled={submitted || remaining === 0}
@@ -474,17 +412,14 @@ export function LiveMatchClient({ match: initialMatch }: { match: MatchView }) {
               <p className="mt-1 text-arena-muted">
                 {match.player_b?.username ?? "Player 2"}
               </p>
-              <div className="mt-6">
+              <div className="mt-6 rounded-lg border border-arena-border bg-arena-bg/50 p-4">
                 <p className="text-xs uppercase tracking-wide text-arena-muted">
-                  {pilotRound ? "Live score" : "Live WPM"}
-                </p>
-                <p className="font-display text-4xl font-bold text-arena-accent">
-                  {opponentProgress?.wpm.toFixed(0) ?? "-"}
+                  Match integrity
                 </p>
                 <p className="mt-2 text-sm text-arena-muted">
-                  {opponentProgress
-                    ? `${opponentProgress.chars} correct chars / ${(opponentProgress.accuracy * 100).toFixed(0)}%`
-                    : "Waiting for input..."}
+                  Opponent progress is hidden until an authoritative result is
+                  recorded. Match state is refreshed from the database using a
+                  public-safe column projection.
                 </p>
               </div>
             </aside>

@@ -4,11 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
     "deploy:arc-testnet": "hardhat run scripts/deploy-arc.ts --network arcTestnet",
     "validate:arc-testnet": "node scripts/validate-arc-deployment.mjs",
+    "admin:calldata": "node scripts/encode-arc-admin-action.mjs",
     "configure:arc-operator": "hardhat run scripts/configure-arc-operator.ts --network arcTestnet",
     "smoke:arc-testnet": "hardhat run scripts/smoke-arc-match.ts --network arcTestnet",
     "smoke:arc-safety": "hardhat run scripts/smoke-arc-safety-paths.ts --network arcTestnet",

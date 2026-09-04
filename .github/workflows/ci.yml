@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - develop
+      - security-hardening-2026-09-04
 
   pull_request:
     branches:
@@ -21,17 +22,25 @@ jobs:
   frontend:
     name: Next.js Build
     runs-on: ubuntu-latest
+    env:
+      SKILLFI_ALLOW_BUILD_PLACEHOLDERS: "1"
+      NEXT_PUBLIC_CHAIN_TARGET: "arcTestnet"
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit
+
+      - name: Production dependency advisory gate
+        run: node scripts/production-advisory-gate.mjs package-lock.json
 
       - name: Type Check
         run: npm run typecheck
@@ -48,17 +57,37 @@ jobs:
     defaults:
       run:
         working-directory: web3
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: web3/package-lock.json
 
       - name: Install
-        run: npm ci
+        run: npm ci --no-audit
+
+      - name: Production dependency advisory gate
+        run: node ../scripts/production-advisory-gate.mjs package-lock.json
+
+      - name: Type Check Release Tooling
+        run: npm run typecheck
+
+      - name: Deployment script syntax smoke
+        run: |
+          node --check scripts/validate-arc-deployment.mjs
+          node --check scripts/validate-deployment.mjs
+          node --check scripts/smoke-live-match.mjs
+          node --check scripts/encode-arc-admin-action.mjs
+
+      - name: Admin calldata tooling smoke
+        run: npm run admin:calldata -- enable-deposits
 
       - name: Compile Contracts
         run: npx hardhat compile

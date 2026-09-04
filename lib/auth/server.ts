@@ -1,6 +1,7 @@
 import "server-only";
 import { getPrivyClient, verifyPrivyAccessToken } from "@/lib/privy";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { assertTestAuthDisabledOnHostedRuntime } from "@/lib/security/runtimeGuards";
 import type { PlayerProfile, UserRegion } from "@/lib/types";
 
 export type PrivyIdentity = {
@@ -14,6 +15,8 @@ function normalizeWallet(value: string | null | undefined): string | null {
 }
 
 export async function getPrivyIdentityFromRequest(authHeader: string | null): Promise<PrivyIdentity | null> {
+  assertTestAuthDisabledOnHostedRuntime();
+
   const privyUserId = await verifyPrivyAccessToken(authHeader);
   if (!privyUserId) return null;
 

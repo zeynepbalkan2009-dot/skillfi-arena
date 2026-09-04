@@ -6,24 +6,59 @@ import { recordAuditEvent } from "@/lib/audit";
 import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
 import { isPilotGameId } from "@/lib/pilotGames";
 
+const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
+const ACCEPTED_MATCH_SELECT = `
+  id,
+  smart_contract_match_id,
+  game_id,
+  player_a_id,
+  player_b_id,
+  stake_amount,
+  status,
+  created_at,
+  game:games(
+    id,
+    slug,
+    name,
+    type,
+    description,
+    website_url,
+    is_active
+  ),
+  player_a:users!matches_player_a_id_fkey(
+    id,
+    username,
+    display_name,
+    avatar_url,
+    region
+  ),
+  player_b:users!matches_player_b_id_fkey(
+    id,
+    username,
+    display_name,
+    avatar_url,
+    region
+  )
+`;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const profile = await getCurrentProfile(request.headers.get("authorization"));
   if (!profile) {
-    return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401 });
+    return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401, headers: PRIVATE_NO_STORE });
   }
 
   let body: { invitationToken?: string };
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers: PRIVATE_NO_STORE });
   }
 
   if (!body.invitationToken) {
-    return NextResponse.json({ error: "Invitation token is required" }, { status: 403 });
+    return NextResponse.json({ error: "Invitation token is required" }, { status: 403, headers: PRIVATE_NO_STORE });
   }
 
   const { data: challenge, error: challengeError } = await supabaseAdmin
@@ -34,14 +69,15 @@ export async function POST(
     .maybeSingle();
 
   if (challengeError) {
-    return NextResponse.json({ error: "Could not validate invitation" }, { status: 500 });
+    console.error("Challenge invitation validation failed:", challengeError.message);
+    return NextResponse.json({ error: "Could not validate invitation" }, { status: 500, headers: PRIVATE_NO_STORE });
   }
   if (!challenge) {
-    return NextResponse.json({ error: "Invalid invitation token" }, { status: 403 });
+    return NextResponse.json({ error: "Invalid invitation token" }, { status: 403, headers: PRIVATE_NO_STORE });
   }
   const challengeGame = challenge.game as unknown as { slug?: string } | null;
   if (isPilotGameId(challengeGame?.slug) && !(await hasActiveBetaAccess(profile.id))) {
-    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403 });
+    return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403, headers: PRIVATE_NO_STORE });
   }
 
   const { data: result, error } = await supabaseAdmin
@@ -53,21 +89,26 @@ export async function POST(
 
   if (error) {
     const message = error.message || "Could not accept challenge";
-    const status = /not found/i.test(message) ? 404 : 409;
-    return NextResponse.json({ error: message }, { status });
+    if (/challenge not found|player not found/i.test(message)) {
+      return NextResponse.json({ error: "Challenge or player was not found" }, { status: 404, headers: PRIVATE_NO_STORE });
+    }
+    if (/creator cannot accept own challenge|challenge is not open|challenge has expired|challenge is invite-only|challenge was accepted concurrently/i.test(message)) {
+      return NextResponse.json({ error: message }, { status: 409, headers: PRIVATE_NO_STORE });
+    }
+    console.error("Challenge acceptance RPC failed:", message);
+    return NextResponse.json({ error: "Could not accept challenge" }, { status: 409, headers: PRIVATE_NO_STORE });
   }
 
   const matchId = (result as { match_id: string }).match_id;
   const { data: match, error: matchError } = await supabaseAdmin
     .from("matches")
-    .select(
-      "*, game:games(*), player_a:users!matches_player_a_id_fkey(id, username, display_name, avatar_url, region, wallet_address, primary_wallet_address), player_b:users!matches_player_b_id_fkey(id, username, display_name, avatar_url, region, wallet_address, primary_wallet_address)"
-    )
+    .select(ACCEPTED_MATCH_SELECT)
     .eq("id", matchId)
     .single();
 
   if (matchError) {
-    return NextResponse.json({ error: matchError.message }, { status: 500 });
+    console.error("Accepted challenge match lookup failed:", matchError.message);
+    return NextResponse.json({ error: "Challenge accepted but match could not be loaded" }, { status: 500, headers: PRIVATE_NO_STORE });
   }
   await recordAuditEvent({
     matchId: match.id,
@@ -78,5 +119,5 @@ export async function POST(
     payload: { acceptedById: profile.id },
   });
 
-  return NextResponse.json({ match }, { status: 200 });
+  return NextResponse.json({ match }, { status: 200, headers: PRIVATE_NO_STORE });
 }

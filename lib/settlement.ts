@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { recordAuditEvent } from "@/lib/audit";
 import {
   ESCROW_CONTRACT_ADDRESS,
@@ -19,12 +20,61 @@ type SettlementMatch = {
 };
 
 type Address = `0x${string}`;
+type TxHash = `0x${string}`;
+type SettlementLeaseClaim = { acquired: boolean; tx_hash: string | null };
 
 export class MatchDisputedError extends Error {
   constructor() {
     super("Match is disputed on-chain; automatic settlement is paused");
     this.name = "MatchDisputedError";
   }
+}
+
+export class SettlementInProgressError extends Error {
+  constructor() {
+    super("Settlement is already being processed");
+    this.name = "SettlementInProgressError";
+  }
+}
+
+async function claimSettlementLease(matchId: string, leaseToken: string): Promise<SettlementLeaseClaim> {
+  const { data, error } = await supabaseAdmin
+    .rpc("claim_match_settlement", {
+      p_match_id: matchId,
+      p_lease_token: leaseToken,
+      p_lease_seconds: 900,
+    })
+    .single();
+  if (error) throw new Error(`Settlement lease claim failed: ${error.message}`);
+  return data as SettlementLeaseClaim;
+}
+
+async function recordSettlementLeaseTx(matchId: string, leaseToken: string, txHash: TxHash): Promise<void> {
+  const { data, error } = await supabaseAdmin.rpc("record_match_settlement_tx", {
+    p_match_id: matchId,
+    p_lease_token: leaseToken,
+    p_tx_hash: txHash,
+  });
+  if (error || data !== true) {
+    throw new Error(`Settlement lease transaction recording failed${error ? `: ${error.message}` : ""}`);
+  }
+}
+
+async function releaseSettlementLease(matchId: string, leaseToken: string): Promise<void> {
+  const { error } = await supabaseAdmin.rpc("release_match_settlement_lease", {
+    p_match_id: matchId,
+    p_lease_token: leaseToken,
+  });
+  if (error) console.error("Settlement lease release failed:", error.message);
+}
+
+async function clearConfirmedSettlementLease(matchId: string, txHash: TxHash): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("match_settlement_leases")
+    .delete()
+    .eq("match_id", matchId)
+    .eq("tx_hash", txHash.toLowerCase());
+  if (error) console.error("Confirmed settlement lease cleanup failed:", error.message);
 }
 
 export async function settleAndReconcileMatch(match: SettlementMatch, actorUserId: string | null) {
@@ -61,59 +111,114 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
   }
   if (!chainPlayers.includes(winnerWallet)) throw new Error("Winner wallet is not an on-chain participant");
 
-  const feeBps = await escrowPublicClient.readContract({
-    address: ESCROW_CONTRACT_ADDRESS,
-    abi: skillFiEscrowAbi,
-    functionName: "platformFeeBps",
-  });
+  const feeBps = onchain[9];
+  if (feeBps > 1_000n) throw new Error("Escrow match fee exceeds the permitted maximum");
   const totalPrize = onchain[2] * 2n;
   const payout = totalPrize - (totalPrize * feeBps) / 10_000n;
 
-  let settlementHash: `0x${string}` | null = null;
+  let settlementHash: TxHash | null = null;
   if (Number(onchain[6]) === 3) {
-    try {
-      const walletClient = getEscrowWalletClient();
-      settlementHash = await walletClient.writeContract({
-        address: ESCROW_CONTRACT_ADDRESS,
-        abi: skillFiEscrowAbi,
-        functionName: "resolveMatch",
-        args: [chainMatchId, winnerWallet as Address],
-      });
-      const { error: pendingTransactionError } = await supabaseAdmin.from("transactions").upsert(
-        {
-          user_id: winnerId,
-          match_id: match.id,
-          tx_hash: settlementHash.toLowerCase(),
-          kind: "settlement",
-          amount: payout.toString(),
-          status: "pending",
-        },
-        { onConflict: "tx_hash,kind,user_id" },
-      );
-      if (pendingTransactionError) throw new Error(`Pending settlement recording failed: ${pendingTransactionError.message}`);
-      await recordAuditEvent({
-        matchId: match.id,
-        actorUserId,
-        eventType: "settlement_broadcast",
-        txHash: settlementHash,
-        idempotencyKey: `settlement_broadcast:${match.id}`,
-        payload: { winnerId, winnerWallet, payout: payout.toString() },
-      });
-      const receipt = await escrowPublicClient.waitForTransactionReceipt({ hash: settlementHash });
-      if (receipt.status !== "success") throw new Error("Settlement transaction reverted");
-    } catch (error) {
-      // A concurrent retry may have settled the contract first. Re-read the
-      // authoritative chain state before deciding that the operation failed.
+    const leaseToken = randomUUID();
+    const lease = await claimSettlementLease(match.id, leaseToken);
+
+    if (!lease.acquired) {
+      if (!lease.tx_hash || !/^0x[0-9a-fA-F]{64}$/.test(lease.tx_hash)) {
+        throw new SettlementInProgressError();
+      }
+      settlementHash = lease.tx_hash as TxHash;
+      const existingReceipt = await escrowPublicClient.waitForTransactionReceipt({ hash: settlementHash });
+      if (existingReceipt.status !== "success") {
+        await clearConfirmedSettlementLease(match.id, settlementHash);
+        throw new SettlementInProgressError();
+      }
       onchain = await escrowPublicClient.readContract({
         address: ESCROW_CONTRACT_ADDRESS,
         abi: skillFiEscrowAbi,
         functionName: "matches",
         args: [chainMatchId],
       });
-      if (Number(onchain[6]) !== 4) throw error;
+      await clearConfirmedSettlementLease(match.id, settlementHash);
+    } else {
+      try {
+        const walletClient = getEscrowWalletClient();
+        settlementHash = await walletClient.writeContract({
+          address: ESCROW_CONTRACT_ADDRESS,
+          abi: skillFiEscrowAbi,
+          functionName: "resolveMatch",
+          args: [chainMatchId, winnerWallet as Address],
+        });
+
+        // The transaction hash is persisted before any other database/audit work.
+        // Concurrent callers can observe this row and wait on the same hash instead
+        // of broadcasting another operator transaction.
+        await recordSettlementLeaseTx(match.id, leaseToken, settlementHash);
+
+        const { error: pendingTransactionError } = await supabaseAdmin.from("transactions").upsert(
+          {
+            user_id: winnerId,
+            match_id: match.id,
+            tx_hash: settlementHash.toLowerCase(),
+            kind: "settlement",
+            amount: payout.toString(),
+            status: "pending",
+          },
+          { onConflict: "tx_hash,kind,user_id" },
+        );
+        if (pendingTransactionError) {
+          console.error("Pending settlement recording failed:", pendingTransactionError.message);
+        }
+        try {
+          await recordAuditEvent({
+            matchId: match.id,
+            actorUserId,
+            eventType: "settlement_broadcast",
+            txHash: settlementHash,
+            idempotencyKey: `settlement_broadcast:${match.id}`,
+            payload: { winnerId, winnerWallet, payout: payout.toString(), feeBps: feeBps.toString() },
+          });
+        } catch (auditError) {
+          console.error("Settlement broadcast audit failed:", auditError instanceof Error ? auditError.message : auditError);
+        }
+
+        const receipt = await escrowPublicClient.waitForTransactionReceipt({ hash: settlementHash });
+        if (receipt.status !== "success") {
+          await releaseSettlementLease(match.id, leaseToken);
+          throw new Error("Settlement transaction reverted");
+        }
+        onchain = await escrowPublicClient.readContract({
+          address: ESCROW_CONTRACT_ADDRESS,
+          abi: skillFiEscrowAbi,
+          functionName: "matches",
+          args: [chainMatchId],
+        });
+        await releaseSettlementLease(match.id, leaseToken);
+      } catch (error) {
+        // If no tx hash was broadcast, releasing the claim permits a later retry.
+        // If a hash exists but could not be durably recorded, keep the 15-minute
+        // lease rather than immediately risk a duplicate operator broadcast.
+        if (!settlementHash) await releaseSettlementLease(match.id, leaseToken);
+        onchain = await escrowPublicClient.readContract({
+          address: ESCROW_CONTRACT_ADDRESS,
+          abi: skillFiEscrowAbi,
+          functionName: "matches",
+          args: [chainMatchId],
+        });
+        if (Number(onchain[6]) !== 4) throw error;
+      }
     }
   } else if (Number(onchain[6]) !== 4) {
     throw new Error(`Unexpected on-chain match state ${Number(onchain[6])}`);
+  }
+
+  if (Number(onchain[6]) !== 4) {
+    throw new Error("Settlement did not reach the resolved on-chain state");
+  }
+  const canonicalWinner = onchain[8]?.toLowerCase();
+  if (!canonicalWinner || canonicalWinner === "0x0000000000000000000000000000000000000000") {
+    throw new Error("Resolved escrow does not expose a canonical winner; SkillFiEscrowV3 is required");
+  }
+  if (canonicalWinner !== winnerWallet) {
+    throw new Error("On-chain winner does not match the database winner; reconciliation aborted");
   }
 
   if (!settlementHash) {
@@ -126,7 +231,7 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    settlementHash = (previousEvent?.tx_hash as `0x${string}` | undefined) ?? null;
+    settlementHash = (previousEvent?.tx_hash as TxHash | undefined) ?? null;
   }
 
   if (settlementHash) {
@@ -150,7 +255,7 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
     eventType: "settlement_confirmed",
     txHash: settlementHash,
     idempotencyKey: `settlement_confirmed:${match.id}`,
-    payload: { winnerId, winnerWallet, payout: payout.toString(), reconciled: !settlementHash },
+    payload: { winnerId, winnerWallet, payout: payout.toString(), feeBps: feeBps.toString(), reconciled: !settlementHash },
   });
 
   const { error: completeError } = await supabaseAdmin
@@ -166,7 +271,7 @@ export async function settleAndReconcileMatch(match: SettlementMatch, actorUserI
     actorUserId,
     eventType: "match_completed",
     idempotencyKey: `match_completed:${match.id}`,
-    payload: { winnerId, payout: payout.toString(), txHash: settlementHash },
+    payload: { winnerId, payout: payout.toString(), feeBps: feeBps.toString(), txHash: settlementHash },
   });
 
   return { status: "completed" as const, winnerId, payout: payout.toString(), settlementHash };

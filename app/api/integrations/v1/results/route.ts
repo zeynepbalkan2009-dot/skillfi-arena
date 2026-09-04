@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAddress } from "viem";
 import { recordAuditEvent } from "@/lib/audit";
 import { authenticateGameApiKey, readBearerSecret, verifyGameRequestSignature } from "@/lib/gameCredentials";
-import { settleAndReconcileMatch } from "@/lib/settlement";
+import { consumeRateLimit } from "@/lib/rateLimit";
+import { SettlementInProgressError, settleAndReconcileMatch } from "@/lib/settlement";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type ResultBody = { eventId?: string; matchId?: string; winnerWallet?: string; occurredAt?: string };
@@ -20,6 +21,15 @@ export async function POST(request: NextRequest) {
   }
   const credential = await authenticateGameApiKey(authorization, "results:write");
   if (!credential) return NextResponse.json({ error: "Invalid, expired, revoked, or insufficient integration key" }, { status: 401 });
+
+  const rate = await consumeRateLimit("integration-results", credential.id, 120, 60);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Integration result rate limit exceeded" },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } },
+    );
+  }
+
   let body: ResultBody;
   try { body = JSON.parse(rawBody) as ResultBody; }
   catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
@@ -52,6 +62,10 @@ export async function POST(request: NextRequest) {
   const playerRows = players as Array<{ id: string; wallet_address: string | null }>;
   const winner = playerRows.find((player) => player.wallet_address && getAddress(player.wallet_address) === winnerWallet);
   if (!winner) return NextResponse.json({ error: "Winner wallet is not a match participant" }, { status: 400 });
+  if (match.winner_id && match.winner_id !== winner.id) {
+    return NextResponse.json({ error: "Match already has a different authoritative winner" }, { status: 409 });
+  }
+
   const payloadHash = createHash("sha256").update(rawBody, "utf8").digest("hex");
   const submission = { game_id: game.id, studio_id: game.studio_id, credential_id: credential.id, match_id: match.id, event_id: eventId, winner_user_id: winner.id, payload_hash: payloadHash, source_occurred_at: occurredAt.toISOString() };
   const { error: insertError } = await supabaseAdmin.from("game_result_submissions").insert(submission);
@@ -63,9 +77,15 @@ export async function POST(request: NextRequest) {
   } else if (insertError) return NextResponse.json({ error: "Could not record result submission" }, { status: 500 });
 
   if (match.status !== "completed") {
-    const { error: updateError } = await supabaseAdmin.from("matches").update({ winner_id: winner.id, status: "settling" })
-      .eq("id", match.id).in("status", ["active", "settling"]);
+    const { data: lockedMatch, error: updateError } = await supabaseAdmin.from("matches")
+      .update({ winner_id: winner.id, status: "settling" })
+      .eq("id", match.id)
+      .in("status", ["active", "settling"])
+      .or(`winner_id.is.null,winner_id.eq.${winner.id}`)
+      .select("id")
+      .maybeSingle();
     if (updateError) return NextResponse.json({ error: "Could not lock external result" }, { status: 500 });
+    if (!lockedMatch) return NextResponse.json({ error: "Authoritative result conflicts with the locked match winner" }, { status: 409 });
   }
   await recordAuditEvent({ matchId: match.id, actorUserId: null, eventType: "external_result_accepted", idempotencyKey: `external_result_accepted:${game.id}:${eventId}`, payload: { studioId: game.studio_id, gameId: game.id, credentialId: credential.id, winnerId: winner.id, payloadHash, occurredAt: occurredAt.toISOString() } });
   if (isSandboxMatch) {
@@ -75,6 +95,14 @@ export async function POST(request: NextRequest) {
     await recordAuditEvent({ matchId: match.id, actorUserId: null, eventType: "sandbox_match_completed", idempotencyKey: `sandbox_match_completed:${match.id}`, payload: { studioId: game.studio_id, gameId: game.id, winnerId: winner.id, payout: "0" } });
     return NextResponse.json({ status: "completed", matchId: match.id, winnerId: winner.id, settlementHash: null, sandbox: true });
   }
-  const settlement = await settleAndReconcileMatch({ ...match, status: match.status === "completed" ? "completed" : "settling", winner_id: winner.id }, null);
-  return NextResponse.json({ status: settlement.status, matchId: match.id, winnerId: winner.id, settlementHash: settlement.settlementHash });
+  try {
+    const settlement = await settleAndReconcileMatch({ ...match, status: match.status === "completed" ? "completed" : "settling", winner_id: winner.id }, null);
+    return NextResponse.json({ status: settlement.status, matchId: match.id, winnerId: winner.id, settlementHash: settlement.settlementHash });
+  } catch (error) {
+    if (error instanceof SettlementInProgressError) {
+      return NextResponse.json({ status: "settling", matchId: match.id, winnerId: winner.id }, { status: 202 });
+    }
+    console.error("Authoritative integration settlement failed:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: "Authoritative result accepted; settlement requires reconciliation", status: "settling" }, { status: 502 });
+  }
 }

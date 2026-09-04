@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/server";
+import { consumeRateLimit } from "@/lib/rateLimit";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getCurrentProfile(request.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Complete login and player profile first" }, { status: 401 });
+
+  const rate = await consumeRateLimit("pilot-enroll", user.id, 5, 60 * 60);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Too many pilot enrollment attempts" },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } },
+    );
+  }
+
   const body = (await request.json().catch(() => null)) as { adultAttested?: boolean; termsAccepted?: boolean; privacyAccepted?: boolean } | null;
   if (!body?.adultAttested || !body.termsAccepted || !body.privacyAccepted) {
     return NextResponse.json({ error: "Adult eligibility, pilot terms, and privacy notice must all be accepted" }, { status: 400 });
