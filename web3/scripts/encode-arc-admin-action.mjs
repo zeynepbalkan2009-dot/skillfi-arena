@@ -7,6 +7,10 @@ const allowedActions = new Map([
   ["pause", { functionName: "pause", args: [] }],
   ["unpause", { functionName: "unpause", args: [] }],
 ]);
+const networks = new Map([
+  ["arcTestnet", { chainId: 5_042_002 }],
+  ["baseSepolia", { chainId: 84_532 }],
+]);
 
 if (!action || !allowedActions.has(action)) {
   console.error(
@@ -15,9 +19,18 @@ if (!action || !allowedActions.has(action)) {
   process.exit(2);
 }
 
-const targetRaw = process.env.ARC_ESCROW_ADDRESS?.trim();
+const networkName = process.env.ADMIN_TARGET_NETWORK?.trim() || "arcTestnet";
+const network = networks.get(networkName);
+if (!network) {
+  throw new Error("ADMIN_TARGET_NETWORK must be exactly arcTestnet or baseSepolia");
+}
+
+const targetRaw = (
+  process.env.ESCROW_ADMIN_TARGET_ADDRESS?.trim()
+  || (networkName === "arcTestnet" ? process.env.ARC_ESCROW_ADDRESS?.trim() : "")
+);
 if (targetRaw && !isAddress(targetRaw)) {
-  throw new Error("ARC_ESCROW_ADDRESS must be a valid EVM address when provided");
+  throw new Error("ESCROW_ADMIN_TARGET_ADDRESS must be a valid EVM address when provided");
 }
 
 const iface = new Interface([
@@ -29,8 +42,8 @@ const selected = allowedActions.get(action);
 const calldata = iface.encodeFunctionData(selected.functionName, selected.args);
 
 const result = {
-  network: "arcTestnet",
-  chainId: 5_042_002,
+  network: networkName,
+  chainId: network.chainId,
   target: targetRaw ? getAddress(targetRaw) : null,
   action,
   functionName: selected.functionName,
