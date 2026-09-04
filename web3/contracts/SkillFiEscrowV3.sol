@@ -17,8 +17,9 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     address public treasury;
     uint256 public platformFeeBps;
 
-    // Defaults for newly-created matches. Each match snapshots these values so
-    // later governance changes cannot alter already-funded match economics.
+    // Defaults for newly-created matches. Every economic/liveness rule is
+    // snapshotted at creation, before any player deposit, so governance changes
+    // can affect only future matches.
     uint256 public matchTimeout = 30 minutes;
     uint256 public readyMatchGrace = 10 minutes;
     uint256 public activeMatchTimeout = 30 minutes;
@@ -48,10 +49,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         uint256 feeBpsAtCreation;
         uint256 waitingTimeoutAtCreation;
         uint256 readyGraceAtCreation;
-        uint256 activeTimeoutAtStart;
+        uint256 activeTimeoutAtCreation;
         address treasuryAtCreation;
         uint256 disputedAt;
-        uint256 disputeTimeoutAtDispute;
+        uint256 disputeTimeoutAtCreation;
     }
 
     mapping(uint256 => Match) public matches;
@@ -115,10 +116,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
             feeBpsAtCreation: platformFeeBps,
             waitingTimeoutAtCreation: matchTimeout,
             readyGraceAtCreation: readyMatchGrace,
-            activeTimeoutAtStart: 0,
+            activeTimeoutAtCreation: activeMatchTimeout,
             treasuryAtCreation: treasury,
             disputedAt: 0,
-            disputeTimeoutAtDispute: 0
+            disputeTimeoutAtCreation: disputeTimeout
         });
 
         emit MatchCreated(matchId, entryFee);
@@ -158,7 +159,6 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
         m.status = MatchStatus.IN_PROGRESS;
         m.startedAt = block.timestamp;
-        m.activeTimeoutAtStart = activeMatchTimeout;
 
         emit MatchStarted(matchId);
     }
@@ -182,10 +182,11 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
         require(msg.sender == m.player1 || msg.sender == m.player2, "not participant");
         require(m.status == MatchStatus.IN_PROGRESS, "invalid state");
+        require(m.startedAt != 0, "not started");
+        require(block.timestamp <= m.startedAt + m.activeTimeoutAtCreation, "match expired");
 
         m.status = MatchStatus.DISPUTED;
         m.disputedAt = block.timestamp;
-        m.disputeTimeoutAtDispute = disputeTimeout;
         emit MatchDisputed(matchId);
     }
 
@@ -246,8 +247,8 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.IN_PROGRESS, "invalid state");
         require(m.startedAt != 0, "not started");
-        require(m.activeTimeoutAtStart >= 5 minutes, "invalid timeout");
-        require(block.timestamp > m.startedAt + m.activeTimeoutAtStart, "not expired");
+        require(m.activeTimeoutAtCreation >= 5 minutes, "invalid timeout");
+        require(block.timestamp > m.startedAt + m.activeTimeoutAtCreation, "not expired");
 
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
@@ -258,8 +259,8 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.DISPUTED, "invalid state");
         require(m.disputedAt != 0, "not disputed");
-        require(m.disputeTimeoutAtDispute >= 1 days, "invalid timeout");
-        require(block.timestamp > m.disputedAt + m.disputeTimeoutAtDispute, "not expired");
+        require(m.disputeTimeoutAtCreation >= 1 days, "invalid timeout");
+        require(block.timestamp > m.disputedAt + m.disputeTimeoutAtCreation, "not expired");
 
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
