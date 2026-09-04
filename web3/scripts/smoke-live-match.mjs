@@ -39,6 +39,7 @@ const tokenAbi = [
   "function allowance(address owner,address spender) view returns (uint256)",
 ];
 const escrowAbi = [
+  "function depositsEnabled() view returns (bool)",
   "function createMatch(uint256 matchId,uint256 entryFee,address expectedPlayer1)",
   "function joinMatch(uint256 matchId)",
   "function startMatch(uint256 matchId)",
@@ -55,6 +56,12 @@ const escrowPlayer2 = new Contract(deployment.escrow, escrowAbi, player2);
 const entryFee = parseUnits("1", 6);
 const matchId = BigInt(`0x${crypto.randomUUID().replaceAll("-", "")}`);
 const transactions = {};
+
+if (!(await escrowOperator.depositsEnabled())) {
+  throw new Error(
+    "Base Sepolia deposits are disabled. Have the configured admin/multisig enable deposits, validate with BASE_EXPECT_DEPOSITS_ENABLED=1, then run the live smoke."
+  );
+}
 
 async function send(label, transactionPromise) {
   const transaction = await transactionPromise;
