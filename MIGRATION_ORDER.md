@@ -36,20 +36,22 @@ Apply these files in this exact order. Do not stop at the original three-file ba
 18. `supabase/17_disable_test_fixture_games.sql`
 19. `supabase/18_settlement_single_writer.sql`
 20. `supabase/19_public_match_graph_privacy.sql`
-21. `NOTIFY pgrst, 'reload schema';`
+21. `supabase/20_disable_public_match_realtime.sql`
+22. `NOTIFY pgrst, 'reload schema';`
 
-The latest hosted schema marker after this chain is `19` in `public.schema_release_state`.
+The latest hosted schema marker after this chain is `20` in `public.schema_release_state`.
 
 ## Release Gate
 
 A production release is not ready until all of the following are true:
 
 - every hosted migration above has succeeded;
-- `public.schema_release_state.version = 19`;
+- `public.schema_release_state.version = 20`;
 - service-role access to `guilds` succeeds;
 - public profile access is column-scoped and does not expose email, Privy IDs, login timestamps, earnings, or private wallet fields;
 - anonymous/authenticated clients cannot enumerate `challenges`, `challenge_participants`, or `match_participants` directly;
 - direct public match access is column-scoped to the live/public UI projection and does not expose challenge linkage or free-form context columns;
+- `public.matches` is not present in the `supabase_realtime` publication; live/public clients use explicit safe projections and polling instead;
 - `HTTP Validation %` fixture games are not active;
 - settlement RPCs (`claim_match_settlement`, `record_match_settlement_tx`, `release_match_settlement_lease`) are available only to `service_role`;
 - PostgREST schema cache has been reloaded;
