@@ -64,6 +64,13 @@ export const skillFiEscrowAbi = [
   },
   {
     type: "function",
+    name: "reclaimDisputedMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "resolveDispute",
     stateMutability: "nonpayable",
     inputs: [
@@ -90,7 +97,10 @@ export const skillFiEscrowAbi = [
       { name: "feeBpsAtCreation", type: "uint256" },
       { name: "waitingTimeoutAtCreation", type: "uint256" },
       { name: "readyGraceAtCreation", type: "uint256" },
-      { name: "activeTimeoutAtStart", type: "uint256" },
+      { name: "activeTimeoutAtCreation", type: "uint256" },
+      { name: "treasuryAtCreation", type: "address" },
+      { name: "disputedAt", type: "uint256" },
+      { name: "disputeTimeoutAtCreation", type: "uint256" },
     ],
   },
   {
@@ -103,6 +113,13 @@ export const skillFiEscrowAbi = [
   {
     type: "function",
     name: "readyMatchGrace",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "disputeTimeout",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
