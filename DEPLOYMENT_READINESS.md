@@ -13,7 +13,8 @@ The current production deployment still points at the legacy `SkillFiEscrowV2` c
 - Required Next.js line: `15.5.25`
 - Required escrow implementation: `SkillFiEscrowV3`
 - Required critical identities: five distinct addresses — deployer, admin, operator, arbiter, and treasury
-- New value-bearing exposure is fail-closed unless `SKILLFI_VALUE_BEARING_ENABLED=1`
+- New value-bearing exposure requires **two aligned gates**: application `SKILLFI_VALUE_BEARING_ENABLED=1` and on-chain V3 `depositsEnabled=true`
+- V3 deploys with `depositsEnabled=false`; new deposits are closed by default
 
 ## Required hosting environment variables
 
@@ -41,9 +42,9 @@ Copy values from secure provider dashboards or secret stores. Never paste privat
 - `OPERATOR_WALLET_ADDRESS=<dedicated V3 operator address>`
 - `STUDIO_ADMIN_USER_IDS` and/or `STUDIO_ADMIN_WALLET_ADDRESSES` for explicit web-admin identities
 - `STUDIO_LISTING_FEE_USDC` and `STUDIO_FEE_TREASURY_ADDRESS` where studio listing fees are enabled
-- `SKILLFI_VALUE_BEARING_ENABLED=1` **only as the final value-bearing activation step**. Keep it unset or `0` during development, Preview, schema migration, V3 deployment, production smoke tests, and any degraded/incident state.
+- `SKILLFI_VALUE_BEARING_ENABLED=1` **only during the coordinated final value-bearing activation**. Keep it unset or `0` during development, Preview, schema migration, V3 deployment, pre-activation production smoke tests, and any degraded/incident state.
 
-The value-bearing switch blocks **new** staked match creation and join preflight when disabled. It intentionally does not block join confirmation, settlement, cancellation, dispute handling, or recovery paths, because switching value mode off must never strand funds already deposited.
+The application switch blocks **new** staked match creation and join preflight when disabled. It intentionally does not block join confirmation, settlement, cancellation, dispute handling, or recovery paths, because switching application value mode off must never strand funds already deposited.
 
 The following variables must not exist in hosted production or preview environments:
 
@@ -57,12 +58,28 @@ Before changing `NEXT_PUBLIC_ESCROW_ADDRESS`:
 1. Deploy `SkillFiEscrowV3` using `web3/scripts/deploy-arc.ts` from a secure signer environment.
 2. Use five distinct addresses for deployer, admin, operator, arbiter, and treasury. The contract and deployment tooling reject critical identity overlap.
 3. Keep the persistent admin separate from the deployer. For value-bearing governance, use an appropriate controlled or multisig admin process rather than a shared hot key.
-4. Run `web3/scripts/validate-arc-deployment.mjs` against the generated `web3/deployments/arc-testnet-v3.json`.
-5. Confirm the runtime-code hash, canonical USDC address, role membership, treasury, fee policy, timeout policy, and pause state match the deployment manifest.
-6. Run the Arc match and safety smoke paths against that exact V3 deployment.
-7. Confirm the dedicated application operator has `OPERATOR_ROLE` and is not also admin, arbiter, or treasury.
-8. If rotating an operator, provide `ARC_PREVIOUS_OPERATOR_ADDRESS`; verify the new operator before revoking the old role.
-9. Record the V3 address in the deployment environment; never overwrite the historical V2 deployment record.
+4. Confirm deployment completed with `depositsEnabled=false` and the manifest records `depositsEnabledAtDeployment: false`.
+5. Run `ARC_EXPECT_DEPOSITS_ENABLED=0 npm run validate:arc-testnet` against the generated `web3/deployments/arc-testnet-v3.json`.
+6. Confirm the runtime-code hash, canonical USDC address, role membership, treasury, fee policy, timeout policy, deposit state, and emergency pause state match the deployment manifest/expectation.
+7. Keep on-chain deposits closed during database/application cutover and pre-activation validation.
+8. Confirm the dedicated application operator has `OPERATOR_ROLE` and is not also admin, arbiter, or treasury.
+9. If rotating an operator, provide `ARC_PREVIOUS_OPERATOR_ADDRESS`; verify the new operator before revoking the old role.
+10. Record the V3 address in the deployment environment; never overwrite the historical V2 deployment record.
+
+### Controlled admin / multisig actions
+
+Do not export a production admin private key merely to toggle the release gate. Generate calldata without signing or broadcasting:
+
+```shell
+ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- enable-deposits
+ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- disable-deposits
+ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- pause
+ARC_ESCROW_ADDRESS=0x... npm run admin:calldata -- unpause
+```
+
+The generated target/function/arguments/calldata must be independently checked and simulated in the configured `DEFAULT_ADMIN_ROLE` signer or multisig flow before execution.
+
+`setDepositsEnabled(false)` is the normal on-chain kill switch for **new exposure**: it blocks `createMatch` and `joinMatch` but intentionally leaves already-funded match start, settlement, dispute, cancellation, and recovery semantics available. Full `pause()` is a stronger emergency brake: it also blocks match start, normal settlement, and new disputes. Cancellation/refund/reclaim functions and resolution of already-open disputes remain available while paused.
 
 ## Database release gate
 
@@ -100,15 +117,16 @@ Required checks after cutover:
 - Run web3 release-tooling typecheck, Hardhat compile, and the full Hardhat test suite including `SkillFiEscrowV3.security.ts`.
 - Require CodeQL and Live Match Type Check to pass on the exact release head.
 - Verify Privy login, embedded/external wallet connection, challenge lobby, studio portal, polling-based live match state, CSP, HSTS, and no-store behavior in an exact-head Preview.
-- Confirm `/api/health` returns HTTP 200 with `status: ok` only after schema 22, V3/operator, and studio economic configuration are applied. The health payload also reports `checks.valueBearingEnabled`; this is informational and is expected to be `false` until the final activation step.
-- Keep `SKILLFI_VALUE_BEARING_ENABLED` unset/`0` throughout all pre-activation validation.
+- Confirm `/api/health` returns HTTP 200 with `status: ok` only after schema 22, V3/operator, studio economic configuration, test-auth state, and value-gate alignment are correct.
+- Before final activation, `/api/health` should report `checks.valueBearing.applicationEnabled=false`, `checks.valueBearing.onchainDepositsEnabled=false`, and `checks.valueBearing.aligned=true`.
+- After final activation, it should report both booleans `true` with `aligned=true`.
 
 ## GitHub / CI release gate
 
 - `main` must have branch protection or an equivalent ruleset requiring PR review/status checks before value-bearing production release.
 - Required checks should include the main CI, Live Match Type Check, CodeQL, and the relevant Vercel deployment check.
 - Permanent GitHub Actions must remain pinned to immutable commit SHAs.
-- Do not treat a green GitHub CI run as proof that Supabase migrations, V3 deployment, or production environment values are current.
+- Do not treat a green GitHub CI run as proof that Supabase migrations, V3 deployment, production environment values, or on-chain deposit state are current.
 
 ## Vercel Preview gate
 
@@ -116,25 +134,38 @@ Required checks after cutover:
 - A READY Preview from an earlier hardening commit is not sufficient.
 - Inspect build logs to confirm Node 22 is actually used.
 - Smoke-test the landing page and security-sensitive routes/headers.
-- If Vercel reports `build-rate-limit`, wait for the platform limit to clear or change the account capacity; do not create meaningless commits merely to retrigger builds.
+- If Vercel reports `build-rate-limit`, let the platform limit clear or change account capacity; do not create meaningless commits merely to retrigger builds.
 
 ## Production promotion order
 
 Coordinate this sequence so GitHub-to-Vercel automatic production deployment cannot expose a code/schema/contract mismatch and studio integrations are not needlessly interrupted.
 
 1. Freeze the release head after exact-head GitHub CI, CodeQL, Live Match Type Check, and Preview validation are green.
-2. Keep `SKILLFI_VALUE_BEARING_ENABLED` unset or `0`.
-3. Prepare and validate the V3 Arc deployment with five distinct critical identities, but do not point production at it yet.
+2. Keep `SKILLFI_VALUE_BEARING_ENABLED` unset/`0`.
+3. Deploy V3 with five distinct critical identities and verify `depositsEnabled=false` using `ARC_EXPECT_DEPOSITS_ENABLED=0 npm run validate:arc-testnet`.
 4. Apply hosted migrations only through **schema 21**. This safely enables the new credential format without revoking existing keys.
 5. Generate replacement 12-hex/scrypt credentials and securely distribute/validate them with every active studio integration while legacy keys remain active.
-6. Before the final cutover, ensure automatic production promotion is paused/controlled or use a coordinated maintenance window.
+6. Before final cutover, ensure automatic production promotion is paused/controlled or use a coordinated maintenance window.
 7. Apply **schema 22** to revoke only legacy credentials, then reload PostgREST schema cache.
-8. Configure production environment values to the validated V3 escrow, dedicated operator, valid WalletConnect project ID, required studio economic configuration, and ensure test-auth variables are absent. Keep value-bearing mode disabled.
+8. Configure production environment values to the validated V3 escrow, dedicated operator, valid WalletConnect project ID, and required studio economic configuration. Ensure test-auth variables are absent and keep `SKILLFI_VALUE_BEARING_ENABLED=0`.
 9. Merge/promote the exact validated application commit and switch studio integrations to the pre-staged replacement credentials.
-10. Verify `/api/health`, authentication, lobby/match flows, integration authentication, settlement/refund/dispute smoke paths, CSP/HSTS/no-store headers, and runtime error logs while `checks.valueBearingEnabled` remains `false`.
-11. Enable `SKILLFI_VALUE_BEARING_ENABLED=1` only after schema 22, V3 validation, production env validation, exact-head application smoke tests, and repository release protections are all confirmed.
-12. Immediately re-check `/api/health`, a controlled new-match create/join flow, runtime errors, and operator activity. If any release invariant fails, set the switch back to `0`; funded-match recovery paths remain available.
+10. Verify `/api/health`, authentication, lobby/match flows, integration authentication, recovery paths, CSP/HSTS/no-store headers, and runtime error logs while both value gates remain false/aligned.
+11. Generate `enable-deposits` calldata and execute `setDepositsEnabled(true)` through the controlled admin/multisig only after independent target/chain/state verification and simulation.
+12. Set `SKILLFI_VALUE_BEARING_ENABLED=1` as the coordinated application-side activation immediately around the same controlled maintenance step; do not leave one gate intentionally mismatched.
+13. Run `ARC_EXPECT_DEPOSITS_ENABLED=1 npm run validate:arc-testnet` and require `/api/health` to report both gates true and aligned.
+14. Run one controlled new-match create/deposit/join path, verify settlement/recovery behavior and runtime logs, then remove maintenance restrictions only if every invariant remains healthy.
+
+## Incident rollback
+
+For a normal incident where new exposure should stop but already-funded matches should remain serviceable:
+
+1. Set `SKILLFI_VALUE_BEARING_ENABLED=0`.
+2. Have the controlled admin/multisig execute `setDepositsEnabled(false)`.
+3. Require `/api/health` to return to both gates false/aligned.
+4. Preserve settlement/cancel/dispute/recovery operations for funded matches and investigate before reactivation.
+
+Use full `pause()` only when the incident requires a stronger on-chain halt. Document the reason, simulate the recovery plan, and remember that pause blocks start/normal settlement/new disputes in addition to new exposure.
 
 ## Release rule
 
-Do not enable value-bearing deposits or stakes until the V3 deployment validator and smoke paths pass, application production environment points to the validated V3 address, hosted database migrations are current at schema 22, legacy integration credentials are revoked only after replacement credentials are staged, exact-head Preview validation passes, repository release protections/CI gates are active, and `SKILLFI_VALUE_BEARING_ENABLED=1` is deliberately enabled as the final release action.
+Do not enable value-bearing deposits or stakes until the V3 deployment validator and smoke paths pass with deposits closed, application production environment points to the validated V3 address, hosted database migrations are current at schema 22, legacy integration credentials are revoked only after replacement credentials are staged, exact-head Preview validation passes, repository release protections/CI gates are active, and the controlled admin/multisig plus application environment deliberately enable the two value-bearing gates with post-activation validation proving they are aligned.
