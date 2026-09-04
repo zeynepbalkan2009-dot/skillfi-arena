@@ -87,6 +87,7 @@ export const skillFiEscrowAbi = [
       { name: "status", type: "uint8" },
       { name: "startedAt", type: "uint256" },
       { name: "winner", type: "address" },
+      { name: "feeBpsAtCreation", type: "uint256" },
     ],
   },
   {
