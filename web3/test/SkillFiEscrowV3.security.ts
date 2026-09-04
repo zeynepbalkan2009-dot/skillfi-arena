@@ -12,10 +12,11 @@ async function increaseTime(seconds: bigint) {
 }
 
 async function fixture() {
-  const [admin, operator, arbiter, treasury, player1, player2, newOperator, newTreasury] = await ethers.getSigners();
+  const [deployer, admin, operator, arbiter, treasury, player1, player2, newOperator, newTreasury] = await ethers.getSigners();
   const token = await ethers.deployContract("MockUSDC");
   const escrow = await ethers.deployContract("SkillFiEscrowV3", [
     await token.getAddress(),
+    admin.address,
     operator.address,
     arbiter.address,
     treasury.address,
@@ -28,6 +29,7 @@ async function fixture() {
     await token.connect(player).approve(await escrow.getAddress(), float);
   }
   return {
+    deployer,
     admin,
     operator,
     arbiter,
@@ -264,12 +266,34 @@ describe("SkillFiEscrowV3 security regressions", function () {
     expect(resolved.winner).to.equal(f.player2.address);
   });
 
-  it("requires explicit non-zero operator and arbiter roles", async function () {
+  it("assigns admin to the explicit address and leaves the deployer without control", async function () {
+    const f = await fixture();
+    const adminRole = ethers.ZeroHash;
+    const operatorRole = await f.escrow.OPERATOR_ROLE();
+    const arbiterRole = await f.escrow.ARBITER_ROLE();
+    expect(await f.escrow.hasRole(adminRole, f.admin.address)).to.equal(true);
+    expect(await f.escrow.hasRole(adminRole, f.deployer.address)).to.equal(false);
+    expect(await f.escrow.hasRole(operatorRole, f.deployer.address)).to.equal(false);
+    expect(await f.escrow.hasRole(arbiterRole, f.deployer.address)).to.equal(false);
+  });
+
+  it("requires explicit non-zero admin, operator and arbiter roles", async function () {
     const f = await fixture();
     const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
     await expect(
       Escrow.deploy(
         await f.token.getAddress(),
+        ethers.ZeroAddress,
+        f.operator.address,
+        f.arbiter.address,
+        f.treasury.address,
+        500n,
+      ),
+    ).to.be.revertedWith("invalid admin");
+    await expect(
+      Escrow.deploy(
+        await f.token.getAddress(),
+        f.admin.address,
         ethers.ZeroAddress,
         f.arbiter.address,
         f.treasury.address,
@@ -285,6 +309,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
       Escrow.deploy(
         await f.token.getAddress(),
         f.admin.address,
+        f.admin.address,
         f.arbiter.address,
         f.treasury.address,
         500n,
@@ -293,6 +318,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await expect(
       Escrow.deploy(
         await f.token.getAddress(),
+        f.admin.address,
         f.operator.address,
         f.operator.address,
         f.treasury.address,
