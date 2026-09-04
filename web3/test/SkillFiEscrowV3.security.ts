@@ -30,9 +30,24 @@ async function fixture() {
 }
 
 describe("SkillFiEscrowV3 security regressions", function () {
+  it("binds player1 at creation and rejects a third-party first-join front-run", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(10n, f.entryFee, f.player1.address);
+
+    await expect(f.escrow.connect(f.player2).joinMatch(10n)).to.be.revertedWith("not creator");
+    const beforeCreatorJoin = await f.escrow.matches(10n);
+    expect(beforeCreatorJoin.player1).to.equal(f.player1.address);
+    expect(beforeCreatorJoin.player1Deposited).to.equal(false);
+
+    await f.escrow.connect(f.player1).joinMatch(10n);
+    const afterCreatorJoin = await f.escrow.matches(10n);
+    expect(afterCreatorJoin.player1).to.equal(f.player1.address);
+    expect(afterCreatorJoin.player1Deposited).to.equal(true);
+  });
+
   it("rejects a late join after the waiting timeout", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(1n, f.entryFee);
+    await f.escrow.connect(f.operator).createMatch(1n, f.entryFee, f.player1.address);
     await increaseTime(MATCH_TIMEOUT + 1n);
 
     await expect(f.escrow.connect(f.player1).joinMatch(1n)).to.be.revertedWith("match expired");
@@ -40,7 +55,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
   it("measures active timeout from startedAt instead of createdAt", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(2n, f.entryFee);
+    await f.escrow.connect(f.operator).createMatch(2n, f.entryFee, f.player1.address);
     await increaseTime(MATCH_TIMEOUT - 60n);
     await f.escrow.connect(f.player1).joinMatch(2n);
     await f.escrow.connect(f.player2).joinMatch(2n);
@@ -55,7 +70,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
   it("lets anyone refund a READY match if the operator never starts it", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(4n, f.entryFee);
+    await f.escrow.connect(f.operator).createMatch(4n, f.entryFee, f.player1.address);
     await f.escrow.connect(f.player1).joinMatch(4n);
     await f.escrow.connect(f.player2).joinMatch(4n);
 
@@ -76,7 +91,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
   it("does not let the operator cancel a match after gameplay starts", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(5n, f.entryFee);
+    await f.escrow.connect(f.operator).createMatch(5n, f.entryFee, f.player1.address);
     await f.escrow.connect(f.player1).joinMatch(5n);
     await f.escrow.connect(f.player2).joinMatch(5n);
     await f.escrow.connect(f.operator).startMatch(5n);
@@ -85,7 +100,7 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
   it("stores the canonical winner on-chain", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(3n, f.entryFee);
+    await f.escrow.connect(f.operator).createMatch(3n, f.entryFee, f.player1.address);
     await f.escrow.connect(f.player1).joinMatch(3n);
     await f.escrow.connect(f.player2).joinMatch(3n);
     await f.escrow.connect(f.operator).startMatch(3n);
