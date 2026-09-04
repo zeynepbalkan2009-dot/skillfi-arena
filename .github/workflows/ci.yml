@@ -79,6 +79,13 @@ jobs:
       - name: Type Check Release Tooling
         run: npm run typecheck
 
+      - name: Deployment script syntax smoke
+        run: |
+          node --check scripts/validate-arc-deployment.mjs
+          node --check scripts/validate-deployment.mjs
+          node --check scripts/smoke-live-match.mjs
+          node --check scripts/encode-arc-admin-action.mjs
+
       - name: Admin calldata tooling smoke
         run: npm run admin:calldata -- enable-deposits
 
