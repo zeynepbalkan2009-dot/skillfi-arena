@@ -4,6 +4,7 @@ import { network } from "hardhat";
 const { ethers } = await network.create();
 const MATCH_TIMEOUT = 30n * 60n;
 const READY_GRACE = 10n * 60n;
+const DISPUTE_TIMEOUT = 7n * 24n * 60n * 60n;
 
 async function increaseTime(seconds: bigint) {
   await ethers.provider.send("evm_increaseTime", [Number(seconds)]);
@@ -27,6 +28,13 @@ async function fixture() {
     await token.connect(player).approve(await escrow.getAddress(), float);
   }
   return { admin, operator, arbiter, treasury, player1, player2, token, escrow, entryFee, float };
+}
+
+async function startFundedMatch(f: Awaited<ReturnType<typeof fixture>>, matchId: bigint) {
+  await f.escrow.connect(f.operator).createMatch(matchId, f.entryFee, f.player1.address);
+  await f.escrow.connect(f.player1).joinMatch(matchId);
+  await f.escrow.connect(f.player2).joinMatch(matchId);
+  await f.escrow.connect(f.operator).startMatch(matchId);
 }
 
 describe("SkillFiEscrowV3 security regressions", function () {
@@ -91,19 +99,13 @@ describe("SkillFiEscrowV3 security regressions", function () {
 
   it("does not let the operator cancel a match after gameplay starts", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(5n, f.entryFee, f.player1.address);
-    await f.escrow.connect(f.player1).joinMatch(5n);
-    await f.escrow.connect(f.player2).joinMatch(5n);
-    await f.escrow.connect(f.operator).startMatch(5n);
+    await startFundedMatch(f, 5n);
     await expect(f.escrow.connect(f.operator).cancelMatch(5n)).to.be.revertedWith("invalid state");
   });
 
   it("stores the canonical winner on-chain", async function () {
     const f = await fixture();
-    await f.escrow.connect(f.operator).createMatch(3n, f.entryFee, f.player1.address);
-    await f.escrow.connect(f.player1).joinMatch(3n);
-    await f.escrow.connect(f.player2).joinMatch(3n);
-    await f.escrow.connect(f.operator).startMatch(3n);
+    await startFundedMatch(f, 3n);
     await f.escrow.connect(f.operator).resolveMatch(3n, f.player2.address);
 
     const match = await f.escrow.matches(3n);
@@ -134,6 +136,26 @@ describe("SkillFiEscrowV3 security regressions", function () {
     expect((await f.token.balanceOf(f.treasury.address)) - treasuryBalanceBefore).to.equal(lockedFee);
   });
 
+  it("locks the treasury when the match is created", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(11n, f.entryFee, f.player1.address);
+    const created = await f.escrow.matches(11n);
+    expect(created.treasuryAtCreation).to.equal(f.treasury.address);
+
+    await f.escrow.connect(f.admin).setTreasury(f.admin.address);
+    await f.escrow.connect(f.player1).joinMatch(11n);
+    await f.escrow.connect(f.player2).joinMatch(11n);
+    await f.escrow.connect(f.operator).startMatch(11n);
+
+    const originalTreasuryBefore = await f.token.balanceOf(f.treasury.address);
+    const replacementTreasuryBefore = await f.token.balanceOf(f.admin.address);
+    await f.escrow.connect(f.operator).resolveMatch(11n, f.player1.address);
+
+    const lockedFee = (f.entryFee * 2n * 500n) / 10_000n;
+    expect((await f.token.balanceOf(f.treasury.address)) - originalTreasuryBefore).to.equal(lockedFee);
+    expect(await f.token.balanceOf(f.admin.address)).to.equal(replacementTreasuryBefore);
+  });
+
   it("does not retroactively shorten the waiting timeout", async function () {
     const f = await fixture();
     await f.escrow.connect(f.operator).createMatch(7n, f.entryFee, f.player1.address);
@@ -148,22 +170,91 @@ describe("SkillFiEscrowV3 security regressions", function () {
     expect(joined.player1Deposited).to.equal(true);
   });
 
+  it("does not retroactively shorten the READY grace period", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(12n, f.entryFee, f.player1.address);
+    const created = await f.escrow.matches(12n);
+    expect(created.readyGraceAtCreation).to.equal(READY_GRACE);
+
+    await f.escrow.connect(f.admin).setReadyGrace(60n);
+    await f.escrow.connect(f.player1).joinMatch(12n);
+    await f.escrow.connect(f.player2).joinMatch(12n);
+    await increaseTime(MATCH_TIMEOUT + 60n + 1n);
+
+    await f.escrow.connect(f.operator).startMatch(12n);
+    const started = await f.escrow.matches(12n);
+    expect(started.status).to.equal(3n);
+  });
+
   it("does not retroactively shorten an active match timeout", async function () {
     const f = await fixture();
     await f.escrow.connect(f.operator).createMatch(8n, f.entryFee, f.player1.address);
+    const created = await f.escrow.matches(8n);
+    expect(created.activeTimeoutAtCreation).to.equal(MATCH_TIMEOUT);
+
+    await f.escrow.connect(f.admin).setActiveTimeout(5n * 60n);
     await f.escrow.connect(f.player1).joinMatch(8n);
     await f.escrow.connect(f.player2).joinMatch(8n);
     await f.escrow.connect(f.operator).startMatch(8n);
 
-    const started = await f.escrow.matches(8n);
-    expect(started.activeTimeoutAtStart).to.equal(MATCH_TIMEOUT);
-
-    await f.escrow.connect(f.admin).setActiveTimeout(5n * 60n);
     await increaseTime(6n * 60n);
     await expect(f.escrow.reclaimActiveMatch(8n)).to.be.revertedWith("not expired");
 
     await increaseTime(25n * 60n);
     await f.escrow.reclaimActiveMatch(8n);
+  });
+
+  it("does not allow a late dispute to extend an already-expired active match", async function () {
+    const f = await fixture();
+    await startFundedMatch(f, 13n);
+    await increaseTime(MATCH_TIMEOUT + 1n);
+    await expect(f.escrow.connect(f.player1).disputeMatch(13n)).to.be.revertedWith("match expired");
+  });
+
+  it("refunds both players if a dispute is not resolved within its locked timeout", async function () {
+    const f = await fixture();
+    await startFundedMatch(f, 14n);
+    const created = await f.escrow.matches(14n);
+    expect(created.disputeTimeoutAtCreation).to.equal(DISPUTE_TIMEOUT);
+
+    await f.escrow.connect(f.player1).disputeMatch(14n);
+    const disputed = await f.escrow.matches(14n);
+    expect(disputed.status).to.equal(5n);
+    expect(disputed.disputedAt).to.be.greaterThan(0n);
+
+    await expect(f.escrow.connect(f.admin).reclaimDisputedMatch(14n)).to.be.revertedWith("not expired");
+    await increaseTime(DISPUTE_TIMEOUT + 1n);
+    await f.escrow.connect(f.admin).reclaimDisputedMatch(14n);
+
+    const expired = await f.escrow.matches(14n);
+    expect(expired.status).to.equal(7n);
+    expect(await f.token.balanceOf(f.player1.address)).to.equal(f.float);
+    expect(await f.token.balanceOf(f.player2.address)).to.equal(f.float);
+  });
+
+  it("does not retroactively shorten the dispute timeout", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(15n, f.entryFee, f.player1.address);
+    await f.escrow.connect(f.admin).setDisputeTimeout(24n * 60n * 60n);
+    await f.escrow.connect(f.player1).joinMatch(15n);
+    await f.escrow.connect(f.player2).joinMatch(15n);
+    await f.escrow.connect(f.operator).startMatch(15n);
+    await f.escrow.connect(f.player2).disputeMatch(15n);
+
+    await increaseTime(24n * 60n * 60n + 1n);
+    await expect(f.escrow.reclaimDisputedMatch(15n)).to.be.revertedWith("not expired");
+  });
+
+  it("allows the arbiter to resolve an existing dispute while paused", async function () {
+    const f = await fixture();
+    await startFundedMatch(f, 16n);
+    await f.escrow.connect(f.player1).disputeMatch(16n);
+    await f.escrow.connect(f.admin).pause();
+
+    await f.escrow.connect(f.arbiter).resolveDispute(16n, f.player2.address);
+    const resolved = await f.escrow.matches(16n);
+    expect(resolved.status).to.equal(4n);
+    expect(resolved.winner).to.equal(f.player2.address);
   });
 
   it("requires explicit non-zero operator and arbiter roles", async function () {
