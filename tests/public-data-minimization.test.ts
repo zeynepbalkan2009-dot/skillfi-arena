@@ -52,6 +52,18 @@ test("public match detail excludes private player wallet fields", () => {
   assert.match(text, /PUBLIC_MATCH_DETAIL_SELECT/);
 });
 
+test("live match identity uses Privy profile ids and does not serialize wallets", () => {
+  const page = source("app/match/[id]/page.tsx");
+  const client = source("components/LiveMatchClient.tsx");
+  assert.doesNotMatch(page, /wallet_address/);
+  assert.doesNotMatch(client, /wallet_address/);
+  assert.doesNotMatch(client, /useAccount/);
+  assert.match(client, /useSkillFiUser/);
+  assert.match(client, /profile\.id === match\.player_a_id/);
+  assert.match(client, /profile\.id === match\.player_b_id/);
+  assert.match(client, /select: REALTIME_MATCH_COLUMNS/);
+});
+
 test("schema 19 closes direct challenge and participant graph enumeration", () => {
   const migration = source("supabase/19_public_match_graph_privacy.sql");
   assert.match(migration, /revoke all on public\.challenges from anon, authenticated/);
