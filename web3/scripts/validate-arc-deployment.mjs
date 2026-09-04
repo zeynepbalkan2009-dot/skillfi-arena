@@ -7,6 +7,11 @@ const deployment = JSON.parse(
 const expectedUsdc = "0x3600000000000000000000000000000000000000";
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const defaultAdminRole = `0x${"00".repeat(32)}`;
+const expectedDepositsRaw = process.env.ARC_EXPECT_DEPOSITS_ENABLED?.trim() ?? "0";
+if (expectedDepositsRaw !== "0" && expectedDepositsRaw !== "1") {
+  throw new Error("ARC_EXPECT_DEPOSITS_ENABLED must be exactly 0 or 1");
+}
+const expectedDepositsEnabled = expectedDepositsRaw === "1";
 
 const arcTestnet = defineChain({
   id: 5_042_002,
@@ -27,6 +32,7 @@ const abi = [
   { type: "function", name: "readyMatchGrace", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "activeMatchTimeout", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "disputeTimeout", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "depositsEnabled", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "paused", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
 ];
 
@@ -68,6 +74,7 @@ const [
   readyGrace,
   activeTimeout,
   disputeTimeout,
+  depositsEnabled,
   paused,
 ] = await Promise.all([
   client.getChainId(),
@@ -80,6 +87,7 @@ const [
   client.readContract({ address: escrowAddress, abi, functionName: "readyMatchGrace" }),
   client.readContract({ address: escrowAddress, abi, functionName: "activeMatchTimeout" }),
   client.readContract({ address: escrowAddress, abi, functionName: "disputeTimeout" }),
+  client.readContract({ address: escrowAddress, abi, functionName: "depositsEnabled" }),
   client.readContract({ address: escrowAddress, abi, functionName: "paused" }),
 ]);
 
@@ -123,12 +131,14 @@ const checks = {
   readyGraceMatches: readyGrace === BigInt(deployment.readyGrace),
   activeTimeoutMatches: activeTimeout === BigInt(deployment.activeTimeout),
   disputeTimeoutMatches: disputeTimeout === BigInt(deployment.disputeTimeout),
+  depositsWereClosedAtDeployment: deployment.depositsEnabledAtDeployment === false,
+  depositsMatchExplicitExpectation: depositsEnabled === expectedDepositsEnabled,
   waitingTimeoutSafeMinimum: waitingTimeout >= 5n * 60n,
   readyGraceSafeRange: readyGrace >= 60n && readyGrace <= 60n * 60n,
   activeTimeoutSafeMinimum: activeTimeout >= 5n * 60n,
   disputeTimeoutSafeRange: disputeTimeout >= 24n * 60n * 60n && disputeTimeout <= 30n * 24n * 60n * 60n,
-  unpausedAtRelease: paused === false,
+  contractNotEmergencyPaused: paused === false,
 };
 
-console.log(JSON.stringify({ deployment, checks }, null, 2));
+console.log(JSON.stringify({ deployment, expectedDepositsEnabled, checks }, null, 2));
 if (Object.values(checks).some((value) => value !== true)) process.exitCode = 1;
