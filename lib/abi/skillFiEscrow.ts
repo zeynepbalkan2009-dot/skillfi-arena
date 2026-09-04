@@ -70,6 +70,8 @@ export const skillFiEscrowAbi = [
       { name: "player1Deposited", type: "bool" },
       { name: "player2Deposited", type: "bool" },
       { name: "status", type: "uint8" },
+      { name: "startedAt", type: "uint256" },
+      { name: "winner", type: "address" },
     ],
   },
   {
@@ -78,6 +80,23 @@ export const skillFiEscrowAbi = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "OPERATOR_ROLE",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "hasRole",
+    stateMutability: "view",
+    inputs: [
+      { name: "role", type: "bytes32" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
   },
   {
     type: "event",
