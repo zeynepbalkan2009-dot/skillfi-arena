@@ -1,10 +1,10 @@
 # Database
 
-SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/21_rotate_game_api_key_hashes.sql`.
+SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/22_revoke_legacy_game_api_keys.sql`.
 
 ## Hosted Release State
 
-Hosted deployments must contain `public.schema_release_state` with `version = 21`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
+Hosted deployments must contain `public.schema_release_state` with `version = 22`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
 
 The release marker is not a substitute for migrations; it is written by the migration chain and exists so application readiness can detect schema drift.
 
@@ -60,7 +60,12 @@ Settlement coordination RPCs (`claim_match_settlement`, `record_match_settlement
 
 Raw game integration keys are returned once at credential creation time. New credentials use a 12-hex-character random prefix, a 256-bit random secret, and a deterministic scrypt-derived 32-byte hash. Authentication first resolves the non-secret prefix and only then performs the scrypt comparison, which avoids spending password-KDF work for random unknown prefixes.
 
-Migration 21 revokes every credential created under the previous SHA-256 hash scheme because the original secret is not stored and therefore cannot be re-hashed in place. Studios must create replacement test/live credentials after schema 21 is applied. Historical revoked credential rows remain available for audit references. The key prefix is unique to make lookup deterministic.
+Credential migration is two-phase:
+
+- **Schema 21 prepares the transition without revocation.** It allows both the legacy 8-character prefix format and the new 12-hex prefix format, and makes `key_prefix` unique for deterministic lookup. Existing integrations continue to work while replacement credentials are created and securely distributed.
+- **Schema 22 performs the cutover.** It revokes only active credentials that still use the legacy 8-character prefix and verifies that no active legacy credential remains. Pre-staged 12-hex/scrypt credentials remain active.
+
+Do not apply schema 22 until replacement credentials are staged and the application/integration cutover is coordinated. Historical revoked credential rows remain available for audit references.
 
 ## Challenge And Match Security
 
@@ -84,4 +89,4 @@ npm run test:product
 npm run build
 ```
 
-Smart-contract changes also require the Hardhat release-tooling typecheck, compile, and test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 21 and contract/operator configuration are applied.
+Smart-contract changes also require the Hardhat release-tooling typecheck, compile, and test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 22 and contract/operator configuration are applied.
