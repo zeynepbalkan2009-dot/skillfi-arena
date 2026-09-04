@@ -69,18 +69,32 @@ async function main() {
   const deploymentTransaction = escrow.deploymentTransaction();
   await escrow.waitForDeployment();
   const receipt = deploymentTransaction ? await deploymentTransaction.wait() : null;
+  const escrowAddress = await escrow.getAddress();
+  const runtimeCode = await ethers.provider.getCode(escrowAddress);
+  if (runtimeCode === "0x") throw new Error("Escrow deployment returned no runtime bytecode");
+  const [waitingTimeout, readyGrace, activeTimeout, disputeTimeout] = await Promise.all([
+    escrow.matchTimeout(),
+    escrow.readyMatchGrace(),
+    escrow.activeMatchTimeout(),
+    escrow.disputeTimeout(),
+  ]);
 
   const deployment = {
     contract: "SkillFiEscrowV3",
     network: "baseSepolia",
     chainId: Number(BASE_SEPOLIA_CHAIN_ID),
-    escrow: await escrow.getAddress(),
+    escrow: escrowAddress,
     mockUsdc: await usdc.getAddress(),
     deployer: deployer.address,
     operator,
     arbiter,
     treasury,
     platformFeeBps: platformFeeBps.toString(),
+    waitingTimeout: waitingTimeout.toString(),
+    readyGrace: readyGrace.toString(),
+    activeTimeout: activeTimeout.toString(),
+    disputeTimeout: disputeTimeout.toString(),
+    runtimeCodeHash: ethers.keccak256(runtimeCode),
     deploymentTxHash: deploymentTransaction?.hash ?? null,
     deploymentBlock: receipt?.blockNumber ?? null,
     deployedAt: new Date().toISOString(),
