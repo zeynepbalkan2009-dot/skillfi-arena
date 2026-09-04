@@ -17,11 +17,9 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     address public treasury;
     uint256 public platformFeeBps;
 
-    // Waiting-for-players timeout. Kept under the legacy name for compatibility.
+    // Defaults for newly-created matches. Each match snapshots these values so
+    // later governance changes cannot alter already-funded match economics.
     uint256 public matchTimeout = 30 minutes;
-    // Extra recovery window after the waiting deadline for a READY match that
-    // the operator failed to start. This avoids indefinitely locked deposits
-    // without changing the public Match struct layout.
     uint256 public readyMatchGrace = 10 minutes;
     uint256 public activeMatchTimeout = 30 minutes;
 
@@ -47,6 +45,9 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         uint256 startedAt;
         address winner;
         uint256 feeBpsAtCreation;
+        uint256 waitingTimeoutAtCreation;
+        uint256 readyGraceAtCreation;
+        uint256 activeTimeoutAtStart;
     }
 
     mapping(uint256 => Match) public matches;
@@ -106,7 +107,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
             status: MatchStatus.WAITING_FOR_PLAYERS,
             startedAt: 0,
             winner: address(0),
-            feeBpsAtCreation: platformFeeBps
+            feeBpsAtCreation: platformFeeBps,
+            waitingTimeoutAtCreation: matchTimeout,
+            readyGraceAtCreation: readyMatchGrace,
+            activeTimeoutAtStart: 0
         });
 
         emit MatchCreated(matchId, entryFee);
@@ -116,7 +120,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
 
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
-        require(block.timestamp <= m.createdAt + matchTimeout, "match expired");
+        require(block.timestamp <= m.createdAt + m.waitingTimeoutAtCreation, "match expired");
 
         if (!m.player1Deposited) {
             require(msg.sender == m.player1, "not creator");
@@ -139,10 +143,14 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     function startMatch(uint256 matchId) external onlyRole(OPERATOR_ROLE) whenNotPaused {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.READY, "not ready");
-        require(block.timestamp <= m.createdAt + matchTimeout + readyMatchGrace, "ready match expired");
+        require(
+            block.timestamp <= m.createdAt + m.waitingTimeoutAtCreation + m.readyGraceAtCreation,
+            "ready match expired"
+        );
 
         m.status = MatchStatus.IN_PROGRESS;
         m.startedAt = block.timestamp;
+        m.activeTimeoutAtStart = activeMatchTimeout;
 
         emit MatchStarted(matchId);
     }
@@ -213,7 +221,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     function reclaimReadyMatch(uint256 matchId) external nonReentrant {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.READY, "invalid state");
-        require(block.timestamp > m.createdAt + matchTimeout + readyMatchGrace, "not expired");
+        require(
+            block.timestamp > m.createdAt + m.waitingTimeoutAtCreation + m.readyGraceAtCreation,
+            "not expired"
+        );
 
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
@@ -224,7 +235,8 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.IN_PROGRESS, "invalid state");
         require(m.startedAt != 0, "not started");
-        require(block.timestamp > m.startedAt + activeMatchTimeout, "not expired");
+        require(m.activeTimeoutAtStart >= 5 minutes, "invalid timeout");
+        require(block.timestamp > m.startedAt + m.activeTimeoutAtStart, "not expired");
 
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
@@ -234,7 +246,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     function _expireWaitingMatch(uint256 matchId) internal {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
-        require(block.timestamp > m.createdAt + matchTimeout, "not expired");
+        require(block.timestamp > m.createdAt + m.waitingTimeoutAtCreation, "not expired");
 
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
