@@ -17,6 +17,7 @@ jobs:
     env:
       SKILLFI_ALLOW_BUILD_PLACEHOLDERS: "1"
       NEXT_PUBLIC_CHAIN_TARGET: arcTestnet
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
     steps:
       - name: Checkout hardening branch
         uses: actions/checkout@v4
@@ -49,17 +50,17 @@ jobs:
       - name: Production dependency audit
         run: |
           status=1
-          for attempt in 1 2 3; do
+          for attempt in 1 2; do
             set +e
-            timeout 180s npm audit --omit=dev --audit-level=high
+            timeout 240s npm audit --package-lock-only --omit=dev --audit-level=high --registry=https://registry.npmjs.org/
             status=$?
             set -e
             if [ "$status" -eq 0 ]; then
               break
             fi
             echo "npm audit attempt ${attempt} failed with exit ${status}; retrying if attempts remain"
-            if [ "$attempt" -lt 3 ]; then
-              sleep 10
+            if [ "$attempt" -lt 2 ]; then
+              sleep 15
             fi
           done
           exit "$status"
