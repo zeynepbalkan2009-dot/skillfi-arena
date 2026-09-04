@@ -25,14 +25,12 @@ const LIVE_MATCH_SELECT = `
   player_a:users!matches_player_a_id_fkey(
     id,
     username,
-    region,
-    wallet_address
+    region
   ),
   player_b:users!matches_player_b_id_fkey(
     id,
     username,
-    region,
-    wallet_address
+    region
   )
 `;
 
