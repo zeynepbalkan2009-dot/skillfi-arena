@@ -304,7 +304,7 @@ export function LobbyClient({
 
       <CreateChallengeModal
         open={modalOpen}
-        onClose={onClose}
+        onClose={() => setModalOpen(false)}
         games={games}
         currentUser={currentUser}
       />
