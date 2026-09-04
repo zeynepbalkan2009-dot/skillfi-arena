@@ -18,6 +18,20 @@ import { useSkillFiUser } from "@/components/AuthSync";
 import { supabase } from "@/lib/supabaseClient";
 import type { Game, Match, MatchWithRelations } from "@/lib/types";
 
+const REALTIME_MATCH_COLUMNS = [
+  "id",
+  "smart_contract_match_id",
+  "game_id",
+  "player_a_id",
+  "player_b_id",
+  "stake_amount",
+  "status",
+  "winner_id",
+  "started_at",
+  "created_at",
+  "updated_at",
+];
+
 export function LobbyClient({
   initialMatches,
   games,
@@ -86,7 +100,12 @@ export function LobbyClient({
       .channel("public:matches")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "matches" },
+        {
+          event: "*",
+          schema: "public",
+          table: "matches",
+          select: REALTIME_MATCH_COLUMNS,
+        },
         (payload: RealtimePostgresChangesPayload<Match>) => {
           void handleRealtimeChange(payload);
         },
