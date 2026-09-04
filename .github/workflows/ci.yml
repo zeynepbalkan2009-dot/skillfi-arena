@@ -79,6 +79,9 @@ jobs:
       - name: Type Check Release Tooling
         run: npm run typecheck
 
+      - name: Admin calldata tooling smoke
+        run: npm run admin:calldata -- enable-deposits
+
       - name: Compile Contracts
         run: npx hardhat compile
 
