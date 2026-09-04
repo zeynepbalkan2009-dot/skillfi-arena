@@ -13,7 +13,7 @@ on:
 jobs:
   remediate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       SKILLFI_ALLOW_BUILD_PLACEHOLDERS: "1"
       NEXT_PUBLIC_CHAIN_TARGET: arcTestnet
@@ -40,7 +40,8 @@ jobs:
             ...(pkg.overrides || {}),
             ws: '8.21.3',
             postcss: '8.5.28',
-            axios: '1.20.0'
+            axios: '1.20.0',
+            'socket.io-parser': '4.2.7'
           };
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
