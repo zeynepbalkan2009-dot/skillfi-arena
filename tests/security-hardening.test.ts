@@ -139,13 +139,19 @@ test("new value-bearing exposure is fail-closed without blocking funded-match re
   const joinConfirmRoute = read("app/api/matches/join/route.ts");
   const settlement = read("lib/settlement.ts");
   const health = read("app/api/health/route.ts");
+  const envExample = read(".env.local.example");
+  const readiness = read("DEPLOYMENT_READINESS.md");
 
   assert.match(guard, /process\.env\.SKILLFI_VALUE_BEARING_ENABLED === "1"/);
   assert.match(createRoute, /if \(!isValueBearingEnabled\(\)\)/);
   assert.match(joinCheckRoute, /if \(!isValueBearingEnabled\(\)\)/);
+  assert.ok(createRoute.indexOf("existingReservation") < createRoute.indexOf("isValueBearingEnabled()"));
   assert.ok(createRoute.indexOf("isValueBearingEnabled()") < createRoute.indexOf("reserveStake("));
   assert.ok(joinCheckRoute.indexOf("isValueBearingEnabled()") < joinCheckRoute.indexOf("reserveStake("));
   assert.doesNotMatch(joinConfirmRoute, /isValueBearingEnabled|SKILLFI_VALUE_BEARING_ENABLED/);
   assert.doesNotMatch(settlement, /isValueBearingEnabled|SKILLFI_VALUE_BEARING_ENABLED/);
   assert.match(health, /valueBearingEnabled/);
+  assert.match(envExample, /SKILLFI_VALUE_BEARING_ENABLED=0/);
+  assert.match(readiness, /SKILLFI_VALUE_BEARING_ENABLED=1/);
+  assert.match(readiness, /final value-bearing activation step/i);
 });
