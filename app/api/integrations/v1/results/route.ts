@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAddress } from "viem";
 import { recordAuditEvent } from "@/lib/audit";
 import { authenticateGameApiKey, readBearerSecret, verifyGameRequestSignature } from "@/lib/gameCredentials";
+import { consumeRateLimit } from "@/lib/rateLimit";
 import { settleAndReconcileMatch } from "@/lib/settlement";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -20,6 +21,15 @@ export async function POST(request: NextRequest) {
   }
   const credential = await authenticateGameApiKey(authorization, "results:write");
   if (!credential) return NextResponse.json({ error: "Invalid, expired, revoked, or insufficient integration key" }, { status: 401 });
+
+  const rate = await consumeRateLimit("integration-results", credential.id, 120, 60);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Integration result rate limit exceeded" },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } },
+    );
+  }
+
   let body: ResultBody;
   try { body = JSON.parse(rawBody) as ResultBody; }
   catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
