@@ -1,0 +1,56 @@
+name: One-time security dependency upgrade
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - security-hardening-2026-09-04
+    paths:
+      - .github/workflows/security-dependency-upgrade.yml
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    env:
+      SKILLFI_ALLOW_BUILD_PLACEHOLDERS: "1"
+      NEXT_PUBLIC_CHAIN_TARGET: "arcTestnet"
+    steps:
+      - name: Checkout hardening branch
+        uses: actions/checkout@v4
+        with:
+          ref: security-hardening-2026-09-04
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Upgrade patched Next.js line
+        run: |
+          npm install --save-exact next@15.5.24
+          npm install --save-dev --save-exact eslint-config-next@15.5.24
+          npm pkg set engines.node="22.x"
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Product tests
+        run: npm run test:product
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit generated package lock
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "No dependency changes to commit"
+            exit 0
+          fi
+          git config user.name "skillfi-security-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "security: upgrade Next.js to 15.5.24"
+          git push origin HEAD:security-hardening-2026-09-04
