@@ -153,5 +153,7 @@ test("new value-bearing exposure is fail-closed without blocking funded-match re
   assert.match(health, /valueBearingEnabled/);
   assert.match(envExample, /SKILLFI_VALUE_BEARING_ENABLED=0/);
   assert.match(readiness, /SKILLFI_VALUE_BEARING_ENABLED=1/);
-  assert.match(readiness, /final value-bearing activation step/i);
+  assert.match(readiness, /two aligned gates/i);
+  assert.match(readiness, /depositsEnabled=false/);
+  assert.match(readiness, /setDepositsEnabled\(true\)/);
 });
