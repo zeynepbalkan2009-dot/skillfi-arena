@@ -46,6 +46,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         MatchStatus status;
         uint256 startedAt;
         address winner;
+        uint256 feeBpsAtCreation;
     }
 
     mapping(uint256 => Match) public matches;
@@ -104,7 +105,8 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
             player2Deposited: false,
             status: MatchStatus.WAITING_FOR_PLAYERS,
             startedAt: 0,
-            winner: address(0)
+            winner: address(0),
+            feeBpsAtCreation: platformFeeBps
         });
 
         emit MatchCreated(matchId, entryFee);
@@ -241,7 +243,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
     function _payoutWinner(uint256 matchId, Match storage m, address winner) internal {
         uint256 totalPrize = m.entryFee * 2;
-        uint256 fee = (totalPrize * platformFeeBps) / 10000;
+        uint256 fee = (totalPrize * m.feeBpsAtCreation) / 10000;
         uint256 payout = totalPrize - fee;
 
         token.safeTransfer(winner, payout);
