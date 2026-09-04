@@ -12,7 +12,7 @@ async function increaseTime(seconds: bigint) {
 }
 
 async function fixture() {
-  const [admin, operator, arbiter, treasury, player1, player2] = await ethers.getSigners();
+  const [admin, operator, arbiter, treasury, player1, player2, newOperator, newTreasury] = await ethers.getSigners();
   const token = await ethers.deployContract("MockUSDC");
   const escrow = await ethers.deployContract("SkillFiEscrowV3", [
     await token.getAddress(),
@@ -27,7 +27,20 @@ async function fixture() {
     await token.mint(player.address, float);
     await token.connect(player).approve(await escrow.getAddress(), float);
   }
-  return { admin, operator, arbiter, treasury, player1, player2, token, escrow, entryFee, float };
+  return {
+    admin,
+    operator,
+    arbiter,
+    treasury,
+    player1,
+    player2,
+    newOperator,
+    newTreasury,
+    token,
+    escrow,
+    entryFee,
+    float,
+  };
 }
 
 async function startFundedMatch(f: Awaited<ReturnType<typeof fixture>>, matchId: bigint) {
@@ -129,16 +142,16 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(11n, f.entryFee, f.player1.address);
     const created = await f.escrow.matches(11n);
     expect(created.treasuryAtCreation).to.equal(f.treasury.address);
-    await f.escrow.connect(f.admin).setTreasury(f.admin.address);
+    await f.escrow.connect(f.admin).setTreasury(f.newTreasury.address);
     await f.escrow.connect(f.player1).joinMatch(11n);
     await f.escrow.connect(f.player2).joinMatch(11n);
     await f.escrow.connect(f.operator).startMatch(11n);
     const originalTreasuryBefore = await f.token.balanceOf(f.treasury.address);
-    const replacementTreasuryBefore = await f.token.balanceOf(f.admin.address);
+    const replacementTreasuryBefore = await f.token.balanceOf(f.newTreasury.address);
     await f.escrow.connect(f.operator).resolveMatch(11n, f.player1.address);
     const lockedFee = (f.entryFee * 2n * 500n) / 10_000n;
     expect((await f.token.balanceOf(f.treasury.address)) - originalTreasuryBefore).to.equal(lockedFee);
-    expect(await f.token.balanceOf(f.admin.address)).to.equal(replacementTreasuryBefore);
+    expect(await f.token.balanceOf(f.newTreasury.address)).to.equal(replacementTreasuryBefore);
   });
 
   it("does not retroactively shorten the waiting timeout", async function () {
@@ -263,5 +276,53 @@ describe("SkillFiEscrowV3 security regressions", function () {
         500n,
       ),
     ).to.be.revertedWith("invalid operator");
+  });
+
+  it("rejects overlapping critical identities at deployment", async function () {
+    const f = await fixture();
+    const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
+    await expect(
+      Escrow.deploy(
+        await f.token.getAddress(),
+        f.admin.address,
+        f.arbiter.address,
+        f.treasury.address,
+        500n,
+      ),
+    ).to.be.revertedWith("role overlap");
+    await expect(
+      Escrow.deploy(
+        await f.token.getAddress(),
+        f.operator.address,
+        f.operator.address,
+        f.treasury.address,
+        500n,
+      ),
+    ).to.be.revertedWith("role overlap");
+  });
+
+  it("prevents role grants and treasury updates from merging critical identities", async function () {
+    const f = await fixture();
+    const operatorRole = await f.escrow.OPERATOR_ROLE();
+    const arbiterRole = await f.escrow.ARBITER_ROLE();
+    const adminRole = ethers.ZeroHash;
+
+    await expect(f.escrow.connect(f.admin).grantRole(operatorRole, f.arbiter.address)).to.be.revertedWith("role overlap");
+    await expect(f.escrow.connect(f.admin).grantRole(arbiterRole, f.operator.address)).to.be.revertedWith("role overlap");
+    await expect(f.escrow.connect(f.admin).grantRole(operatorRole, f.admin.address)).to.be.revertedWith("role overlap");
+    await expect(f.escrow.connect(f.admin).grantRole(adminRole, f.operator.address)).to.be.revertedWith("role overlap");
+    await expect(f.escrow.connect(f.admin).setTreasury(f.admin.address)).to.be.revertedWith("role overlap");
+    await expect(f.escrow.connect(f.admin).setTreasury(f.operator.address)).to.be.revertedWith("role overlap");
+    await expect(f.escrow.connect(f.admin).setTreasury(f.arbiter.address)).to.be.revertedWith("role overlap");
+  });
+
+  it("still allows rotation to a fresh separated operator", async function () {
+    const f = await fixture();
+    const operatorRole = await f.escrow.OPERATOR_ROLE();
+    await f.escrow.connect(f.admin).grantRole(operatorRole, f.newOperator.address);
+    expect(await f.escrow.hasRole(operatorRole, f.newOperator.address)).to.equal(true);
+    await f.escrow.connect(f.admin).revokeRole(operatorRole, f.operator.address);
+    expect(await f.escrow.hasRole(operatorRole, f.operator.address)).to.equal(false);
+    expect(await f.escrow.hasRole(operatorRole, f.newOperator.address)).to.equal(true);
   });
 });
