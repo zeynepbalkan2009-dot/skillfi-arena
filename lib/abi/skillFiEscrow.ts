@@ -6,6 +6,7 @@ export const skillFiEscrowAbi = [
     inputs: [
       { name: "matchId", type: "uint256" },
       { name: "entryFee", type: "uint256" },
+      { name: "expectedPlayer1", type: "address" },
     ],
     outputs: [],
   },
