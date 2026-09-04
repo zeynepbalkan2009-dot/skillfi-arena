@@ -1,6 +1,7 @@
 import "server-only";
 import { PrivyClient } from "@privy-io/node";
 import { getServerEnv } from "@/lib/env/server";
+import { assertTestAuthDisabledOnHostedRuntime } from "@/lib/security/runtimeGuards";
 
 let cachedPrivy: PrivyClient | null = null;
 
@@ -23,6 +24,8 @@ export function getPrivyClient(): PrivyClient {
 export async function verifyPrivyAccessToken(authHeader: string | null): Promise<string | null> {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice("Bearer ".length);
+
+  assertTestAuthDisabledOnHostedRuntime();
 
   if (process.env.SKILLFI_TEST_PRIVY_TOKEN_MAP) {
     try {
