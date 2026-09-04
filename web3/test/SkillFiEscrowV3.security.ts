@@ -134,6 +134,38 @@ describe("SkillFiEscrowV3 security regressions", function () {
     expect((await f.token.balanceOf(f.treasury.address)) - treasuryBalanceBefore).to.equal(lockedFee);
   });
 
+  it("does not retroactively shorten the waiting timeout", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(7n, f.entryFee, f.player1.address);
+    const created = await f.escrow.matches(7n);
+    expect(created.waitingTimeoutAtCreation).to.equal(MATCH_TIMEOUT);
+
+    await f.escrow.connect(f.admin).setTimeout(5n * 60n);
+    await increaseTime(6n * 60n);
+    await f.escrow.connect(f.player1).joinMatch(7n);
+
+    const joined = await f.escrow.matches(7n);
+    expect(joined.player1Deposited).to.equal(true);
+  });
+
+  it("does not retroactively shorten an active match timeout", async function () {
+    const f = await fixture();
+    await f.escrow.connect(f.operator).createMatch(8n, f.entryFee, f.player1.address);
+    await f.escrow.connect(f.player1).joinMatch(8n);
+    await f.escrow.connect(f.player2).joinMatch(8n);
+    await f.escrow.connect(f.operator).startMatch(8n);
+
+    const started = await f.escrow.matches(8n);
+    expect(started.activeTimeoutAtStart).to.equal(MATCH_TIMEOUT);
+
+    await f.escrow.connect(f.admin).setActiveTimeout(5n * 60n);
+    await increaseTime(6n * 60n);
+    await expect(f.escrow.reclaimActiveMatch(8n)).to.be.revertedWith("not expired");
+
+    await increaseTime(25n * 60n);
+    await f.escrow.reclaimActiveMatch(8n);
+  });
+
   it("requires explicit non-zero operator and arbiter roles", async function () {
     const f = await fixture();
     const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
