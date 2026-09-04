@@ -33,14 +33,27 @@ test("release health requires application and onchain exposure gates to agree", 
   assert.match(health, /aligned: valueBearingAligned/);
 });
 
-test("arc deployment and validator fail closed on deposit activation state", () => {
-  const deploy = source("web3/scripts/deploy-arc.ts");
-  const validate = source("web3/scripts/validate-arc-deployment.mjs");
-  assert.match(deploy, /depositsEnabledAtDeployment: false/);
-  assert.match(deploy, /V3 deposits must be disabled at deployment/);
-  assert.match(validate, /ARC_EXPECT_DEPOSITS_ENABLED/);
-  assert.match(validate, /depositsWereClosedAtDeployment/);
-  assert.match(validate, /depositsMatchExplicitExpectation/);
+test("arc and base deployments fail closed on deposit activation state", () => {
+  const arcDeploy = source("web3/scripts/deploy-arc.ts");
+  const arcValidate = source("web3/scripts/validate-arc-deployment.mjs");
+  const baseDeploy = source("web3/scripts/deploy.ts");
+  const baseValidate = source("web3/scripts/validate-deployment.mjs");
+  const baseSmoke = source("web3/scripts/smoke-live-match.mjs");
+
+  for (const deploy of [arcDeploy, baseDeploy]) {
+    assert.match(deploy, /depositsEnabledAtDeployment: false/);
+    assert.match(deploy, /V3 deposits must be disabled at deployment/);
+  }
+  assert.match(arcValidate, /ARC_EXPECT_DEPOSITS_ENABLED/);
+  assert.match(baseValidate, /BASE_EXPECT_DEPOSITS_ENABLED/);
+  for (const validate of [arcValidate, baseValidate]) {
+    assert.match(validate, /from "ethers"/);
+    assert.doesNotMatch(validate, /from "viem"|from 'viem'/);
+    assert.match(validate, /depositsWereClosedAtDeployment/);
+    assert.match(validate, /depositsMatchExplicitExpectation/);
+  }
+  assert.match(baseSmoke, /await escrowOperator\.depositsEnabled\(\)/);
+  assert.match(baseSmoke, /before spending testnet gas|then run the live smoke/i);
 });
 
 test("admin activation tooling emits calldata without signing or broadcasting", () => {
