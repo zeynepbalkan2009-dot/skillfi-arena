@@ -127,7 +127,6 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
     function joinMatch(uint256 matchId) external nonReentrant whenNotPaused {
         Match storage m = matches[matchId];
-
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
         require(block.timestamp <= m.createdAt + m.waitingTimeoutAtCreation, "match expired");
 
@@ -156,10 +155,8 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
             block.timestamp <= m.createdAt + m.waitingTimeoutAtCreation + m.readyGraceAtCreation,
             "ready match expired"
         );
-
         m.status = MatchStatus.IN_PROGRESS;
         m.startedAt = block.timestamp;
-
         emit MatchStarted(matchId);
     }
 
@@ -171,8 +168,9 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.IN_PROGRESS, "invalid state");
+        require(m.startedAt != 0, "not started");
+        require(block.timestamp <= m.startedAt + m.activeTimeoutAtCreation, "match expired");
         require(winner == m.player1 || winner == m.player2, "invalid winner");
-
         m.status = MatchStatus.RESOLVED;
         m.winner = winner;
         _payoutWinner(matchId, m, winner);
@@ -184,14 +182,14 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(m.status == MatchStatus.IN_PROGRESS, "invalid state");
         require(m.startedAt != 0, "not started");
         require(block.timestamp <= m.startedAt + m.activeTimeoutAtCreation, "match expired");
-
         m.status = MatchStatus.DISPUTED;
         m.disputedAt = block.timestamp;
         emit MatchDisputed(matchId);
     }
 
     // Dispute resolution remains available while paused so an emergency pause
-    // cannot strand already-disputed player funds.
+    // cannot strand already-disputed player funds. Once the locked dispute
+    // deadline passes, only reclaimDisputedMatch may unwind the funds.
     function resolveDispute(uint256 matchId, address winner)
         external
         onlyRole(ARBITER_ROLE)
@@ -199,45 +197,32 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.DISPUTED, "not disputed");
+        require(m.disputedAt != 0, "not disputed");
+        require(block.timestamp <= m.disputedAt + m.disputeTimeoutAtCreation, "dispute expired");
         require(winner == m.player1 || winner == m.player2, "invalid winner");
-
         m.status = MatchStatus.RESOLVED;
         m.winner = winner;
         _payoutWinner(matchId, m, winner);
     }
 
-    function cancelMatch(uint256 matchId)
-        external
-        onlyRole(OPERATOR_ROLE)
-        nonReentrant
-    {
+    function cancelMatch(uint256 matchId) external onlyRole(OPERATOR_ROLE) nonReentrant {
         Match storage m = matches[matchId];
         require(
             m.status == MatchStatus.WAITING_FOR_PLAYERS || m.status == MatchStatus.READY,
             "invalid state"
         );
-
         m.status = MatchStatus.CANCELLED;
         _refund(matchId);
         emit MatchCancelled(matchId);
     }
 
-    function refundExpiredMatch(uint256 matchId) external nonReentrant {
-        _expireWaitingMatch(matchId);
-    }
-
-    function reclaimExpiredMatch(uint256 matchId) external nonReentrant {
-        _expireWaitingMatch(matchId);
-    }
+    function refundExpiredMatch(uint256 matchId) external nonReentrant { _expireWaitingMatch(matchId); }
+    function reclaimExpiredMatch(uint256 matchId) external nonReentrant { _expireWaitingMatch(matchId); }
 
     function reclaimReadyMatch(uint256 matchId) external nonReentrant {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.READY, "invalid state");
-        require(
-            block.timestamp > m.createdAt + m.waitingTimeoutAtCreation + m.readyGraceAtCreation,
-            "not expired"
-        );
-
+        require(block.timestamp > m.createdAt + m.waitingTimeoutAtCreation + m.readyGraceAtCreation, "not expired");
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
         emit MatchExpired(matchId);
@@ -249,7 +234,6 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(m.startedAt != 0, "not started");
         require(m.activeTimeoutAtCreation >= 5 minutes, "invalid timeout");
         require(block.timestamp > m.startedAt + m.activeTimeoutAtCreation, "not expired");
-
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
         emit MatchExpired(matchId);
@@ -261,7 +245,6 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(m.disputedAt != 0, "not disputed");
         require(m.disputeTimeoutAtCreation >= 1 days, "invalid timeout");
         require(block.timestamp > m.disputedAt + m.disputeTimeoutAtCreation, "not expired");
-
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
         emit MatchExpired(matchId);
@@ -271,7 +254,6 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.WAITING_FOR_PLAYERS, "invalid state");
         require(block.timestamp > m.createdAt + m.waitingTimeoutAtCreation, "not expired");
-
         m.status = MatchStatus.EXPIRED;
         _refund(matchId);
         emit MatchExpired(matchId);
@@ -281,22 +263,18 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         uint256 totalPrize = m.entryFee * 2;
         uint256 fee = (totalPrize * m.feeBpsAtCreation) / 10000;
         uint256 payout = totalPrize - fee;
-
         token.safeTransfer(winner, payout);
         if (fee > 0) token.safeTransfer(m.treasuryAtCreation, fee);
-
         emit MatchResolved(matchId, winner, payout);
     }
 
     function _refund(uint256 matchId) internal {
         Match storage m = matches[matchId];
-
         if (m.player1Deposited) {
             m.player1Deposited = false;
             token.safeTransfer(m.player1, m.entryFee);
             emit MatchRefunded(matchId, m.player1, m.entryFee);
         }
-
         if (m.player2Deposited) {
             m.player2Deposited = false;
             token.safeTransfer(m.player2, m.entryFee);
@@ -309,43 +287,32 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
     }
-
     function setFee(uint256 _feeBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_feeBps <= 1000, "max 10%");
         platformFeeBps = _feeBps;
     }
-
     function setTimeout(uint256 _timeout) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_timeout >= 5 minutes, "too low");
         matchTimeout = _timeout;
         emit WaitingTimeoutUpdated(_timeout);
     }
-
     function setReadyGrace(uint256 _grace) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_grace >= 1 minutes, "too low");
         require(_grace <= 1 hours, "too high");
         readyMatchGrace = _grace;
         emit ReadyGraceUpdated(_grace);
     }
-
     function setActiveTimeout(uint256 _timeout) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_timeout >= 5 minutes, "too low");
         activeMatchTimeout = _timeout;
         emit ActiveTimeoutUpdated(_timeout);
     }
-
     function setDisputeTimeout(uint256 _timeout) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_timeout >= 1 days, "too low");
         require(_timeout <= 30 days, "too high");
         disputeTimeout = _timeout;
         emit DisputeTimeoutUpdated(_timeout);
     }
-
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _pause();
-    }
-
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _unpause();
-    }
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) { _pause(); }
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) { _unpause(); }
 }
