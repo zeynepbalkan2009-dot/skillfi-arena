@@ -74,12 +74,16 @@ async function main() {
   const escrowAddress = await escrow.getAddress();
   const runtimeCode = await ethers.provider.getCode(escrowAddress);
   if (runtimeCode === "0x") throw new Error("Escrow deployment returned no runtime bytecode");
-  const [waitingTimeout, readyGrace, activeTimeout, disputeTimeout] = await Promise.all([
+  const [waitingTimeout, readyGrace, activeTimeout, disputeTimeout, depositsEnabled] = await Promise.all([
     escrow.matchTimeout(),
     escrow.readyMatchGrace(),
     escrow.activeMatchTimeout(),
     escrow.disputeTimeout(),
+    escrow.depositsEnabled(),
   ]);
+  if (depositsEnabled) {
+    throw new Error("Refusing insecure deployment output: V3 deposits must be disabled at deployment");
+  }
 
   const deployment = {
     contract: "SkillFiEscrowV3",
@@ -97,6 +101,7 @@ async function main() {
     readyGrace: readyGrace.toString(),
     activeTimeout: activeTimeout.toString(),
     disputeTimeout: disputeTimeout.toString(),
+    depositsEnabledAtDeployment: false,
     runtimeCodeHash: ethers.keccak256(runtimeCode),
     deploymentTxHash: deploymentTransaction?.hash ?? null,
     deploymentBlock: receipt?.blockNumber ?? null,
@@ -108,7 +113,7 @@ async function main() {
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(deployment, null, 2)}\n`, "utf8");
 
-  console.log("Base Sepolia V3 deployment complete", deployment);
+  console.log("Base Sepolia V3 deployment complete with deposits CLOSED", deployment);
 }
 
 await main();
