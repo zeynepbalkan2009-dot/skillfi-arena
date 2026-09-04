@@ -1,10 +1,10 @@
 # Database
 
-SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/17_disable_test_fixture_games.sql`.
+SkillFi Arena uses a local compatibility chain for embedded validation and a canonical hosted Supabase chain for deployed environments. See `MIGRATION_ORDER.md` for the exact hosted execution order through `supabase/18_settlement_single_writer.sql`.
 
 ## Hosted Release State
 
-Hosted deployments must contain `public.schema_release_state` with `version = 17`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
+Hosted deployments must contain `public.schema_release_state` with `version = 18`. `/api/health` treats a missing or older marker as degraded and returns HTTP 503.
 
 The release marker is not a substitute for migrations; it is written by the migration chain and exists so application readiness can detect schema drift.
 
@@ -44,7 +44,10 @@ The following security-sensitive tables are service-role only:
 - `game_api_credentials`
 - `game_result_submissions`
 - `api_rate_limits`
+- `match_settlement_leases`
 - `schema_release_state`
+
+Settlement coordination RPCs (`claim_match_settlement`, `record_match_settlement_tx`, and `release_match_settlement_lease`) are service-role only. They enforce a database single-writer lease so concurrent serverless invocations cannot independently broadcast settlement transactions for the same match.
 
 Game integration secrets are stored as hashes; raw integration keys are returned once at creation time.
 
@@ -70,4 +73,4 @@ npm run test:product
 npm run build
 ```
 
-Smart-contract changes also require the Hardhat test suite. Production promotion additionally requires `/api/health` to return `status: ok` after the hosted migrations and contract/operator configuration are applied.
+Smart-contract changes also require the Hardhat test suite. Production promotion additionally requires `/api/health` to return `status: ok` after hosted migrations through schema 18 and contract/operator configuration are applied.
