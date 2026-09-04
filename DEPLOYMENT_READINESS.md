@@ -8,7 +8,7 @@ The current production deployment still points at the legacy `SkillFiEscrowV2` c
 - Canonical Arc USDC: `0x3600000000000000000000000000000000000000`
 - Hosting project: linked to GitHub and deploying from `main`
 - Public URL: `https://skillfi-arena.vercel.app`
-- Required hosted schema version: `21`
+- Required hosted schema version: `22`
 - Required application Node line: `22.x`
 - Required Next.js line: `15.5.25`
 - Required escrow implementation: `SkillFiEscrowV3`
@@ -62,11 +62,16 @@ Before changing `NEXT_PUBLIC_ESCROW_ADDRESS`:
 
 ## Database release gate
 
-Apply the canonical hosted migration chain in `MIGRATION_ORDER.md` through `supabase/21_rotate_game_api_key_hashes.sql`, then reload the PostgREST schema cache.
+Use the canonical hosted migration chain in `MIGRATION_ORDER.md`. Credential rotation is intentionally two-stage:
 
-Required checks:
+1. Apply migrations through `supabase/21_rotate_game_api_key_hashes.sql`. Schema 21 is non-destructive and keeps existing legacy credentials active while allowing new 12-hex/scrypt credentials to be created.
+2. Create, securely distribute, and validate replacement credentials for every active integration before cutover.
+3. During the coordinated cutover, apply `supabase/22_revoke_legacy_game_api_keys.sql`. Schema 22 revokes only legacy 8-character-prefix credentials and fails if any remains active.
+4. Reload the PostgREST schema cache.
 
-- `public.schema_release_state.version = 21`
+Required checks after cutover:
+
+- `public.schema_release_state.version = 22`
 - anonymous/authenticated access to `public.users` is column-scoped to public-safe profile fields
 - direct public reads cannot enumerate `challenges`, `challenge_participants`, or `match_participants`
 - public match reads expose only the intended projected columns
@@ -76,8 +81,8 @@ Required checks:
 - risk idempotency hardening is installed
 - settlement single-writer RPCs are installed and service-role only
 - `HTTP Validation %` fixture games are inactive/suspended
-- all pre-schema-21 integration credentials are revoked
-- replacement studio integration credentials use the new 12-hex prefix + scrypt model before integrations resume
+- replacement studio integration credentials use the new 12-hex prefix + scrypt model
+- no active legacy 8-character-prefix integration credential remains
 
 ## Application release gate
 
@@ -91,7 +96,7 @@ Required checks:
 - Run web3 release-tooling typecheck, Hardhat compile, and the full Hardhat test suite including `SkillFiEscrowV3.security.ts`.
 - Require CodeQL and Live Match Type Check to pass on the exact release head.
 - Verify Privy login, embedded/external wallet connection, challenge lobby, studio portal, polling-based live match state, CSP, HSTS, and no-store behavior in an exact-head Preview.
-- Confirm `/api/health` returns HTTP 200 with `status: ok` only after schema 21, V3/operator, and studio economic configuration are applied.
+- Confirm `/api/health` returns HTTP 200 with `status: ok` only after schema 22, V3/operator, and studio economic configuration are applied.
 - Keep real-value/mainnet deposits disabled until every release gate below is complete.
 
 ## GitHub / CI release gate
@@ -111,19 +116,19 @@ Required checks:
 
 ## Production promotion order
 
-Coordinate this sequence so GitHub-to-Vercel automatic production deployment cannot expose a code/schema/contract mismatch.
+Coordinate this sequence so GitHub-to-Vercel automatic production deployment cannot expose a code/schema/contract mismatch and studio integrations are not needlessly interrupted.
 
 1. Freeze the release head after exact-head GitHub CI, CodeQL, Live Match Type Check, and Preview validation are green.
 2. Prepare and validate the V3 Arc deployment with five distinct critical identities, but do not point production at it yet.
-3. Prepare replacement studio integration credentials and a rotation plan because schema 21 revokes legacy credential hashes.
-4. Before merging to `main`, ensure automatic production promotion is paused/controlled or use a coordinated maintenance window. Do not merge a schema-21-dependent application while Vercel can immediately auto-promote it against the old database/contract configuration.
-5. Apply hosted Supabase migrations through version 21 and reload PostgREST schema cache.
-6. Issue/activate replacement studio integration credentials required after schema 21.
+3. Apply hosted migrations only through **schema 21**. This safely enables the new credential format without revoking existing keys.
+4. Generate replacement 12-hex/scrypt credentials and securely distribute/validate them with every active studio integration while legacy keys remain active.
+5. Before the final cutover, ensure automatic production promotion is paused/controlled or use a coordinated maintenance window.
+6. Apply **schema 22** to revoke only legacy credentials, then reload PostgREST schema cache.
 7. Configure production environment values to the validated V3 escrow, dedicated operator, valid WalletConnect project ID, and required studio economic configuration. Ensure test-auth variables are absent.
-8. Merge/promote the exact validated application commit and confirm Vercel builds it with Node 22.
-9. Verify `/api/health`, authentication, lobby/match flows, settlement/refund/dispute smoke paths, CSP/HSTS/no-store headers, and runtime error logs.
+8. Merge/promote the exact validated application commit and switch studio integrations to the pre-staged replacement credentials.
+9. Verify `/api/health`, authentication, lobby/match flows, integration authentication, settlement/refund/dispute smoke paths, CSP/HSTS/no-store headers, and runtime error logs.
 10. Enable any real-value settlement mode only after every check above is complete and repository release protections are active.
 
 ## Release rule
 
-Do not enable value-bearing deposits or stakes until the V3 deployment validator and smoke paths pass, application production environment points to the validated V3 address, hosted database migrations are current at schema 21, replacement integration credentials are issued, exact-head Preview validation passes, and repository release protections/CI gates are active.
+Do not enable value-bearing deposits or stakes until the V3 deployment validator and smoke paths pass, application production environment points to the validated V3 address, hosted database migrations are current at schema 22, legacy integration credentials are revoked only after replacement credentials are staged, exact-head Preview validation passes, and repository release protections/CI gates are active.
