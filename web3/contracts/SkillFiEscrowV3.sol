@@ -74,23 +74,25 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
     constructor(
         address _token,
+        address _admin,
         address _operator,
         address _arbiter,
         address _treasury,
         uint256 _feeBps
     ) {
         require(_token != address(0), "invalid token");
+        require(_admin != address(0), "invalid admin");
         require(_operator != address(0), "invalid operator");
         require(_arbiter != address(0), "invalid arbiter");
         require(_treasury != address(0), "invalid treasury");
         require(_feeBps <= 1000, "max fee 10%");
         require(
-            _operator != _arbiter &&
+            _admin != _operator &&
+                _admin != _arbiter &&
+                _admin != _treasury &&
+                _operator != _arbiter &&
                 _operator != _treasury &&
-                _arbiter != _treasury &&
-                msg.sender != _operator &&
-                msg.sender != _arbiter &&
-                msg.sender != _treasury,
+                _arbiter != _treasury,
             "role overlap"
         );
 
@@ -98,7 +100,9 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         treasury = _treasury;
         platformFeeBps = _feeBps;
 
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // The deployment key receives no persistent control role. A dedicated
+        // admin (ideally a multisig for value-bearing releases) owns governance.
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(OPERATOR_ROLE, _operator);
         _grantRole(ARBITER_ROLE, _arbiter);
     }
