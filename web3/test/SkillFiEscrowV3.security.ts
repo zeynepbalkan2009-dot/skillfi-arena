@@ -41,12 +41,10 @@ describe("SkillFiEscrowV3 security regressions", function () {
   it("binds player1 at creation and rejects a third-party first-join front-run", async function () {
     const f = await fixture();
     await f.escrow.connect(f.operator).createMatch(10n, f.entryFee, f.player1.address);
-
     await expect(f.escrow.connect(f.player2).joinMatch(10n)).to.be.revertedWith("not creator");
     const beforeCreatorJoin = await f.escrow.matches(10n);
     expect(beforeCreatorJoin.player1).to.equal(f.player1.address);
     expect(beforeCreatorJoin.player1Deposited).to.equal(false);
-
     await f.escrow.connect(f.player1).joinMatch(10n);
     const afterCreatorJoin = await f.escrow.matches(10n);
     expect(afterCreatorJoin.player1).to.equal(f.player1.address);
@@ -57,7 +55,6 @@ describe("SkillFiEscrowV3 security regressions", function () {
     const f = await fixture();
     await f.escrow.connect(f.operator).createMatch(1n, f.entryFee, f.player1.address);
     await increaseTime(MATCH_TIMEOUT + 1n);
-
     await expect(f.escrow.connect(f.player1).joinMatch(1n)).to.be.revertedWith("match expired");
   });
 
@@ -68,10 +65,8 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.player1).joinMatch(2n);
     await f.escrow.connect(f.player2).joinMatch(2n);
     await f.escrow.connect(f.operator).startMatch(2n);
-
     await increaseTime(120n);
     await expect(f.escrow.reclaimActiveMatch(2n)).to.be.revertedWith("not expired");
-
     await increaseTime(MATCH_TIMEOUT);
     await f.escrow.reclaimActiveMatch(2n);
   });
@@ -81,11 +76,9 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(4n, f.entryFee, f.player1.address);
     await f.escrow.connect(f.player1).joinMatch(4n);
     await f.escrow.connect(f.player2).joinMatch(4n);
-
     await expect(f.escrow.connect(f.player1).reclaimReadyMatch(4n)).to.be.revertedWith("not expired");
     await increaseTime(MATCH_TIMEOUT + READY_GRACE + 1n);
     await f.escrow.connect(f.admin).reclaimReadyMatch(4n);
-
     const match = await f.escrow.matches(4n);
     expect(match.status).to.equal(7n);
     expect(await f.token.balanceOf(f.player1.address)).to.equal(f.float);
@@ -107,7 +100,6 @@ describe("SkillFiEscrowV3 security regressions", function () {
     const f = await fixture();
     await startFundedMatch(f, 3n);
     await f.escrow.connect(f.operator).resolveMatch(3n, f.player2.address);
-
     const match = await f.escrow.matches(3n);
     expect(match.winner).to.equal(f.player2.address);
   });
@@ -117,18 +109,14 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(6n, f.entryFee, f.player1.address);
     const created = await f.escrow.matches(6n);
     expect(created.feeBpsAtCreation).to.equal(500n);
-
     await f.escrow.connect(f.admin).setFee(1000n);
     expect(await f.escrow.platformFeeBps()).to.equal(1000n);
-
     await f.escrow.connect(f.player1).joinMatch(6n);
     await f.escrow.connect(f.player2).joinMatch(6n);
     await f.escrow.connect(f.operator).startMatch(6n);
-
     const winnerBalanceBefore = await f.token.balanceOf(f.player1.address);
     const treasuryBalanceBefore = await f.token.balanceOf(f.treasury.address);
     await f.escrow.connect(f.operator).resolveMatch(6n, f.player1.address);
-
     const totalPrize = f.entryFee * 2n;
     const lockedFee = (totalPrize * 500n) / 10_000n;
     const lockedPayout = totalPrize - lockedFee;
@@ -141,16 +129,13 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(11n, f.entryFee, f.player1.address);
     const created = await f.escrow.matches(11n);
     expect(created.treasuryAtCreation).to.equal(f.treasury.address);
-
     await f.escrow.connect(f.admin).setTreasury(f.admin.address);
     await f.escrow.connect(f.player1).joinMatch(11n);
     await f.escrow.connect(f.player2).joinMatch(11n);
     await f.escrow.connect(f.operator).startMatch(11n);
-
     const originalTreasuryBefore = await f.token.balanceOf(f.treasury.address);
     const replacementTreasuryBefore = await f.token.balanceOf(f.admin.address);
     await f.escrow.connect(f.operator).resolveMatch(11n, f.player1.address);
-
     const lockedFee = (f.entryFee * 2n * 500n) / 10_000n;
     expect((await f.token.balanceOf(f.treasury.address)) - originalTreasuryBefore).to.equal(lockedFee);
     expect(await f.token.balanceOf(f.admin.address)).to.equal(replacementTreasuryBefore);
@@ -161,11 +146,9 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(7n, f.entryFee, f.player1.address);
     const created = await f.escrow.matches(7n);
     expect(created.waitingTimeoutAtCreation).to.equal(MATCH_TIMEOUT);
-
     await f.escrow.connect(f.admin).setTimeout(5n * 60n);
     await increaseTime(6n * 60n);
     await f.escrow.connect(f.player1).joinMatch(7n);
-
     const joined = await f.escrow.matches(7n);
     expect(joined.player1Deposited).to.equal(true);
   });
@@ -175,12 +158,10 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(12n, f.entryFee, f.player1.address);
     const created = await f.escrow.matches(12n);
     expect(created.readyGraceAtCreation).to.equal(READY_GRACE);
-
     await f.escrow.connect(f.admin).setReadyGrace(60n);
     await f.escrow.connect(f.player1).joinMatch(12n);
     await f.escrow.connect(f.player2).joinMatch(12n);
     await increaseTime(MATCH_TIMEOUT + 60n + 1n);
-
     await f.escrow.connect(f.operator).startMatch(12n);
     const started = await f.escrow.matches(12n);
     expect(started.status).to.equal(3n);
@@ -191,15 +172,12 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.operator).createMatch(8n, f.entryFee, f.player1.address);
     const created = await f.escrow.matches(8n);
     expect(created.activeTimeoutAtCreation).to.equal(MATCH_TIMEOUT);
-
     await f.escrow.connect(f.admin).setActiveTimeout(5n * 60n);
     await f.escrow.connect(f.player1).joinMatch(8n);
     await f.escrow.connect(f.player2).joinMatch(8n);
     await f.escrow.connect(f.operator).startMatch(8n);
-
     await increaseTime(6n * 60n);
     await expect(f.escrow.reclaimActiveMatch(8n)).to.be.revertedWith("not expired");
-
     await increaseTime(25n * 60n);
     await f.escrow.reclaimActiveMatch(8n);
   });
@@ -211,25 +189,43 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await expect(f.escrow.connect(f.player1).disputeMatch(13n)).to.be.revertedWith("match expired");
   });
 
+  it("does not allow operator settlement after the active refund deadline", async function () {
+    const f = await fixture();
+    await startFundedMatch(f, 17n);
+    await increaseTime(MATCH_TIMEOUT + 1n);
+    await expect(f.escrow.connect(f.operator).resolveMatch(17n, f.player1.address)).to.be.revertedWith("match expired");
+    await f.escrow.connect(f.player2).reclaimActiveMatch(17n);
+    const expired = await f.escrow.matches(17n);
+    expect(expired.status).to.equal(7n);
+  });
+
   it("refunds both players if a dispute is not resolved within its locked timeout", async function () {
     const f = await fixture();
     await startFundedMatch(f, 14n);
     const created = await f.escrow.matches(14n);
     expect(created.disputeTimeoutAtCreation).to.equal(DISPUTE_TIMEOUT);
-
     await f.escrow.connect(f.player1).disputeMatch(14n);
     const disputed = await f.escrow.matches(14n);
     expect(disputed.status).to.equal(5n);
     expect(disputed.disputedAt).to.be.greaterThan(0n);
-
     await expect(f.escrow.connect(f.admin).reclaimDisputedMatch(14n)).to.be.revertedWith("not expired");
     await increaseTime(DISPUTE_TIMEOUT + 1n);
     await f.escrow.connect(f.admin).reclaimDisputedMatch(14n);
-
     const expired = await f.escrow.matches(14n);
     expect(expired.status).to.equal(7n);
     expect(await f.token.balanceOf(f.player1.address)).to.equal(f.float);
     expect(await f.token.balanceOf(f.player2.address)).to.equal(f.float);
+  });
+
+  it("does not allow arbitration after the dispute refund deadline", async function () {
+    const f = await fixture();
+    await startFundedMatch(f, 18n);
+    await f.escrow.connect(f.player1).disputeMatch(18n);
+    await increaseTime(DISPUTE_TIMEOUT + 1n);
+    await expect(f.escrow.connect(f.arbiter).resolveDispute(18n, f.player2.address)).to.be.revertedWith("dispute expired");
+    await f.escrow.connect(f.player1).reclaimDisputedMatch(18n);
+    const expired = await f.escrow.matches(18n);
+    expect(expired.status).to.equal(7n);
   });
 
   it("does not retroactively shorten the dispute timeout", async function () {
@@ -240,7 +236,6 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await f.escrow.connect(f.player2).joinMatch(15n);
     await f.escrow.connect(f.operator).startMatch(15n);
     await f.escrow.connect(f.player2).disputeMatch(15n);
-
     await increaseTime(24n * 60n * 60n + 1n);
     await expect(f.escrow.reclaimDisputedMatch(15n)).to.be.revertedWith("not expired");
   });
@@ -250,7 +245,6 @@ describe("SkillFiEscrowV3 security regressions", function () {
     await startFundedMatch(f, 16n);
     await f.escrow.connect(f.player1).disputeMatch(16n);
     await f.escrow.connect(f.admin).pause();
-
     await f.escrow.connect(f.arbiter).resolveDispute(16n, f.player2.address);
     const resolved = await f.escrow.matches(16n);
     expect(resolved.status).to.equal(4n);
