@@ -38,22 +38,35 @@ Apply these files in this exact order. Do not stop at the original three-file ba
 20. `supabase/19_public_match_graph_privacy.sql`
 21. `supabase/20_disable_public_match_realtime.sql`
 22. `supabase/21_rotate_game_api_key_hashes.sql`
-23. `NOTIFY pgrst, 'reload schema';`
+23. `supabase/22_revoke_legacy_game_api_keys.sql`
+24. `NOTIFY pgrst, 'reload schema';`
 
-The latest hosted schema marker after this chain is `21` in `public.schema_release_state`.
+The latest hosted schema marker after the complete cutover chain is `22` in `public.schema_release_state`.
+
+## Two-Phase Integration Credential Cutover
+
+Credential rotation is deliberately split so schema work does not unnecessarily interrupt active studio integrations:
+
+1. Apply migrations through **schema 21**. Migration 21 is non-destructive: it permits both legacy 8-character prefixes and new 12-hex prefixes, and adds unique prefix lookup. It does **not** revoke active credentials.
+2. While the legacy application/integrations are still available, create the replacement scrypt credentials in a controlled environment and securely distribute them to each studio. Validate that each replacement credential is recorded and ready for the new application cutover.
+3. During the coordinated application cutover, apply **schema 22**. Migration 22 revokes only active legacy 8-character-prefix credentials and asserts that no active legacy credential remains.
+4. Promote the scrypt-only application and switch integrations to the pre-staged replacement credentials.
+
+Do not apply schema 22 before replacement credentials have been staged and the cutover is coordinated.
 
 ## Release Gate
 
 A production release is not ready until all of the following are true:
 
-- every hosted migration above has succeeded;
-- `public.schema_release_state.version = 21`;
+- every hosted migration above has succeeded through schema 22;
+- `public.schema_release_state.version = 22`;
 - service-role access to `guilds` succeeds;
 - public profile access is column-scoped and does not expose email, Privy IDs, login timestamps, earnings, or private wallet fields;
 - anonymous/authenticated clients cannot enumerate `challenges`, `challenge_participants`, or `match_participants` directly;
 - direct public match access is column-scoped to the live/public UI projection and does not expose challenge linkage or free-form context columns;
 - `public.matches` is not present in the `supabase_realtime` publication; live/public clients use explicit safe projections and polling instead;
-- all integration credentials that predate schema 21 are revoked and replacement keys use 12-hex prefixes with scrypt-derived secret hashes;
+- replacement integration credentials use 12-hex prefixes with scrypt-derived secret hashes;
+- no active legacy 8-character-prefix integration credential remains after schema 22;
 - `HTTP Validation %` fixture games are not active;
 - settlement RPCs (`claim_match_settlement`, `record_match_settlement_tx`, `release_match_settlement_lease`) are available only to `service_role`;
 - PostgREST schema cache has been reloaded;
