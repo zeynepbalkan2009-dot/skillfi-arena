@@ -10,10 +10,10 @@ const PRIORITY_FEE_PER_GAS = 1n * 10n ** 9n;
 
 const { ethers } = await network.create();
 
-function addressFromEnv(name: string, fallback: string): string {
-  const value = process.env[name]?.trim() || fallback;
-  if (!ethers.isAddress(value) || value === ethers.ZeroAddress) {
-    throw new Error(`${name} must be a non-zero EVM address`);
+function requiredAddress(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value || !ethers.isAddress(value) || value === ethers.ZeroAddress) {
+    throw new Error(`${name} must be explicitly set to a non-zero EVM address`);
   }
   return ethers.getAddress(value);
 }
@@ -24,6 +24,22 @@ function feeFromEnv(): bigint {
   const fee = BigInt(raw);
   if (fee > 1_000n) throw new Error("ARC_PLATFORM_FEE_BPS cannot exceed 1000 (10%)");
   return fee;
+}
+
+function assertRoleSeparation(addresses: Record<string, string>, deployer: string) {
+  const pairs = Object.entries({ deployer, ...addresses });
+  const normalized = pairs.map(([role, address]) => [role, address.toLowerCase()] as const);
+  const seen = new Map<string, string>();
+
+  for (const [role, address] of normalized) {
+    const existingRole = seen.get(address);
+    if (existingRole) {
+      throw new Error(
+        `Refusing insecure deployment: ${role} and ${existingRole} resolve to the same address ${address}`
+      );
+    }
+    seen.set(address, role);
+  }
 }
 
 async function main() {
@@ -38,15 +54,17 @@ async function main() {
     throw new Error(`Deployer ${deployer.address} has no Arc Testnet USDC for gas`);
   }
 
-  const operator = addressFromEnv("ARC_OPERATOR_ADDRESS", deployer.address);
-  const arbiter = addressFromEnv("ARC_ARBITER_ADDRESS", deployer.address);
-  const treasury = addressFromEnv("ARC_TREASURY_ADDRESS", deployer.address);
+  const operator = requiredAddress("ARC_OPERATOR_ADDRESS");
+  const arbiter = requiredAddress("ARC_ARBITER_ADDRESS");
+  const treasury = requiredAddress("ARC_TREASURY_ADDRESS");
   const platformFeeBps = feeFromEnv();
+
+  assertRoleSeparation({ operator, arbiter, treasury }, deployer.address);
 
   const tokenCode = await ethers.provider.getCode(ARC_TESTNET_USDC);
   if (tokenCode === "0x") throw new Error(`No USDC contract code at ${ARC_TESTNET_USDC}`);
 
-  console.log("Deploying SkillFiEscrowV2 to Arc Testnet", {
+  console.log("Deploying SkillFiEscrowV3 to Arc Testnet", {
     deployer: deployer.address,
     operator,
     arbiter,
@@ -56,7 +74,7 @@ async function main() {
     nativeGasBalance: nativeGasBalance.toString(),
   });
 
-  const Escrow = await ethers.getContractFactory("SkillFiEscrowV2");
+  const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
   const escrow = await Escrow.deploy(
     ARC_TESTNET_USDC,
     operator,
@@ -71,6 +89,7 @@ async function main() {
   const escrowAddress = await escrow.getAddress();
   const receipt = deploymentTransaction ? await deploymentTransaction.wait() : null;
   const deployment = {
+    contract: "SkillFiEscrowV3",
     network: "arcTestnet",
     chainId: Number(ARC_TESTNET_CHAIN_ID),
     rpcUrl: "https://rpc.testnet.arc.network",
@@ -88,11 +107,11 @@ async function main() {
   };
 
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-  const outputPath = resolve(scriptDirectory, "../deployments/arc-testnet.json");
+  const outputPath = resolve(scriptDirectory, "../deployments/arc-testnet-v3.json");
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(deployment, null, 2)}\n`, "utf8");
 
-  console.log("Arc Testnet deployment complete", deployment);
+  console.log("Arc Testnet V3 deployment complete", deployment);
   console.log(`Explorer: https://testnet.arcscan.app/address/${escrowAddress}`);
 }
 
