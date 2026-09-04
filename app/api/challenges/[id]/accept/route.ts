@@ -7,6 +7,39 @@ import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
 import { isPilotGameId } from "@/lib/pilotGames";
 
 const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
+const ACCEPTED_MATCH_SELECT = `
+  id,
+  smart_contract_match_id,
+  game_id,
+  player_a_id,
+  player_b_id,
+  stake_amount,
+  status,
+  created_at,
+  game:games(
+    id,
+    slug,
+    name,
+    type,
+    description,
+    website_url,
+    is_active
+  ),
+  player_a:users!matches_player_a_id_fkey(
+    id,
+    username,
+    display_name,
+    avatar_url,
+    region
+  ),
+  player_b:users!matches_player_b_id_fkey(
+    id,
+    username,
+    display_name,
+    avatar_url,
+    region
+  )
+`;
 
 export async function POST(
   request: NextRequest,
@@ -69,9 +102,7 @@ export async function POST(
   const matchId = (result as { match_id: string }).match_id;
   const { data: match, error: matchError } = await supabaseAdmin
     .from("matches")
-    .select(
-      "*, game:games(*), player_a:users!matches_player_a_id_fkey(id, username, display_name, avatar_url, region), player_b:users!matches_player_b_id_fkey(id, username, display_name, avatar_url, region)"
-    )
+    .select(ACCEPTED_MATCH_SELECT)
     .eq("id", matchId)
     .single();
 
