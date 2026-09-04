@@ -29,7 +29,7 @@ const RAW_PUBLIC_ENV: Record<keyof PublicEnv, string | undefined> = {
   NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL,
 };
 
-function allowBuildPlaceholders(): boolean {
+function allowLocalBuildPlaceholders(): boolean {
   return (
     process.env.npm_lifecycle_event === "build" &&
     process.env.SKILLFI_ALLOW_BUILD_PLACEHOLDERS === "1" &&
@@ -38,10 +38,21 @@ function allowBuildPlaceholders(): boolean {
   );
 }
 
+function allowPreviewContractPlaceholder(name: keyof PublicEnv): boolean {
+  return (
+    process.env.VERCEL_ENV === "preview" &&
+    (name === "NEXT_PUBLIC_ESCROW_ADDRESS" || name === "NEXT_PUBLIC_USDC_TOKEN_ADDRESS")
+  );
+}
+
+function canUsePlaceholder(name: keyof PublicEnv): boolean {
+  return allowLocalBuildPlaceholders() || allowPreviewContractPlaceholder(name);
+}
+
 function required(name: keyof PublicEnv): string {
   const value = RAW_PUBLIC_ENV[name]?.trim();
   if (!value) {
-    if (allowBuildPlaceholders()) return BUILD_DEFAULTS[name];
+    if (canUsePlaceholder(name)) return BUILD_DEFAULTS[name];
     throw new Error(`Missing ${name}. Production and hosted builds fail closed.`);
   }
   return value;
@@ -55,7 +66,7 @@ function nonPlaceholder(name: keyof PublicEnv): string {
     "your-privy-app-id",
     "your-supabase-anon-key",
   ]);
-  if (knownBad.has(value) && !allowBuildPlaceholders()) {
+  if (knownBad.has(value) && !canUsePlaceholder(name)) {
     throw new Error(`${name} still contains a placeholder value.`);
   }
   return value;
@@ -64,10 +75,10 @@ function nonPlaceholder(name: keyof PublicEnv): string {
 function address(name: keyof PublicEnv): `0x${string}` {
   const value = required(name);
   if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
-    if (allowBuildPlaceholders()) return BUILD_DEFAULTS[name] as `0x${string}`;
+    if (canUsePlaceholder(name)) return BUILD_DEFAULTS[name] as `0x${string}`;
     throw new Error(`${name} must be a 0x-prefixed 20-byte EVM address.`);
   }
-  if (/^0x0{40}$/i.test(value) && !allowBuildPlaceholders()) {
+  if (/^0x0{40}$/i.test(value) && !canUsePlaceholder(name)) {
     throw new Error(`${name} must not be the zero address.`);
   }
   return value as `0x${string}`;
@@ -82,7 +93,7 @@ function url(name: keyof PublicEnv): string {
       throw new Error("hosted URLs must use https");
     }
   } catch {
-    if (allowBuildPlaceholders()) return BUILD_DEFAULTS[name];
+    if (allowLocalBuildPlaceholders()) return BUILD_DEFAULTS[name];
     throw new Error(`${name} must be a valid HTTP(S) URL; hosted builds require HTTPS.`);
   }
   return value;
