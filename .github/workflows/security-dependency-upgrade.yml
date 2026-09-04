@@ -1,4 +1,4 @@
-name: One-time dependency security audit
+name: One-time dependency security reconnaissance
 
 permissions:
   contents: read
@@ -11,7 +11,7 @@ on:
       - .github/workflows/security-dependency-upgrade.yml
 
 jobs:
-  audit:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -21,5 +21,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Audit production dependencies from lockfile
-        run: npm audit --omit=dev --audit-level=high
+      - name: Check direct wallet package usage
+        shell: bash
+        run: |
+          echo "=== source imports ==="
+          grep -R -nE "from ['\"](wagmi|@privy-io/wagmi)['\"]|require\(['\"](wagmi|@privy-io/wagmi)['\"]\)" app components lib tests scripts 2>/dev/null || true
+          echo "=== latest compatible package lines ==="
+          npm view @privy-io/node version
+          npm view @privy-io/react-auth version
+          npm view @privy-io/wagmi version
+          npm view viem version
+          npm view wagmi version
+          npm view wagmi@2 version --json
+          npm view next@15 version --json
