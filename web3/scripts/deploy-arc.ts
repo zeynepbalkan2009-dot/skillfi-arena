@@ -56,18 +56,20 @@ async function main() {
     throw new Error(`Deployer ${deployer.address} has no Arc Testnet USDC for gas`);
   }
 
+  const admin = requiredAddress("ARC_ADMIN_ADDRESS");
   const operator = requiredAddress("ARC_OPERATOR_ADDRESS");
   const arbiter = requiredAddress("ARC_ARBITER_ADDRESS");
   const treasury = requiredAddress("ARC_TREASURY_ADDRESS");
   const platformFeeBps = feeFromEnv();
 
-  assertRoleSeparation({ operator, arbiter, treasury }, deployer.address);
+  assertRoleSeparation({ admin, operator, arbiter, treasury }, deployer.address);
 
   const tokenCode = await ethers.provider.getCode(ARC_TESTNET_USDC);
   if (tokenCode === "0x") throw new Error(`No USDC contract code at ${ARC_TESTNET_USDC}`);
 
   console.log("Deploying SkillFiEscrowV3 to Arc Testnet", {
     deployer: deployer.address,
+    admin,
     operator,
     arbiter,
     treasury,
@@ -79,6 +81,7 @@ async function main() {
   const Escrow = await ethers.getContractFactory("SkillFiEscrowV3");
   const escrow = await Escrow.deploy(
     ARC_TESTNET_USDC,
+    admin,
     operator,
     arbiter,
     treasury,
@@ -108,6 +111,7 @@ async function main() {
     escrow: escrowAddress,
     usdc: ARC_TESTNET_USDC,
     deployer: deployer.address,
+    admin,
     operator,
     arbiter,
     treasury,
