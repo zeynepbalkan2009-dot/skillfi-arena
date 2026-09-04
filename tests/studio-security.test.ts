@@ -33,12 +33,21 @@ test("game integration credentials use random hex prefixes and scrypt hashes", (
   assert.doesNotMatch(credentials, /createHash\("sha256"\)\.update\(secret/);
 });
 
-test("schema 21 revokes legacy integration credentials before scrypt-only authentication", () => {
-  const migration = source("supabase/21_rotate_game_api_key_hashes.sql");
+test("credential rotation is staged before legacy keys are revoked", () => {
+  const prepare = source("supabase/21_rotate_game_api_key_hashes.sql");
+  const cutover = source("supabase/22_revoke_legacy_game_api_keys.sql");
   const health = source("app/api/health/route.ts");
-  assert.match(migration, /update public\.game_api_credentials[\s\S]*set revoked_at = coalesce\(revoked_at, now\(\)\)/);
-  assert.match(migration, /game_api_credentials_key_prefix_unique/);
-  assert.match(migration, /\[0-9a-f\]\{12\}/);
-  assert.match(migration, /set version = 21/);
-  assert.match(health, /EXPECTED_SCHEMA_VERSION = 21/);
+
+  assert.match(prepare, /NON-DESTRUCTIVE/);
+  assert.match(prepare, /game_api_credentials_key_prefix_unique/);
+  assert.match(prepare, /\[0-9a-f\]\{12\}/);
+  assert.match(prepare, /set version = 21/);
+  assert.doesNotMatch(prepare, /set revoked_at\s*=\s*(?:coalesce\()?/);
+
+  assert.match(cutover, /set revoked_at = now\(\)/);
+  assert.match(cutover, /\[a-zA-Z0-9\]\{8\}/);
+  assert.match(cutover, /active legacy game API credentials remain after schema 22 cutover/);
+  assert.match(cutover, /set version = 22/);
+  assert.doesNotMatch(cutover, /\[0-9a-f\]\{12\}.*revoked_at/s);
+  assert.match(health, /EXPECTED_SCHEMA_VERSION = 22/);
 });
