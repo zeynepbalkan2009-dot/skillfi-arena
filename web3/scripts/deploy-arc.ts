@@ -19,8 +19,10 @@ function requiredAddress(name: string): string {
 }
 
 function feeFromEnv(): bigint {
-  const raw = process.env.ARC_PLATFORM_FEE_BPS?.trim() || "500";
-  if (!/^\d+$/.test(raw)) throw new Error("ARC_PLATFORM_FEE_BPS must be an integer");
+  const raw = process.env.ARC_PLATFORM_FEE_BPS?.trim();
+  if (!raw || !/^\d+$/.test(raw)) {
+    throw new Error("ARC_PLATFORM_FEE_BPS must be explicitly set to an integer between 0 and 1000");
+  }
   const fee = BigInt(raw);
   if (fee > 1_000n) throw new Error("ARC_PLATFORM_FEE_BPS cannot exceed 1000 (10%)");
   return fee;
@@ -88,6 +90,15 @@ async function main() {
 
   const escrowAddress = await escrow.getAddress();
   const receipt = deploymentTransaction ? await deploymentTransaction.wait() : null;
+  const runtimeCode = await ethers.provider.getCode(escrowAddress);
+  if (runtimeCode === "0x") throw new Error("Escrow deployment returned no runtime bytecode");
+  const [waitingTimeout, readyGrace, activeTimeout, disputeTimeout] = await Promise.all([
+    escrow.matchTimeout(),
+    escrow.readyMatchGrace(),
+    escrow.activeMatchTimeout(),
+    escrow.disputeTimeout(),
+  ]);
+
   const deployment = {
     contract: "SkillFiEscrowV3",
     network: "arcTestnet",
@@ -101,6 +112,11 @@ async function main() {
     arbiter,
     treasury,
     platformFeeBps: platformFeeBps.toString(),
+    waitingTimeout: waitingTimeout.toString(),
+    readyGrace: readyGrace.toString(),
+    activeTimeout: activeTimeout.toString(),
+    disputeTimeout: disputeTimeout.toString(),
+    runtimeCodeHash: ethers.keccak256(runtimeCode),
     deploymentTxHash: deploymentTransaction?.hash ?? null,
     deploymentBlock: receipt?.blockNumber ?? null,
     deployedAt: new Date().toISOString(),
