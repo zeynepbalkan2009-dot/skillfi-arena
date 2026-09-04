@@ -1,6 +1,6 @@
 name: One-time security dependency upgrade
 
-# Retry marker: final security branch state
+# Retry marker: security test expectation aligned
 permissions:
   contents: write
 
