@@ -27,13 +27,13 @@ test("public game catalog does not expose internal studio or creator linkage", (
   assert.match(text, /integration_status["']?,\s*["']published["']/);
 });
 
-test("realtime lobby resolves creator through the public profile projection and selects safe match columns", () => {
+test("lobby refreshes through projected server APIs and does not subscribe to public database changes", () => {
   const text = source("components/LobbyClient.tsx");
-  assert.match(text, /\.from\(["']public_profiles["']\)/);
-  assert.match(text, /\.select\(["']id,username,display_name,avatar_url,region["']\)/);
-  assert.doesNotMatch(text, /\.from\(["']users["']\)[\s\S]{0,180}wallet_address/);
-  assert.match(text, /const REALTIME_MATCH_COLUMNS/);
-  assert.match(text, /select: REALTIME_MATCH_COLUMNS/);
+  assert.match(text, /fetch\(["']\/api\/matches\/open["']/);
+  assert.match(text, /window\.setInterval/);
+  assert.doesNotMatch(text, /postgres_changes/);
+  assert.doesNotMatch(text, /\.from\(["']users["']\)/);
+  assert.doesNotMatch(text, /wallet_address/);
 });
 
 test("invite-token and accepted-challenge payloads exclude wallets and wildcard relations", () => {
@@ -54,16 +54,18 @@ test("public match detail excludes private player wallet fields", () => {
   assert.match(text, /PUBLIC_MATCH_DETAIL_SELECT/);
 });
 
-test("live match identity uses Privy profile ids and does not serialize wallets", () => {
+test("live match identity uses Privy profile ids and projected polling without public realtime", () => {
   const page = source("app/match/[id]/page.tsx");
   const client = source("components/LiveMatchClient.tsx");
   assert.doesNotMatch(page, /wallet_address/);
   assert.doesNotMatch(client, /wallet_address/);
   assert.doesNotMatch(client, /useAccount/);
+  assert.doesNotMatch(client, /postgres_changes/);
+  assert.doesNotMatch(client, /\.channel\(/);
   assert.match(client, /useSkillFiUser/);
   assert.match(client, /profile\.id === match\.player_a_id/);
   assert.match(client, /profile\.id === match\.player_b_id/);
-  assert.match(client, /select: REALTIME_MATCH_COLUMNS/);
+  assert.match(client, /status,winner_id,started_at,player_a_id,player_b_id,updated_at/);
 });
 
 test("schema 19 closes direct challenge and participant graph enumeration", () => {
@@ -75,4 +77,12 @@ test("schema 19 closes direct challenge and participant graph enumeration", () =
   assert.match(migration, /grant select \([\s\S]*smart_contract_match_id[\s\S]*started_at[\s\S]*\) on public\.matches to anon, authenticated/);
   assert.doesNotMatch(migration, /grant select[\s\S]*challenge_id[\s\S]*on public\.matches/);
   assert.match(migration, /set version = 19/);
+});
+
+test("schema 20 removes matches from the realtime publication", () => {
+  const migration = source("supabase/20_disable_public_match_realtime.sql");
+  const health = source("app/api/health/route.ts");
+  assert.match(migration, /alter publication supabase_realtime drop table public\.matches/);
+  assert.match(migration, /set version = 20/);
+  assert.match(health, /EXPECTED_SCHEMA_VERSION = 20/);
 });
