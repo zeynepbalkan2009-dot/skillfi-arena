@@ -92,7 +92,11 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
                 _admin != _treasury &&
                 _operator != _arbiter &&
                 _operator != _treasury &&
-                _arbiter != _treasury,
+                _arbiter != _treasury &&
+                msg.sender != _admin &&
+                msg.sender != _operator &&
+                msg.sender != _arbiter &&
+                msg.sender != _treasury,
             "role overlap"
         );
 
