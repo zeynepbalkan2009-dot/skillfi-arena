@@ -26,7 +26,7 @@ const abi = [
 ];
 
 function distinctCriticalRoles() {
-  const critical = [deployment.deployer, deployment.operator, deployment.arbiter, deployment.treasury]
+  const critical = [deployment.deployer, deployment.admin, deployment.operator, deployment.arbiter, deployment.treasury]
     .map((value) => String(value).toLowerCase());
   return critical.every((value) => value !== zeroAddress) && new Set(critical).size === critical.length;
 }
@@ -46,12 +46,17 @@ const [
   activeTimeout,
   disputeTimeout,
   paused,
+  adminHasAdminRole,
   hasOperatorRole,
   hasArbiterRole,
   deployerHasAdminRole,
   deployerHasOperatorRole,
   deployerHasArbiterRole,
+  adminHasOperatorRole,
+  adminHasArbiterRole,
+  operatorHasAdminRole,
   operatorHasArbiterRole,
+  arbiterHasAdminRole,
   arbiterHasOperatorRole,
   treasuryHasAdminRole,
   treasuryHasOperatorRole,
@@ -67,12 +72,17 @@ const [
   client.readContract({ address: escrowAddress, abi, functionName: "activeMatchTimeout" }),
   client.readContract({ address: escrowAddress, abi, functionName: "disputeTimeout" }),
   client.readContract({ address: escrowAddress, abi, functionName: "paused" }),
+  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.admin] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.operator] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.arbiter] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.deployer] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.deployer] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.deployer] }),
+  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.admin] }),
+  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.admin] }),
+  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.operator] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.operator] }),
+  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.arbiter] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.arbiter] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.treasury] }),
   client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.treasury] }),
@@ -85,13 +95,13 @@ const checks = {
   runtimeCodeHash: Boolean(escrowCode && deployment.runtimeCodeHash && keccak256(escrowCode) === deployment.runtimeCodeHash),
   tokenBytecode: Boolean(tokenCode && tokenCode !== "0x"),
   criticalRolesSeparated: distinctCriticalRoles(),
+  adminRole: adminHasAdminRole,
   operatorRole: hasOperatorRole,
   arbiterRole: hasArbiterRole,
-  deployerAdminRole: deployerHasAdminRole,
-  deployerNotOperator: !deployerHasOperatorRole,
-  deployerNotArbiter: !deployerHasArbiterRole,
-  operatorNotArbiter: !operatorHasArbiterRole,
-  arbiterNotOperator: !arbiterHasOperatorRole,
+  deployerHasNoControlRole: !deployerHasAdminRole && !deployerHasOperatorRole && !deployerHasArbiterRole,
+  adminHasNoExecutionRole: !adminHasOperatorRole && !adminHasArbiterRole,
+  operatorHasNoOtherControlRole: !operatorHasAdminRole && !operatorHasArbiterRole,
+  arbiterHasNoOtherControlRole: !arbiterHasAdminRole && !arbiterHasOperatorRole,
   treasuryHasNoControlRole: !treasuryHasAdminRole && !treasuryHasOperatorRole && !treasuryHasArbiterRole,
   tokenMatches: token.toLowerCase() === deployment.mockUsdc.toLowerCase(),
   treasuryMatches: treasury.toLowerCase() === deployment.treasury.toLowerCase(),
