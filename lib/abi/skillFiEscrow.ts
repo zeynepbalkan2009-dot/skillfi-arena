@@ -88,6 +88,9 @@ export const skillFiEscrowAbi = [
       { name: "startedAt", type: "uint256" },
       { name: "winner", type: "address" },
       { name: "feeBpsAtCreation", type: "uint256" },
+      { name: "waitingTimeoutAtCreation", type: "uint256" },
+      { name: "readyGraceAtCreation", type: "uint256" },
+      { name: "activeTimeoutAtStart", type: "uint256" },
     ],
   },
   {
