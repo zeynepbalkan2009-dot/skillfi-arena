@@ -1,7 +1,5 @@
 import "server-only";
 
-import { createHmac } from "node:crypto";
-import { getServerEnv } from "@/lib/env/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type RateLimitResult = {
@@ -11,13 +9,15 @@ export type RateLimitResult = {
 };
 
 function bucket(route: string, subject: string): string {
-  // Subjects are internal identity identifiers, not passwords. Use a keyed
-  // digest anyway so a database leak cannot be used to correlate raw Privy,
-  // user, or integration-credential identifiers across systems.
-  const { SUPABASE_SERVICE_ROLE_KEY } = getServerEnv();
-  return createHmac("sha256", SUPABASE_SERVICE_ROLE_KEY)
-    .update(`${route}:${subject}`, "utf8")
-    .digest("hex");
+  // Callers pass server-resolved internal identifiers (Privy user id, SkillFi
+  // user UUID, or credential UUID), never a password or bearer secret. The
+  // backing table is service-role only, so storing the bounded identifier is
+  // clearer and avoids misclassifying an internal id as password material.
+  const key = `${route}:${subject}`;
+  if (key.length < 16 || key.length > 128) {
+    throw new Error("Invalid rate-limit bucket identifier.");
+  }
+  return key;
 }
 
 export async function consumeRateLimit(
