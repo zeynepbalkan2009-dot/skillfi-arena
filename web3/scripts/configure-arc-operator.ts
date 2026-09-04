@@ -76,7 +76,7 @@ async function main() {
     if (adminWallet.address.toLowerCase() !== adminAddress.toLowerCase()) {
       throw new Error("ARC_ADMIN_PRIVATE_KEY does not match ARC_ADMIN_ADDRESS");
     }
-    const escrow = readEscrow.connect(adminWallet);
+    const escrow = readEscrow.connect(adminWallet) as typeof readEscrow;
 
     if (!operatorAlreadyAuthorized) {
       const grantTx = await escrow.grantRole(operatorRole, operatorAddress, {
