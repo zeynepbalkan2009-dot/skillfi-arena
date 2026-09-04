@@ -25,12 +25,6 @@ export async function POST(request: NextRequest) {
   if (!profile) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: PRIVATE_NO_STORE });
   }
-  if (!isValueBearingEnabled()) {
-    return NextResponse.json(
-      { error: VALUE_BEARING_DISABLED_MESSAGE },
-      { status: 503, headers: { ...PRIVATE_NO_STORE, "Retry-After": "300" } },
-    );
-  }
 
   const body = (await request.json().catch(() => null)) as { gameId?: string; stakeAmount?: string; idempotencyKey?: string } | null;
   if (!body?.gameId || !body.stakeAmount || !body.idempotencyKey) {
@@ -100,6 +94,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "This idempotency key is already in use. Retry/recovery must not create another on-chain match." },
       { status: 409, headers: PRIVATE_NO_STORE }
+    );
+  }
+
+  // Allow safe idempotent recovery above even when value-bearing mode is off,
+  // but refuse any NEW economic exposure below unless release gates explicitly
+  // enabled the switch.
+  if (!isValueBearingEnabled()) {
+    return NextResponse.json(
+      { error: VALUE_BEARING_DISABLED_MESSAGE },
+      { status: 503, headers: { ...PRIVATE_NO_STORE, "Retry-After": "300" } },
     );
   }
 
