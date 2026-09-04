@@ -4,12 +4,13 @@ import { getCurrentProfile } from "@/lib/auth/server";
 import { escrowPublicClient, getEscrowWalletClient, ESCROW_CONTRACT_ADDRESS, skillFiEscrowAbi } from "@/lib/serverEscrow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { recordAuditEvent } from "@/lib/audit";
-import { confirmStakeReservation } from "@/lib/risk";
+import { confirmStakeReservation, getStakeReservation } from "@/lib/risk";
 import { BETA_ACCESS_ERROR, hasActiveBetaAccess } from "@/lib/betaPilot";
 import { isPilotGameId } from "@/lib/pilotGames";
 
 export const dynamic = "force-dynamic";
 const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentProfile(request.headers.get("authorization"));
@@ -53,6 +54,54 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not load match" }, { status: 500, headers: PRIVATE_NO_STORE });
   }
   if (!dbMatch) return NextResponse.json({ error: "Match not indexed" }, { status: 404, headers: PRIVATE_NO_STORE });
+
+  const participantIds = [dbMatch.player_a_id, dbMatch.player_b_id].filter((id): id is string => Boolean(id));
+  const { data: dbParticipants, error: participantError } = await supabaseAdmin
+    .from("users")
+    .select("id,wallet_address")
+    .in("id", participantIds);
+  if (participantError) {
+    console.error("Join participant lookup failed:", participantError.message);
+    return NextResponse.json({ error: "Could not verify match participants" }, { status: 500, headers: PRIVATE_NO_STORE });
+  }
+  const walletsByUser = new Map<string, string>(
+    ((dbParticipants ?? []) as Array<{ id: string; wallet_address: string | null }>)
+      .filter((participant) => participant.wallet_address)
+      .map((participant) => [participant.id, getAddress(participant.wallet_address!).toLowerCase()]),
+  );
+  const creatorWallet = walletsByUser.get(dbMatch.player_a_id);
+  if (!creatorWallet || creatorWallet !== player1.toLowerCase()) {
+    return NextResponse.json({ error: "On-chain creator does not match the database match creator" }, { status: 409, headers: PRIVATE_NO_STORE });
+  }
+  if (caller === player1 && user.id !== dbMatch.player_a_id) {
+    return NextResponse.json({ error: "Authenticated user does not match the bound match creator" }, { status: 403, headers: PRIVATE_NO_STORE });
+  }
+  if (caller === player2 && player2.toLowerCase() !== ZERO_ADDRESS) {
+    if (dbMatch.player_b_id && user.id !== dbMatch.player_b_id) {
+      return NextResponse.json({ error: "Authenticated user does not match the indexed opponent" }, { status: 403, headers: PRIVATE_NO_STORE });
+    }
+    if (dbMatch.player_b_id) {
+      const indexedOpponentWallet = walletsByUser.get(dbMatch.player_b_id);
+      if (!indexedOpponentWallet || indexedOpponentWallet !== player2.toLowerCase()) {
+        return NextResponse.json({ error: "On-chain opponent does not match the database participant" }, { status: 409, headers: PRIVATE_NO_STORE });
+      }
+    } else {
+      const reservation = await getStakeReservation(`join:${dbMatch.id}:${user.id}`);
+      if (
+        !reservation
+        || reservation.user_id !== user.id
+        || reservation.match_id !== dbMatch.id
+        || BigInt(reservation.amount) !== onchain[2]
+        || !["reserved", "confirmed"].includes(reservation.status)
+      ) {
+        return NextResponse.json(
+          { error: "A valid stake risk reservation is required before joining this match" },
+          { status: 409, headers: PRIVATE_NO_STORE },
+        );
+      }
+    }
+  }
+
   const game = dbMatch.game as unknown as { slug?: string } | null;
   if (isPilotGameId(game?.slug) && !(await hasActiveBetaAccess(user.id))) {
     return NextResponse.json({ error: BETA_ACCESS_ERROR }, { status: 403, headers: PRIVATE_NO_STORE });
