@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { ChallengeCard } from "@/components/ChallengeCard";
 import { WaitingMotion } from "@/components/motion/WaitingMotion";
 import { CreateChallengeModal } from "@/components/CreateChallengeModal";
@@ -15,22 +14,7 @@ import {
   PilotSection,
 } from "@/components/MarketingSections";
 import { useSkillFiUser } from "@/components/AuthSync";
-import { supabase } from "@/lib/supabaseClient";
-import type { Game, Match, MatchWithRelations } from "@/lib/types";
-
-const REALTIME_MATCH_COLUMNS = [
-  "id",
-  "smart_contract_match_id",
-  "game_id",
-  "player_a_id",
-  "player_b_id",
-  "stake_amount",
-  "status",
-  "winner_id",
-  "started_at",
-  "created_at",
-  "updated_at",
-];
+import type { Game, MatchWithRelations } from "@/lib/types";
 
 export function LobbyClient({
   initialMatches,
@@ -53,6 +37,8 @@ export function LobbyClient({
   }, [initialMatches]);
 
   useEffect(() => {
+    let active = true;
+
     async function refreshOpenMatches() {
       const openResponse = await fetch("/api/matches/open", {
         cache: "no-store",
@@ -89,71 +75,19 @@ export function LobbyClient({
           ];
         }
       }
-      setMatches(nextMatches);
+      if (active) setMatches(nextMatches);
     }
 
     void refreshOpenMatches();
-  }, [currentUser, getAccessToken]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("public:matches")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "matches",
-          select: REALTIME_MATCH_COLUMNS,
-        },
-        (payload: RealtimePostgresChangesPayload<Match>) => {
-          void handleRealtimeChange(payload);
-        },
-      )
-      .subscribe();
+    const timer = window.setInterval(() => {
+      void refreshOpenMatches();
+    }, 5_000);
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      window.clearInterval(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [games, currentUser?.id]);
-
-  async function handleRealtimeChange(
-    payload: RealtimePostgresChangesPayload<Match>,
-  ) {
-    if (payload.eventType === "DELETE") {
-      const oldRow = payload.old as Partial<Match>;
-      setMatches((current) =>
-        current.filter((match) => match.id !== oldRow.id),
-      );
-      return;
-    }
-
-    const row = payload.new as Match;
-    const isOwnPending =
-      row.status === "waiting_on_chain" && row.player_a_id === currentUser?.id;
-    if (row.status !== "searching" && !isOwnPending) {
-      setMatches((current) => current.filter((match) => match.id !== row.id));
-      return;
-    }
-
-    const game = games.find((item) => item.id === row.game_id) ?? null;
-    const { data: playerA } = await supabase
-      .from("public_profiles")
-      .select("id,username,display_name,avatar_url,region")
-      .eq("id", row.player_a_id)
-      .maybeSingle();
-
-    const withRelations: MatchWithRelations = {
-      ...row,
-      game,
-      player_a: playerA ? { ...playerA, wallet_address: null } : null,
-    };
-    setMatches((current) => [
-      withRelations,
-      ...current.filter((match) => match.id !== row.id),
-    ]);
-  }
+  }, [currentUser, getAccessToken]);
 
   const sortedMatches = useMemo(
     () =>
