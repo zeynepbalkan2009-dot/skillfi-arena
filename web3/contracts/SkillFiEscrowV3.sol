@@ -19,6 +19,10 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
     // Waiting-for-players timeout. Kept under the legacy name for compatibility.
     uint256 public matchTimeout = 30 minutes;
+    // Extra recovery window after the waiting deadline for a READY match that
+    // the operator failed to start. This avoids indefinitely locked deposits
+    // without changing the public Match struct layout.
+    uint256 public readyMatchGrace = 10 minutes;
     uint256 public activeMatchTimeout = 30 minutes;
 
     enum MatchStatus {
@@ -57,6 +61,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     event MatchRefunded(uint256 indexed matchId, address indexed player, uint256 amount);
     event TreasuryUpdated(address treasury);
     event WaitingTimeoutUpdated(uint256 timeoutSeconds);
+    event ReadyGraceUpdated(uint256 graceSeconds);
     event ActiveTimeoutUpdated(uint256 timeoutSeconds);
 
     constructor(
@@ -131,6 +136,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     function startMatch(uint256 matchId) external onlyRole(OPERATOR_ROLE) whenNotPaused {
         Match storage m = matches[matchId];
         require(m.status == MatchStatus.READY, "not ready");
+        require(block.timestamp <= m.createdAt + matchTimeout + readyMatchGrace, "ready match expired");
 
         m.status = MatchStatus.IN_PROGRESS;
         m.startedAt = block.timestamp;
@@ -184,9 +190,7 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
     {
         Match storage m = matches[matchId];
         require(
-            m.status != MatchStatus.RESOLVED &&
-                m.status != MatchStatus.CANCELLED &&
-                m.status != MatchStatus.EXPIRED,
+            m.status == MatchStatus.WAITING_FOR_PLAYERS || m.status == MatchStatus.READY,
             "invalid state"
         );
 
@@ -201,6 +205,16 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
 
     function reclaimExpiredMatch(uint256 matchId) external nonReentrant {
         _expireWaitingMatch(matchId);
+    }
+
+    function reclaimReadyMatch(uint256 matchId) external nonReentrant {
+        Match storage m = matches[matchId];
+        require(m.status == MatchStatus.READY, "invalid state");
+        require(block.timestamp > m.createdAt + matchTimeout + readyMatchGrace, "not expired");
+
+        m.status = MatchStatus.EXPIRED;
+        _refund(matchId);
+        emit MatchExpired(matchId);
     }
 
     function reclaimActiveMatch(uint256 matchId) external nonReentrant {
@@ -266,6 +280,13 @@ contract SkillFiEscrowV3 is AccessControl, ReentrancyGuard, Pausable {
         require(_timeout >= 5 minutes, "too low");
         matchTimeout = _timeout;
         emit WaitingTimeoutUpdated(_timeout);
+    }
+
+    function setReadyGrace(uint256 _grace) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_grace >= 1 minutes, "too low");
+        require(_grace <= 1 hours, "too high");
+        readyMatchGrace = _grace;
+        emit ReadyGraceUpdated(_grace);
     }
 
     function setActiveTimeout(uint256 _timeout) external onlyRole(DEFAULT_ADMIN_ROLE) {
