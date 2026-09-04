@@ -21,6 +21,7 @@ const contentSecurityPolicy = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
   experimental: {
     webpackBuildWorker: false,
   },
@@ -38,6 +39,12 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/api/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+        ],
+      },
       {
         source: "/:path*",
         headers: [
