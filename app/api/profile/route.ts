@@ -8,6 +8,9 @@ type UpdateProfileBody = {
   avatarUrl?: string | null;
 };
 
+export const dynamic = "force-dynamic";
+const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
+
 function validateUsername(username: string): string {
   const trimmed = username.trim();
   if (!/^[a-zA-Z0-9_]{3,24}$/.test(trimmed)) {
@@ -19,22 +22,22 @@ function validateUsername(username: string): string {
 export async function GET(request: NextRequest) {
   const profile = await getCurrentProfile(request.headers.get("authorization"));
   if (!profile) {
-    return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401 });
+    return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401, headers: PRIVATE_NO_STORE });
   }
-  return NextResponse.json({ user: profile }, { status: 200 });
+  return NextResponse.json({ user: profile }, { status: 200, headers: PRIVATE_NO_STORE });
 }
 
 export async function PATCH(request: NextRequest) {
   const profile = await getCurrentProfile(request.headers.get("authorization"));
   if (!profile) {
-    return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401 });
+    return NextResponse.json({ error: "Invalid or missing Privy access token" }, { status: 401, headers: PRIVATE_NO_STORE });
   }
 
   let body: UpdateProfileBody;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers: PRIVATE_NO_STORE });
   }
 
   const update: Record<string, string | null> = {};
@@ -43,11 +46,11 @@ export async function PATCH(request: NextRequest) {
     if (body.displayName !== undefined) update.display_name = body.displayName?.trim() || null;
     if (body.avatarUrl !== undefined) update.avatar_url = body.avatarUrl?.trim() || null;
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid profile" }, { status: 422 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid profile" }, { status: 422, headers: PRIVATE_NO_STORE });
   }
 
   if (Object.keys(update).length === 0) {
-    return NextResponse.json({ error: "No editable profile fields supplied" }, { status: 422 });
+    return NextResponse.json({ error: "No editable profile fields supplied" }, { status: 422, headers: PRIVATE_NO_STORE });
   }
 
   const { data, error } = await supabaseAdmin
@@ -60,8 +63,8 @@ export async function PATCH(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Profile update conflict" }, { status: 409 });
+    return NextResponse.json({ error: "Profile update conflict" }, { status: 409, headers: PRIVATE_NO_STORE });
   }
 
-  return NextResponse.json({ user: data }, { status: 200 });
+  return NextResponse.json({ user: data }, { status: 200, headers: PRIVATE_NO_STORE });
 }
