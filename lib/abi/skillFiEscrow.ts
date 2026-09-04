@@ -112,6 +112,20 @@ export const skillFiEscrowAbi = [
   },
   {
     type: "function",
+    name: "depositsEnabled",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "setDepositsEnabled",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "_enabled", type: "bool" }],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "readyMatchGrace",
     stateMutability: "view",
     inputs: [],
@@ -207,6 +221,12 @@ export const skillFiEscrowAbi = [
     type: "event",
     name: "MatchExpired",
     inputs: [{ name: "matchId", type: "uint256", indexed: true }],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "DepositsEnabledUpdated",
+    inputs: [{ name: "enabled", type: "bool", indexed: false }],
     anonymous: false,
   },
 ] as const;
