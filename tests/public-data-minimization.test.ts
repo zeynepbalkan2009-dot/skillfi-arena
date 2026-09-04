@@ -33,3 +33,14 @@ test("realtime lobby resolves creator through the public profile projection", ()
   assert.match(text, /\.select\(["']id,username,display_name,avatar_url,region["']\)/);
   assert.doesNotMatch(text, /\.from\(["']users["']\)[\s\S]{0,180}wallet_address/);
 });
+
+test("invite-token and accepted-challenge payloads exclude wallets and wildcard relations", () => {
+  for (const path of ["app/challenge/[token]/page.tsx", "app/api/challenges/[id]/accept/route.ts"]) {
+    const text = source(path);
+    assert.doesNotMatch(text, /wallet_address/);
+    assert.doesNotMatch(text, /games\(\*\)/);
+    assert.doesNotMatch(text, /\.select\(\s*["'`]\*["'`]\s*\)/);
+    assert.doesNotMatch(text, /created_by_user_id/);
+    assert.doesNotMatch(text, /studio_id/);
+  }
+});
