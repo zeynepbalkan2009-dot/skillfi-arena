@@ -1,70 +1,82 @@
 import { readFileSync } from "node:fs";
-import { createPublicClient, defineChain, http, keccak256, stringToBytes } from "viem";
+import {
+  Contract,
+  JsonRpcProvider,
+  ZeroAddress,
+  ZeroHash,
+  getAddress,
+  keccak256,
+  toUtf8Bytes,
+} from "ethers";
 
 const deployment = JSON.parse(
   readFileSync(new URL("../deployments/arc-testnet-v3.json", import.meta.url), "utf8")
 );
-const expectedUsdc = "0x3600000000000000000000000000000000000000";
-const zeroAddress = "0x0000000000000000000000000000000000000000";
-const defaultAdminRole = `0x${"00".repeat(32)}`;
+const expectedUsdc = getAddress("0x3600000000000000000000000000000000000000");
+const expectedChainId = 5_042_002n;
 const expectedDepositsRaw = process.env.ARC_EXPECT_DEPOSITS_ENABLED?.trim() ?? "0";
 if (expectedDepositsRaw !== "0" && expectedDepositsRaw !== "1") {
   throw new Error("ARC_EXPECT_DEPOSITS_ENABLED must be exactly 0 or 1");
 }
 const expectedDepositsEnabled = expectedDepositsRaw === "1";
-
-const arcTestnet = defineChain({
-  id: 5_042_002,
-  name: "Arc Testnet",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: { default: { http: [process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network"] } },
-  blockExplorers: { default: { name: "ArcScan", url: "https://testnet.arcscan.app" } },
-  testnet: true,
-});
-
-const client = createPublicClient({ chain: arcTestnet, transport: http() });
+const rpcUrl = process.env.ARC_TESTNET_RPC_URL?.trim() || "https://rpc.testnet.arc.network";
+const provider = new JsonRpcProvider(rpcUrl, Number(expectedChainId), { staticNetwork: true });
 const abi = [
-  { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ type: "bytes32" }, { type: "address" }], outputs: [{ type: "bool" }] },
-  { type: "function", name: "token", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
-  { type: "function", name: "treasury", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
-  { type: "function", name: "platformFeeBps", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "matchTimeout", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "readyMatchGrace", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "activeMatchTimeout", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "disputeTimeout", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "depositsEnabled", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
-  { type: "function", name: "paused", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
+  "function hasRole(bytes32 role, address account) view returns (bool)",
+  "function token() view returns (address)",
+  "function treasury() view returns (address)",
+  "function platformFeeBps() view returns (uint256)",
+  "function matchTimeout() view returns (uint256)",
+  "function readyMatchGrace() view returns (uint256)",
+  "function activeMatchTimeout() view returns (uint256)",
+  "function disputeTimeout() view returns (uint256)",
+  "function depositsEnabled() view returns (bool)",
+  "function paused() view returns (bool)",
 ];
 
-function distinctCriticalRoles() {
-  const critical = [deployment.deployer, deployment.admin, deployment.operator, deployment.arbiter, deployment.treasury]
-    .map((value) => String(value).toLowerCase());
-  return critical.every((value) => value !== zeroAddress) && new Set(critical).size === critical.length;
+function normalizedAddress(value, label) {
+  try {
+    return getAddress(String(value));
+  } catch {
+    throw new Error(`${label} is not a valid EVM address`);
+  }
 }
 
-const operatorRole = keccak256(stringToBytes("OPERATOR_ROLE"));
-const arbiterRole = keccak256(stringToBytes("ARBITER_ROLE"));
-const escrowAddress = deployment.escrow;
+const escrowAddress = normalizedAddress(deployment.escrow, "deployment.escrow");
+const deployer = normalizedAddress(deployment.deployer, "deployment.deployer");
+const admin = normalizedAddress(deployment.admin, "deployment.admin");
+const operator = normalizedAddress(deployment.operator, "deployment.operator");
+const arbiter = normalizedAddress(deployment.arbiter, "deployment.arbiter");
+const deploymentTreasury = normalizedAddress(deployment.treasury, "deployment.treasury");
+const contract = new Contract(escrowAddress, abi, provider);
+
+function distinctCriticalRoles() {
+  const critical = [deployer, admin, operator, arbiter, deploymentTreasury].map((value) => value.toLowerCase());
+  return critical.every((value) => value !== ZeroAddress.toLowerCase()) && new Set(critical).size === critical.length;
+}
+
+const operatorRole = keccak256(toUtf8Bytes("OPERATOR_ROLE"));
+const arbiterRole = keccak256(toUtf8Bytes("ARBITER_ROLE"));
 const roleChecks = await Promise.all([
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.admin] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.operator] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.arbiter] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.deployer] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.deployer] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.deployer] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.admin] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.admin] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.operator] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.operator] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.arbiter] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.arbiter] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [defaultAdminRole, deployment.treasury] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [operatorRole, deployment.treasury] }),
-  client.readContract({ address: escrowAddress, abi, functionName: "hasRole", args: [arbiterRole, deployment.treasury] }),
+  contract.hasRole(ZeroHash, admin),
+  contract.hasRole(operatorRole, operator),
+  contract.hasRole(arbiterRole, arbiter),
+  contract.hasRole(ZeroHash, deployer),
+  contract.hasRole(operatorRole, deployer),
+  contract.hasRole(arbiterRole, deployer),
+  contract.hasRole(operatorRole, admin),
+  contract.hasRole(arbiterRole, admin),
+  contract.hasRole(ZeroHash, operator),
+  contract.hasRole(arbiterRole, operator),
+  contract.hasRole(ZeroHash, arbiter),
+  contract.hasRole(operatorRole, arbiter),
+  contract.hasRole(ZeroHash, deploymentTreasury),
+  contract.hasRole(operatorRole, deploymentTreasury),
+  contract.hasRole(arbiterRole, deploymentTreasury),
 ]);
 
 const [
-  chainId,
+  network,
   escrowCode,
   tokenCode,
   token,
@@ -77,18 +89,18 @@ const [
   depositsEnabled,
   paused,
 ] = await Promise.all([
-  client.getChainId(),
-  client.getCode({ address: escrowAddress }),
-  client.getCode({ address: expectedUsdc }),
-  client.readContract({ address: escrowAddress, abi, functionName: "token" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "treasury" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "platformFeeBps" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "matchTimeout" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "readyMatchGrace" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "activeMatchTimeout" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "disputeTimeout" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "depositsEnabled" }),
-  client.readContract({ address: escrowAddress, abi, functionName: "paused" }),
+  provider.getNetwork(),
+  provider.getCode(escrowAddress),
+  provider.getCode(expectedUsdc),
+  contract.token(),
+  contract.treasury(),
+  contract.platformFeeBps(),
+  contract.matchTimeout(),
+  contract.readyMatchGrace(),
+  contract.activeMatchTimeout(),
+  contract.disputeTimeout(),
+  contract.depositsEnabled(),
+  contract.paused(),
 ]);
 
 const [
@@ -111,10 +123,10 @@ const [
 
 const checks = {
   contractVersion: deployment.contract === "SkillFiEscrowV3",
-  chainId: chainId === 5_042_002,
-  escrowBytecode: Boolean(escrowCode && escrowCode !== "0x"),
-  runtimeCodeHash: Boolean(escrowCode && deployment.runtimeCodeHash && keccak256(escrowCode) === deployment.runtimeCodeHash),
-  canonicalUsdcBytecode: Boolean(tokenCode && tokenCode !== "0x"),
+  chainId: network.chainId === expectedChainId,
+  escrowBytecode: escrowCode !== "0x",
+  runtimeCodeHash: Boolean(escrowCode !== "0x" && deployment.runtimeCodeHash && keccak256(escrowCode) === deployment.runtimeCodeHash),
+  canonicalUsdcBytecode: tokenCode !== "0x",
   criticalRolesSeparated: distinctCriticalRoles(),
   adminRole: adminHasAdminRole,
   operatorRole: hasOperatorRole,
@@ -124,8 +136,8 @@ const checks = {
   operatorHasNoOtherControlRole: !operatorHasAdminRole && !operatorHasArbiterRole,
   arbiterHasNoOtherControlRole: !arbiterHasAdminRole && !arbiterHasOperatorRole,
   treasuryHasNoControlRole: !treasuryHasAdminRole && !treasuryHasOperatorRole && !treasuryHasArbiterRole,
-  tokenMatchesCanonicalUsdc: token.toLowerCase() === expectedUsdc.toLowerCase(),
-  treasuryMatches: treasury.toLowerCase() === deployment.treasury.toLowerCase(),
+  tokenMatchesCanonicalUsdc: getAddress(token) === expectedUsdc,
+  treasuryMatches: getAddress(treasury) === deploymentTreasury,
   feeMatches: feeBps === BigInt(deployment.platformFeeBps),
   waitingTimeoutMatches: waitingTimeout === BigInt(deployment.waitingTimeout),
   readyGraceMatches: readyGrace === BigInt(deployment.readyGrace),
