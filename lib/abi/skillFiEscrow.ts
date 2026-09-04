@@ -49,6 +49,20 @@ export const skillFiEscrowAbi = [
   },
   {
     type: "function",
+    name: "reclaimReadyMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "reclaimActiveMatch",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "matchId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "resolveDispute",
     stateMutability: "nonpayable",
     inputs: [
@@ -77,6 +91,13 @@ export const skillFiEscrowAbi = [
   {
     type: "function",
     name: "platformFeeBps",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "readyMatchGrace",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
@@ -158,6 +179,12 @@ export const skillFiEscrowAbi = [
       { name: "player", type: "address", indexed: true },
       { name: "amount", type: "uint256", indexed: false },
     ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MatchExpired",
+    inputs: [{ name: "matchId", type: "uint256", indexed: true }],
     anonymous: false,
   },
 ] as const;
