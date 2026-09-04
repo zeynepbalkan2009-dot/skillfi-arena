@@ -33,6 +33,18 @@ async function checkSettlementOperator() {
   }
 }
 
+async function checkOnchainDepositsEnabled(): Promise<boolean | null> {
+  try {
+    return await escrowPublicClient.readContract({
+      address: ESCROW_CONTRACT_ADDRESS,
+      abi: skillFiEscrowAbi,
+      functionName: "depositsEnabled",
+    });
+  } catch {
+    return null;
+  }
+}
+
 function checkStudioFeeConfig(): boolean {
   try {
     getStudioFeeConfig();
@@ -44,7 +56,7 @@ function checkStudioFeeConfig(): boolean {
 
 export async function GET() {
   const startedAt = Date.now();
-  const [gamesResult, cohortResult, guildResult, schemaResult, settlementOperatorReady] = await Promise.all([
+  const [gamesResult, cohortResult, guildResult, schemaResult, settlementOperatorReady, onchainDepositsEnabled] = await Promise.all([
     supabaseAdmin
       .from("games")
       .select("id", { count: "exact", head: true })
@@ -55,6 +67,7 @@ export async function GET() {
     supabaseAdmin.from("guilds").select("id", { count: "exact", head: true }),
     supabaseAdmin.from("schema_release_state").select("version").eq("id", 1).maybeSingle(),
     checkSettlementOperator(),
+    checkOnchainDepositsEnabled(),
   ]);
 
   const databaseOk = !gamesResult.error && !cohortResult.error && !guildResult.error && !schemaResult.error;
@@ -63,7 +76,14 @@ export async function GET() {
   const studioFeeConfigReady = checkStudioFeeConfig();
   const testAuthDisabled = !process.env.SKILLFI_TEST_PRIVY_TOKEN_MAP && !process.env.SKILLFI_TEST_PRIVY_USERS;
   const valueBearingEnabled = isValueBearingEnabled();
-  const status = databaseOk && pilotGamesReady && schemaReady && settlementOperatorReady && studioFeeConfigReady && testAuthDisabled
+  const valueBearingAligned = onchainDepositsEnabled !== null && onchainDepositsEnabled === valueBearingEnabled;
+  const status = databaseOk
+    && pilotGamesReady
+    && schemaReady
+    && settlementOperatorReady
+    && studioFeeConfigReady
+    && testAuthDisabled
+    && valueBearingAligned
     ? "ok"
     : "degraded";
 
@@ -82,7 +102,11 @@ export async function GET() {
       settlementOperator: settlementOperatorReady,
       studioFeeConfig: studioFeeConfigReady,
       testAuthenticationDisabled: testAuthDisabled,
-      valueBearingEnabled,
+      valueBearing: {
+        applicationEnabled: valueBearingEnabled,
+        onchainDepositsEnabled,
+        aligned: valueBearingAligned,
+      },
     },
     responseMs: Date.now() - startedAt,
     checkedAt: new Date().toISOString(),
