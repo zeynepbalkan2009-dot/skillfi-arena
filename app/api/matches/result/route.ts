@@ -3,7 +3,7 @@ import { getCurrentProfile } from "@/lib/auth/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { createPilotRound, isPilotGameId, scorePilotRound } from "@/lib/pilotGames";
 import { recordAuditEvent } from "@/lib/audit";
-import { MatchDisputedError, settleAndReconcileMatch } from "@/lib/settlement";
+import { MatchDisputedError, SettlementInProgressError, settleAndReconcileMatch } from "@/lib/settlement";
 
 export const dynamic = "force-dynamic";
 const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
@@ -124,6 +124,9 @@ export async function POST(request: NextRequest) {
     if (error instanceof MatchDisputedError) {
       await supabaseAdmin.from("matches").update({ status: "disputed" }).eq("id", match.id);
       return NextResponse.json({ error: error.message, status: "disputed" }, { status: 409, headers: PRIVATE_NO_STORE });
+    }
+    if (error instanceof SettlementInProgressError) {
+      return NextResponse.json({ status: "settling", score }, { status: 202, headers: PRIVATE_NO_STORE });
     }
     console.error("Pilot settlement failed:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Settlement is pending reconciliation", status: "settling" }, { status: 502, headers: PRIVATE_NO_STORE });
