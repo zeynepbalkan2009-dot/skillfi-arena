@@ -117,6 +117,14 @@ test("public health endpoint is sanitized and verifies the five-game cohort", ()
   assert.doesNotMatch(health, /SERVICE_ROLE|PRIVATE_KEY|wallet_address|privy_user_id/);
 });
 
+test("public game surfaces exclude unpublished and validation-only records", () => {
+  for (const file of ["app/games/page.tsx", "app/challenges/page.tsx"]) {
+    const source = readFileSync(file, "utf8");
+    assert.match(source, /eq\(["']integration_status["'],\s*["']published["']\)/);
+    assert.match(source, /not\(["']slug["'],\s*["']is["'],\s*null\)/);
+  }
+});
+
 test("pilot release gate combines local, capacity, and production checks", () => {
   const gate = readFileSync(join(root, "scripts/pilot-release-gate.mjs"), "utf8");
   assert.match(gate, /npm run typecheck/);
