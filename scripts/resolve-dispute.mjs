@@ -20,8 +20,8 @@ const service = createClient(normalizeUrl(env.NEXT_PUBLIC_SUPABASE_URL), env.SUP
 const rpcUrl = env.RPC_URL || env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL;
 const publicClient = createPublicClient({ transport: http(rpcUrl) });
 const chainId = await publicClient.getChainId();
-const rawArbiterKey = env.ARBITER_PRIVATE_KEY || (chainId === 84532 ? env.OPERATOR_PRIVATE_KEY : null);
-assert(rawArbiterKey, "ARBITER_PRIVATE_KEY is required outside Base Sepolia test validation");
+const rawArbiterKey = env.ARBITER_PRIVATE_KEY || env.OPERATOR_PRIVATE_KEY;
+assert(rawArbiterKey, "ARBITER_PRIVATE_KEY or OPERATOR_PRIVATE_KEY is required");
 const arbiter = privateKeyToAccount(rawArbiterKey.startsWith("0x") ? rawArbiterKey : `0x${rawArbiterKey}`);
 const walletClient = createWalletClient({ account: arbiter, transport: http(rpcUrl) });
 const abi = parseAbi([

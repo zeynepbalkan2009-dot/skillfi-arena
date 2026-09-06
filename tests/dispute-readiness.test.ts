@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import test from "node:test";
+
+const source = readFileSync(join(process.cwd(), "scripts/dispute-readiness.mjs"), "utf8");
+
+test("dispute readiness is read-only and redacts the arbiter wallet", () => {
+  assert.match(source, /getCode/);
+  assert.match(source, /hasRole/);
+  assert.match(source, /arbiter\.address\.slice/);
+  assert.match(source, /participant-dispute-required/);
+  assert.match(source, /ARBITER_PRIVATE_KEY \|\| env\.OPERATOR_PRIVATE_KEY/);
+  assert.match(source, /roles: \{ arbiter: hasArbiterRole, operator: hasOperatorRole, admin: hasAdminRole \}/);
+  assert.match(source, /if \(!hasArbiterRole\) process\.exitCode = 1/);
+  assert.doesNotMatch(source, /writeContract|console\.log\([^)]*rawArbiterKey/);
+});
