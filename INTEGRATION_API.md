@@ -1,5 +1,7 @@
 # SkillFi Game Server Integration
 
+> Production verification (2026-09-06): the hosted schema and catalog policy passed, private studio tables rejected anonymous reads, and an HMAC-signed sandbox result completed successfully through `https://skillfi-arena.vercel.app/api/integrations/v1/results`. Oversized requests and invalid signatures were rejected. This verifies the integration transport and authorization path on Arc Testnet; it is not authorization for real-value production contests.
+
 Studio integrations use per-game API keys. The plaintext key is shown once; SkillFi stores only its SHA-256 hash. Keys are scoped, expirable, revocable, and available only after a game reaches `sandbox` or `published` status.
 
 Sandbox credentials start with `sk_test_`. Publishing a validated game automatically revokes its sandbox credentials; create a new `sk_live_` credential from the studio portal after publication. Published games reject test credentials even if an inconsistent credential record remains active.
