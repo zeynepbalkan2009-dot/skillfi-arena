@@ -7,14 +7,25 @@
     border-color: theme("colors.arena-border");
   }
 
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+  }
 
   body {
     min-width: 320px;
-    background: radial-gradient(circle at 12% -10%, rgba(34, 211, 238, 0.11), transparent 30rem), #080b10;
+    background: #090d12;
+    color: #e7e9ec;
   }
 
-  ::selection { background: rgba(34, 211, 238, 0.3); color: #f8fafc; }
+  ::selection {
+    background: rgba(34, 211, 238, 0.3);
+    color: #f8fafc;
+  }
+
+  :focus-visible {
+    outline: 2px solid #22d3ee;
+    outline-offset: 3px;
+  }
 }
 
 @layer utilities {
@@ -27,10 +38,28 @@
     background-size: 32px 32px;
   }
 
-  .text-balance { text-wrap: balance; }
+  .text-balance {
+    text-wrap: balance;
+  }
 
   .glass-panel {
-    background: linear-gradient(145deg, rgba(16, 21, 29, 0.92), rgba(11, 15, 21, 0.76));
-    backdrop-filter: blur(18px);
+    background: rgba(16, 21, 29, 0.96);
+    backdrop-filter: blur(12px);
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: -4rem;
+    z-index: 100;
+    background: #e7e9ec;
+    color: #090d12;
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: top 0.15s;
+  }
+  .skip-link:focus {
+    top: 1rem;
   }
 }

@@ -1,35 +1,125 @@
 import Link from "next/link";
 import { GameShell } from "@/components/GameShell";
 
-const activity = [
-  { game: "Typing Sprint", result: "Victory", rival: "demo.player", prize: "+120 rating", color: "text-emerald-300" },
-  { game: "Logic Grid", result: "Defeat", rival: "test.runner", prize: "-24 rating", color: "text-rose-300" },
-  { game: "Pattern Lock", result: "Victory", rival: "pilot.bot", prize: "+85 rating", color: "text-emerald-300" },
-];
+const steps = [
+  [
+    "01",
+    "Choose a game",
+    "Five original skill games are available in the controlled pilot.",
+  ],
+  [
+    "02",
+    "Open a challenge",
+    "Set the testnet entry and wait for another approved pilot player.",
+  ],
+  [
+    "03",
+    "Play and verify",
+    "Both players receive the same deterministic round; results are recorded for review.",
+  ],
+] as const;
 
 export default function DashboardPage() {
   return (
     <GameShell>
-      <main className="mx-auto max-w-[1480px] px-4 py-7 sm:px-7 lg:py-9">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div><p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">Player command center</p><h1 className="mt-2 font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">Ready for the next fight?</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Your games, controlled challenges, guild orders and testnet activity—one tactical view.</p></div>
-          <Link href="/challenges" className="inline-flex items-center justify-center rounded-xl bg-cyan-300 px-5 py-3 text-sm font-black text-[#071015] shadow-[0_0_30px_-10px_#22d3ee] transition hover:bg-cyan-200">FIND A CHALLENGE →</Link>
-        </div>
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[['1,284','RATING','Diamond II'],['68%','WIN RATE','34 wins'],['126.40','USDC EARNED','Season total'],['#18','GUILD RANK','Arc Vanguard']].map(([value,label,note]) => <article key={label} className="rounded-2xl border border-white/7 bg-white/[0.035] p-5"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">{label}</p><p className="mt-3 font-display text-3xl font-bold text-white">{value}</p><p className="mt-1 text-xs text-slate-500">{note}</p></article>)}
+      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+        <section className="grid gap-10 border-b border-arena-border pb-12 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-arena-accent">
+              Controlled pilot / Arc Testnet
+            </p>
+            <h1 className="mt-5 max-w-3xl font-display text-5xl font-semibold leading-[0.98] tracking-[-0.035em] text-white sm:text-7xl">
+              Compete on skill.
+              <br />
+              <span className="text-slate-500">Verify the result.</span>
+            </h1>
+          </div>
+          <div className="lg:pb-1">
+            <p className="max-w-md text-sm leading-7 text-arena-muted">
+              A focused testing environment for deterministic
+              player-versus-player games. No simulated earnings, no fictional
+              activity feed, and no promised monetary value.
+            </p>
+            <Link
+              href="/challenges"
+              className="mt-7 inline-flex min-h-11 items-center bg-arena-accent px-5 text-sm font-semibold text-[#071015] transition-colors hover:bg-cyan-200"
+            >
+              Find a challenge{" "}
+              <span className="ml-8" aria-hidden="true">
+                ↗
+              </span>
+            </Link>
+          </div>
         </section>
-
-        <div className="mt-5 grid gap-5 xl:grid-cols-[1.6fr_1fr]">
-          <section className="relative min-h-[360px] overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(115deg,#101b2b_0%,#11172a_48%,#251536_100%)] p-7 sm:p-9">
-            <div className="absolute -right-16 -top-20 h-80 w-80 rounded-full bg-indigo-500/20 blur-3xl" /><div className="absolute bottom-0 right-0 h-56 w-2/3 bg-[linear-gradient(135deg,transparent,rgba(34,211,238,.08))]" />
-            <div className="relative flex h-full max-w-xl flex-col"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" /> Continue playing</div><h2 className="mt-8 font-display text-5xl font-black uppercase italic leading-none text-white sm:text-6xl">Neon<br/><span className="text-cyan-300">Tactics</span></h2><p className="mt-4 text-sm leading-6 text-slate-400">Ranked 2v2 · Your squad is online · Arc settlement enabled</p><div className="mt-auto flex flex-wrap gap-3 pt-8"><Link href="/games" className="rounded-xl bg-white px-5 py-3 text-sm font-black text-black">LAUNCH GAME</Link><Link href="/challenges" className="rounded-xl border border-white/15 bg-black/20 px-5 py-3 text-sm font-bold text-white">VIEW LOBBY</Link></div></div>
-          </section>
-
-          <section className="rounded-3xl border border-indigo-400/15 bg-indigo-500/[0.055] p-6"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-300">Guild war</p><h2 className="mt-2 font-display text-2xl font-bold">Arc Vanguard</h2></div><span className="grid h-12 w-12 place-items-center rounded-2xl border border-indigo-300/20 bg-indigo-300/10 text-2xl">⬢</span></div><div className="mt-7 rounded-2xl border border-white/7 bg-black/20 p-4"><div className="flex items-center justify-between text-xs"><span className="text-slate-500">This week</span><span className="font-bold text-indigo-200">VANGUARD vs VOIDRUNNERS</span></div><div className="mt-4 flex items-end gap-3"><span className="font-display text-5xl font-black text-white">42</span><span className="pb-2 text-slate-600">—</span><span className="font-display text-4xl font-bold text-slate-500">37</span></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-white/5"><div className="h-full w-[68%] bg-gradient-to-r from-indigo-400 to-cyan-300" /></div></div><div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-xl bg-white/[0.035] p-3"><p className="text-[10px] text-slate-600">TREASURY</p><p className="mt-1 font-bold">1,840 USDC</p></div><div className="rounded-xl bg-white/[0.035] p-3"><p className="text-[10px] text-slate-600">YOUR CONTRIBUTION</p><p className="mt-1 font-bold text-cyan-300">8 wins</p></div></div><Link href="/guilds" className="mt-5 block rounded-xl border border-indigo-300/20 py-3 text-center text-xs font-bold text-indigo-200 hover:bg-indigo-300/10">ENTER GUILD WAR ROOM</Link></section>
-        </div>
-
-        <section className="mt-5 rounded-3xl border border-white/7 bg-white/[0.025] p-6"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">Simulated combat log</p><h2 className="mt-1 font-display text-2xl font-bold">Preview matches</h2><p className="mt-1 text-xs text-slate-600">Illustrative UI data · not player history or financial returns</p></div><Link href="/profile" className="text-xs font-bold text-cyan-300">VIEW PROFILE →</Link></div><div className="mt-5 divide-y divide-white/5">{activity.map((item) => <div key={`${item.game}-${item.rival}`} className="grid grid-cols-[1fr_auto] gap-4 py-4 sm:grid-cols-[1.2fr_1fr_auto]"><div><p className="font-semibold text-white">{item.game}</p><p className="mt-1 text-xs text-slate-600">vs {item.rival}</p></div><p className={`hidden self-center text-sm font-bold sm:block ${item.color}`}>{item.result}</p><p className="self-center text-sm font-bold text-slate-300">{item.prize}</p></div>)}</div></section>
+        <section
+          className="grid border-b border-arena-border md:grid-cols-3"
+          aria-labelledby="flow-heading"
+        >
+          <h2 id="flow-heading" className="sr-only">
+            How the pilot works
+          </h2>
+          {steps.map(([index, title, copy]) => (
+            <article
+              key={index}
+              className="border-arena-border py-8 md:border-r md:px-7 md:first:pl-0 md:last:border-r-0 md:last:pr-0"
+            >
+              <p className="font-mono text-[10px] text-arena-accent">{index}</p>
+              <h3 className="mt-5 font-display text-2xl font-semibold text-white">
+                {title}
+              </h3>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-arena-muted">
+                {copy}
+              </p>
+            </article>
+          ))}
+        </section>
+        <section className="grid gap-8 py-12 lg:grid-cols-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Pilot status
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-semibold text-white">
+              Built for a small, observable cohort.
+            </h2>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-arena-muted">
+              The current release limits participation to 100 approved players.
+              Match creation, result submission, and feedback remain inspectable
+              during the pilot.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 border border-arena-border">
+            <div className="border-b border-r border-arena-border p-5">
+              <p className="text-[10px] uppercase tracking-[.16em] text-slate-600">
+                Games
+              </p>
+              <p className="mt-3 font-display text-3xl text-white">05</p>
+            </div>
+            <div className="border-b border-arena-border p-5">
+              <p className="text-[10px] uppercase tracking-[.16em] text-slate-600">
+                Cohort cap
+              </p>
+              <p className="mt-3 font-display text-3xl text-white">100</p>
+            </div>
+            <Link
+              href="/games"
+              className="border-r border-arena-border p-5 text-sm font-medium text-slate-300 hover:bg-white/[.025] hover:text-white"
+            >
+              Browse games{" "}
+              <span className="float-right" aria-hidden="true">
+                →
+              </span>
+            </Link>
+            <Link
+              href="/pilot"
+              className="p-5 text-sm font-medium text-slate-300 hover:bg-white/[.025] hover:text-white"
+            >
+              Pilot details{" "}
+              <span className="float-right" aria-hidden="true">
+                →
+              </span>
+            </Link>
+          </div>
+        </section>
       </main>
     </GameShell>
   );

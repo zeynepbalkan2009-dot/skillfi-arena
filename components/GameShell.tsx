@@ -5,44 +5,140 @@ import { usePathname } from "next/navigation";
 import { WalletConnect } from "@/components/WalletConnect";
 
 const navigation = [
-  { href: "/dashboard", label: "Command Center", mark: "⌂" },
-  { href: "/games", label: "Game Library", mark: "▦" },
-  { href: "/challenges", label: "Challenges", mark: "⚔" },
-  { href: "/guilds", label: "Guild Wars", mark: "⬢" },
-];
+  { href: "/dashboard", label: "Overview", index: "01" },
+  { href: "/games", label: "Games", index: "02" },
+  { href: "/challenges", label: "Challenges", index: "03" },
+  { href: "/guilds", label: "Guilds", index: "04" },
+] as const;
 
 export function GameShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
   return (
-    <div className="min-h-screen bg-[#07090d] text-slate-100">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_76%_8%,rgba(99,102,241,0.13),transparent_28rem),radial-gradient(circle_at_15%_88%,rgba(34,211,238,0.08),transparent_24rem)]" />
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-white/7 bg-[#0b0e14]/95 px-4 py-5 backdrop-blur-xl lg:flex lg:flex-col">
-        <Link href="/" className="flex items-center gap-3 px-2" aria-label="SkillFi home">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-indigo-500 font-display text-xl font-black text-[#07090d]">S</span>
-          <div><p className="font-display text-lg font-bold tracking-[0.12em]">SKILLFI</p><p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Battle Network</p></div>
+    <div className="min-h-screen bg-arena-bg text-arena-text">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-arena-border bg-[#0b0f14] lg:flex lg:flex-col">
+        <Link
+          href="/"
+          className="border-b border-arena-border px-7 py-7"
+          aria-label="SkillFi home"
+        >
+          <span className="font-display text-xl font-bold tracking-[0.1em] text-white">
+            SKILLFI
+          </span>
+          <span className="ml-2 text-xs font-medium text-arena-muted">
+            ARENA
+          </span>
         </Link>
-        <p className="mt-8 px-3 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-600">Play</p>
-        <nav className="mt-3 space-y-1" aria-label="Player navigation">
+        <nav className="px-4 py-6" aria-label="Player navigation">
+          <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            Workspace
+          </p>
           {navigation.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return <Link key={item.href} href={item.href} className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${active ? "bg-white/10 text-white shadow-[inset_3px_0_0_#22d3ee]" : "text-slate-500 hover:bg-white/5 hover:text-slate-200"}`}><span className={`grid h-7 w-7 place-items-center rounded-lg text-base ${active ? "bg-cyan-300/15 text-cyan-300" : "bg-white/5 group-hover:text-slate-300"}`}>{item.mark}</span>{item.label}{item.label === "Challenges" && <span className="ml-auto rounded-full bg-rose-400/15 px-2 py-0.5 text-[10px] font-bold text-rose-300">LIVE</span>}</Link>;
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center border-t border-white/[0.06] px-3 py-4 text-sm transition-colors last:border-b ${active ? "bg-white/[0.045] text-white" : "text-arena-muted hover:bg-white/[0.025] hover:text-white"}`}
+              >
+                <span
+                  className={`mr-4 font-mono text-[10px] ${active ? "text-arena-accent" : "text-slate-700"}`}
+                >
+                  {item.index}
+                </span>
+                <span className="font-medium">{item.label}</span>
+                {active && (
+                  <span
+                    className="ml-auto h-1.5 w-1.5 rounded-full bg-arena-accent"
+                    aria-hidden="true"
+                  />
+                )}
+              </Link>
+            );
           })}
         </nav>
-        <div className="mt-auto rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-indigo-500/10 to-cyan-400/5 p-4">
-          <div className="flex items-center justify-between"><span className="text-xs font-bold text-indigo-200">ARC SEASON 01</span><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" /></div>
-          <p className="mt-3 font-display text-2xl font-bold">12D 08H</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Guild ranking locks at season end. Every verified win counts.</p>
+        <div className="mt-auto border-t border-arena-border px-7 py-6">
+          <div className="flex items-center gap-2 text-[11px] text-arena-muted">
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+              aria-hidden="true"
+            />
+            Testnet systems online
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-600">
+            Controlled pilot · no real-value rewards
+          </p>
         </div>
       </aside>
-
-      <div className="relative lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/7 bg-[#090c11]/85 px-4 backdrop-blur-xl sm:px-7">
-          <nav className="flex items-center gap-1 lg:hidden" aria-label="Mobile player navigation">{navigation.map((item) => <Link key={item.href} href={item.href} aria-label={item.label} className={`grid h-9 w-9 place-items-center rounded-lg ${pathname === item.href ? "bg-cyan-300/15 text-cyan-300" : "text-slate-500"}`}>{item.mark}</Link>)}</nav>
-          <div className="hidden items-center gap-2 text-xs text-slate-500 lg:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Arc Testnet operational</div>
-          <div className="flex items-center gap-3"><Link href="/profile" className="hidden rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-white/20 sm:block">Player profile</Link><WalletConnect /></div>
+      <div className="lg:pl-60">
+        <header className="sticky top-0 z-30 border-b border-arena-border bg-arena-bg/95 backdrop-blur-lg">
+          <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-7">
+            <Link
+              href="/"
+              className="font-display text-sm font-bold tracking-[0.12em] text-white lg:hidden"
+            >
+              SKILLFI{" "}
+              <span className="font-body font-normal tracking-normal text-arena-muted">
+                Arena
+              </span>
+            </Link>
+            <nav
+              className="hidden items-center gap-6 text-xs sm:flex lg:hidden"
+              aria-label="Tablet player navigation"
+            >
+              {navigation.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={
+                    pathname.startsWith(item.href) ? "page" : undefined
+                  }
+                  className={
+                    pathname.startsWith(item.href)
+                      ? "text-white"
+                      : "text-arena-muted hover:text-white"
+                  }
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <p className="hidden text-xs text-arena-muted lg:block">
+              Skill-based competition infrastructure
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="hidden border border-arena-border px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white md:block"
+              >
+                Profile
+              </Link>
+              <WalletConnect />
+            </div>
+          </div>
+          <nav
+            className="grid grid-cols-4 border-t border-arena-border sm:hidden"
+            aria-label="Mobile player navigation"
+          >
+            {navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={
+                  pathname.startsWith(item.href) ? "page" : undefined
+                }
+                className={`py-2 text-center text-[10px] ${pathname.startsWith(item.href) ? "bg-white/[0.05] text-white" : "text-arena-muted"}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
         </header>
-        {children}
+        <div id="main-content">{children}</div>
       </div>
     </div>
   );
