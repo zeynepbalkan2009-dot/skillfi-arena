@@ -38,3 +38,20 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.code === "23505" ? "A pilot application already exists for this player" : "Could not create pilot application" }, { status: error.code === "23505" ? 409 : 500 });
   return NextResponse.json({ enrollment: data }, { status: 201 });
 }
+
+export async function PATCH(request: NextRequest) {
+  const user = await getCurrentProfile(request.headers.get("authorization"));
+  if (!user) return NextResponse.json({ error: "Sign in before changing pilot participation" }, { status: 401 });
+  const body = (await request.json().catch(() => null)) as { action?: string } | null;
+  if (body?.action !== "withdraw") return NextResponse.json({ error: "Unsupported pilot action" }, { status: 400 });
+
+  const { data, error } = await supabaseAdmin.from("beta_pilot_enrollments")
+    .update({ status: "withdrawn", withdrawn_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .in("status", ["applied", "active"])
+    .select("*")
+    .maybeSingle();
+  if (error) return NextResponse.json({ error: "Could not withdraw pilot participation" }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Only an applied or active enrollment can be withdrawn" }, { status: 409 });
+  return NextResponse.json({ enrollment: data });
+}
