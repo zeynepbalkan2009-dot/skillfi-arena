@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PixelFleetMotion } from "@/components/motion/PixelFleetMotion";
 
 const SESSION_STEPS = [
   ["01", "Choose", "Pick one of five measurable pilot games."],
@@ -78,6 +79,7 @@ export function MarketingHero() {
           className="px-5 py-14 sm:px-8 lg:py-20 lg:pl-12"
           aria-label="A pilot session"
         >
+          <PixelFleetMotion label="An original SkillFi pixel fleet entering the arena" />
           <div className="flex items-end justify-between border-b border-arena-border pb-5">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-arena-muted">

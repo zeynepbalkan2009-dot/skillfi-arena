@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { WalletConnect } from "@/components/WalletConnect";
+import { PixelFleetMotion } from "@/components/motion/PixelFleetMotion";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", index: "01" },
@@ -62,6 +63,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto border-t border-arena-border px-7 py-6">
+          <PixelFleetMotion compact label="SkillFi fleet status" />
           <div className="flex items-center gap-2 text-[11px] text-arena-muted">
             <span
               className="h-1.5 w-1.5 rounded-full bg-emerald-400"

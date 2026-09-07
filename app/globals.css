@@ -62,4 +62,128 @@
   .skip-link:focus {
     top: 1rem;
   }
+
+  .pixel-fleet {
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    max-width: 27rem;
+    aspect-ratio: 4 / 4.7;
+    margin: 0 auto 2rem;
+    overflow: hidden;
+    border: 1px solid rgba(34, 211, 238, 0.18);
+    background:
+      radial-gradient(circle at 50% 76%, rgba(34, 211, 238, 0.13), transparent 32%),
+      linear-gradient(180deg, rgba(9, 13, 18, 0.18), rgba(4, 7, 11, 0.86));
+    box-shadow: inset 0 0 4rem rgba(6, 182, 212, 0.05);
+  }
+
+  .pixel-fleet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      radial-gradient(circle, rgba(34, 211, 238, 0.55) 0 1px, transparent 1.5px),
+      radial-gradient(circle, rgba(167, 139, 250, 0.48) 0 1px, transparent 1.5px);
+    background-position: 0 0, 17px 23px;
+    background-size: 41px 47px, 59px 61px;
+    animation: pixel-star-drift 12s linear infinite;
+  }
+
+  .pixel-fleet__art {
+    position: absolute;
+    inset: -3% 0 auto;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.2));
+    animation: pixel-fleet-fly 5.5s ease-in-out infinite;
+  }
+
+  .pixel-fleet__scanline {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(34, 211, 238, 0.11) 49%,
+      rgba(34, 211, 238, 0.22) 50%,
+      transparent 52%
+    );
+    background-size: 100% 42%;
+    animation: pixel-scan 4.2s linear infinite;
+  }
+
+  .pixel-fleet__hud {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 3;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid rgba(34, 211, 238, 0.18);
+    background: rgba(4, 7, 11, 0.82);
+    padding: 0.65rem 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.13em;
+    color: #94a3b8;
+  }
+
+  .pixel-fleet__status {
+    color: #a3e635;
+  }
+
+  .pixel-fleet--compact {
+    max-width: 11rem;
+    margin-bottom: 1.25rem;
+    aspect-ratio: 4 / 3.1;
+  }
+
+  .pixel-fleet--compact .pixel-fleet__art {
+    inset: -31% 0 auto;
+  }
+
+  .pixel-fleet--compact .pixel-fleet__hud {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.48rem;
+  }
+
+  @keyframes pixel-fleet-fly {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1.01);
+    }
+    35% {
+      transform: translate3d(-1.2%, 1.4%, 0) scale(1.025);
+    }
+    70% {
+      transform: translate3d(1.1%, -0.8%, 0) scale(1.015);
+    }
+  }
+
+  @keyframes pixel-star-drift {
+    to {
+      background-position: 0 94px, 17px 145px;
+    }
+  }
+
+  @keyframes pixel-scan {
+    from {
+      background-position: 0 -60%;
+    }
+    to {
+      background-position: 0 160%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pixel-fleet::before,
+    .pixel-fleet__art,
+    .pixel-fleet__scanline {
+      animation: none;
+    }
+  }
 }
