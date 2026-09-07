@@ -1,0 +1,2 @@
+export const PILOT_TERMS_VERSION = "2026-08-31";
+export const PILOT_PRIVACY_VERSION = "2026-09-01";

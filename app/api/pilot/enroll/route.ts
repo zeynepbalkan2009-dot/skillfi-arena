@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { PILOT_PRIVACY_VERSION, PILOT_TERMS_VERSION } from "@/lib/pilotPolicy";
 
 export const dynamic = "force-dynamic";
-const TERMS_VERSION = "2026-08-31";
-const PRIVACY_VERSION = "2026-09-01";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentProfile(request.headers.get("authorization"));
@@ -30,8 +29,8 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin.from("beta_pilot_enrollments").insert({
     user_id: user.id,
-    terms_version: TERMS_VERSION,
-    privacy_version: PRIVACY_VERSION,
+    terms_version: PILOT_TERMS_VERSION,
+    privacy_version: PILOT_PRIVACY_VERSION,
     adult_attested_at: now,
     consented_at: now,
   }).select("*").single();

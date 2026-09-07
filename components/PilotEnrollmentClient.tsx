@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useSkillFiUser } from "@/components/AuthSync";
+import { PILOT_PRIVACY_VERSION, PILOT_TERMS_VERSION } from "@/lib/pilotPolicy";
 
 type Enrollment = { status: "applied" | "active" | "completed" | "withdrawn" | "rejected"; created_at: string };
 
@@ -54,7 +55,7 @@ export function PilotEnrollmentClient() {
 
   return <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[.05] p-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">Controlled beta cohort</p><h3 className="mt-2 text-xl font-bold text-white">100-player test access</h3></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">{loading ? "Syncing…" : `${active}/100 active`}</span></div>
-    {enrollment ? <EnrollmentStatus enrollment={enrollment} busy={busy} onWithdraw={() => void withdraw()}/> : <form onSubmit={submit} className="mt-5 space-y-3"><p className="text-sm leading-6 text-slate-400">Apply with your existing SkillFi profile. This pilot has no real deposits, prizes, lending, or production-value transfers.</p><Consent name="adult">I attest that I am at least 18 years old and eligible to participate where I live.</Consent><Consent name="terms">I accept the current pilot terms and understand this is a testnet product trial.</Consent><Consent name="privacy">I have read the privacy notice and consent to pilot telemetry and anonymized aggregate reporting.</Consent><button disabled={busy} className="mt-2 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-black text-[#071014] disabled:opacity-50">{busy ? "SUBMITTING…" : authenticated ? "APPLY FOR BETA" : "SIGN IN TO APPLY"}</button></form>}
+    {enrollment ? <EnrollmentStatus enrollment={enrollment} busy={busy} onWithdraw={() => void withdraw()}/> : <form onSubmit={submit} className="mt-5 space-y-3"><p className="text-sm leading-6 text-slate-400">Apply with your existing SkillFi profile. This pilot has no real deposits, prizes, lending, or production-value transfers.</p><Consent name="adult">I attest that I am at least 18 years old and eligible to participate where I live.</Consent><Consent name="terms">I have opened and accept the <PolicyLink href="/terms">pilot terms</PolicyLink> (version {PILOT_TERMS_VERSION}) and understand this is a testnet product trial.</Consent><Consent name="privacy">I have opened and read the <PolicyLink href="/privacy">privacy notice</PolicyLink> (version {PILOT_PRIVACY_VERSION}) and consent to pilot telemetry and anonymized aggregate reporting.</Consent><button disabled={busy} className="mt-2 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-black text-[#071014] disabled:opacity-50">{busy ? "SUBMITTING…" : authenticated ? "APPLY FOR BETA" : "SIGN IN TO APPLY"}</button></form>}
     {message && <p role="status" className="mt-4 text-sm text-amber-200">{message}</p>}
   </section>;
 }
@@ -73,4 +74,8 @@ function EnrollmentStatus({ enrollment, busy, onWithdraw }: { enrollment: Enroll
 
 function Consent({ name, children }: { name: string; children: React.ReactNode }) {
   return <label className="flex gap-3 rounded-lg border border-white/7 bg-black/15 p-3 text-sm leading-5 text-slate-400"><input required type="checkbox" name={name} className="mt-1 accent-cyan-300"/><span>{children}</span></label>;
+}
+
+function PolicyLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return <Link href={href} target="_blank" rel="noreferrer" className="font-semibold text-cyan-200 underline decoration-cyan-300/40 underline-offset-2">{children}</Link>;
 }

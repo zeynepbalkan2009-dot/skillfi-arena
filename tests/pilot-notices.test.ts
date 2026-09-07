@@ -6,9 +6,11 @@ test("live pilot notices identify providers, retention, and an honest dashboard"
   const privacy = readFileSync("app/privacy/page.tsx", "utf8");
   const dashboard = readFileSync("app/dashboard/page.tsx", "utf8");
   const enrollRoute = readFileSync("app/api/pilot/enroll/route.ts", "utf8");
+  const policy = readFileSync("lib/pilotPolicy.ts", "utf8");
   assert.match(privacy, /Privy.*Supabase.*Vercel.*Arc/s);
   assert.match(privacy, /up to 12 months/);
-  assert.match(enrollRoute, /2026-09-01/);
+  assert.match(enrollRoute, /PILOT_PRIVACY_VERSION/);
+  assert.match(policy, /2026-09-01/);
   assert.match(dashboard, /Controlled pilot \/ Arc Testnet/);
   assert.match(dashboard, /No simulated earnings, no fictional.*activity feed/s);
   assert.doesNotMatch(dashboard, /Simulated combat log|Preview matches|USDC EARNED/);
