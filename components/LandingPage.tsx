@@ -1,9 +1,160 @@
-"use client";
-
 import Link from "next/link";
+import {
+  MarketingDetails,
+  MarketingHero,
+  PilotSection,
+} from "@/components/MarketingSections";
 import { WalletConnect } from "@/components/WalletConnect";
-import { MarketingDetails, MarketingHero, PilotSection } from "@/components/MarketingSections";
+
+const ROUTES = [
+  {
+    index: "01",
+    title: "Game catalogue",
+    body: "Review the five playable pilot formats and their scoring rules.",
+    href: "/games",
+    action: "Browse games",
+  },
+  {
+    index: "02",
+    title: "Player workspace",
+    body: "See your pilot access, match history and readiness checks in one place.",
+    href: "/dashboard",
+    action: "Open workspace",
+  },
+  {
+    index: "03",
+    title: "Studio pathway",
+    body: "Understand the integration and review gates before submitting a game.",
+    href: "/studio",
+    action: "For studios",
+  },
+] as const;
 
 export function LandingPage() {
-  return <div className="min-h-screen"><header className="sticky top-0 z-40 border-b border-white/5 bg-arena-bg/85 backdrop-blur-xl"><div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8"><Link href="/" className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg border border-arena-accent/30 bg-arena-accent/10 font-display text-lg font-bold text-arena-accent shadow-arena-glow">S</span><div><p className="font-display text-lg font-bold leading-none tracking-[0.12em] text-white">SKILLFI</p><p className="mt-1 text-[10px] uppercase tracking-[0.28em] text-arena-muted">Arena</p></div></Link><nav className="hidden items-center gap-7 text-sm text-arena-muted md:flex"><a href="#how-it-works" className="hover:text-white">How it works</a><a href="#technology" className="hover:text-white">Technology</a><Link href="/games" className="hover:text-white">Games</Link><Link href="/guilds" className="hover:text-white">Guilds</Link></nav><div className="flex items-center gap-3"><Link href="/dashboard" className="hidden rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-white hover:border-cyan-300/40 sm:block">OPEN APP</Link><WalletConnect /></div></div></header><MarketingHero /><MarketingDetails /><section className="border-t border-white/5 bg-white/[0.015]"><div className="mx-auto grid max-w-6xl gap-5 px-5 py-20 sm:px-8 md:grid-cols-3">{[["Game Library","Discover competitive titles in a Steam-like library built around verified play.","/games"],["Challenge Arena","Create, fund and accept head-to-head challenges in a dedicated live lobby.","/challenges"],["Guild Wars","Coordinate a player-owned guild, vote on strategy and fight for season rank.","/guilds"]].map(([title,copy,href])=><Link key={title} href={href} className="group rounded-2xl border border-white/10 bg-arena-surface p-6 transition hover:-translate-y-1 hover:border-cyan-300/30"><p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-300">ENTER</p><h2 className="mt-6 font-display text-2xl font-bold text-white">{title}</h2><p className="mt-3 leading-7 text-arena-muted">{copy}</p><span className="mt-7 inline-block text-sm font-bold text-white group-hover:text-cyan-300">EXPLORE →</span></Link>)}</div></section><PilotSection /><footer className="border-t border-white/5"><div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-xs text-arena-muted sm:flex-row sm:items-center sm:justify-between sm:px-8"><p>© {new Date().getFullYear()} SkillFi Arena. Built for verifiable competition.</p><div className="flex gap-5"><Link href="/about">About</Link><Link href="/security">Security</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div></div></footer></div>;
+  return (
+    <div className="min-h-screen bg-arena-bg">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-40 border-b border-arena-border bg-arena-bg/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+          <Link
+            href="/"
+            aria-label="SkillFi Arena home"
+            className="flex items-baseline gap-2 text-white"
+          >
+            <span className="font-display text-base font-bold tracking-[0.14em]">
+              SKILLFI
+            </span>
+            <span className="text-xs uppercase tracking-[0.18em] text-arena-muted">
+              Arena
+            </span>
+          </Link>
+          <nav
+            aria-label="Main navigation"
+            className="hidden items-center gap-7 text-sm text-arena-muted md:flex"
+          >
+            <a href="#how-it-works" className="hover:text-white">
+              How it works
+            </a>
+            <a href="#pilot" className="hover:text-white">
+              Pilot
+            </a>
+            <Link href="/games" className="hover:text-white">
+              Games
+            </Link>
+            <Link href="/technology" className="hover:text-white">
+              Technology
+            </Link>
+          </nav>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="hidden text-sm font-semibold text-white hover:text-arena-accent sm:block"
+            >
+              Open workspace
+            </Link>
+            <WalletConnect />
+          </div>
+        </div>
+      </header>
+
+      <main id="main-content">
+        <MarketingHero />
+        <MarketingDetails />
+
+        <section
+          aria-labelledby="routes-title"
+          className="border-b border-arena-border"
+        >
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
+                  Find your route
+                </p>
+                <h2
+                  id="routes-title"
+                  className="mt-5 font-display text-3xl font-bold text-white sm:text-5xl"
+                >
+                  Start with what you need.
+                </h2>
+              </div>
+              <p className="max-w-sm text-sm leading-6 text-arena-muted">
+                Player tools, pilot games and studio documentation are separated
+                so each audience gets a clear next step.
+              </p>
+            </div>
+            <div className="mt-14 border-t border-arena-border">
+              {ROUTES.map((route) => (
+                <Link
+                  key={route.index}
+                  href={route.href}
+                  className="group grid gap-4 border-b border-arena-border py-7 transition hover:bg-white/[0.025] sm:grid-cols-[4rem_1fr_1fr_auto] sm:items-center sm:px-3"
+                >
+                  <span className="font-mono text-xs text-arena-accent">
+                    {route.index}
+                  </span>
+                  <h3 className="font-display text-xl font-semibold text-white">
+                    {route.title}
+                  </h3>
+                  <p className="max-w-md text-sm leading-6 text-arena-muted">
+                    {route.body}
+                  </p>
+                  <span className="text-sm font-semibold text-white group-hover:text-arena-accent">
+                    {route.action} →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <PilotSection />
+      </main>
+
+      <footer className="border-t border-arena-border">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-9 text-xs text-arena-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <p>© {new Date().getFullYear()} SkillFi Arena · Controlled pilot</p>
+          <nav
+            aria-label="Footer navigation"
+            className="flex flex-wrap gap-x-6 gap-y-3"
+          >
+            <Link href="/about" className="hover:text-white">
+              About
+            </Link>
+            <Link href="/security" className="hover:text-white">
+              Security
+            </Link>
+            <Link href="/privacy" className="hover:text-white">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-white">
+              Terms
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
+  );
 }

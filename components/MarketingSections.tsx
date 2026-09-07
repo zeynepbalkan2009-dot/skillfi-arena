@@ -1,57 +1,203 @@
+import Link from "next/link";
+
+const SESSION_STEPS = [
+  ["01", "Choose", "Pick one of five measurable pilot games."],
+  ["02", "Match", "Enter a queue with the same rules and round data."],
+  ["03", "Play", "Complete the deterministic skill challenge."],
+  ["04", "Record", "Review the submitted result and verification trail."],
+] as const;
+
+const PROOF_POINTS = [
+  ["05", "pilot games"],
+  ["100", "cohort cap"],
+  ["ARC", "test network"],
+  ["0", "real-value rewards"],
+] as const;
+
+const FLOW = [
+  {
+    number: "01",
+    title: "Pick a measurable game",
+    body: "Every pilot game has a fixed objective, explicit scoring rules and a result that can be inspected.",
+  },
+  {
+    number: "02",
+    title: "Enter a controlled queue",
+    body: "Participants receive the same match parameters. Capacity, regions and access remain limited during the pilot.",
+  },
+  {
+    number: "03",
+    title: "Play a shared round",
+    body: "The platform records the attempt, validates the outcome and keeps the match history available for review.",
+  },
+] as const;
+
 export function MarketingHero() {
-  const arcIsActive = process.env.NEXT_PUBLIC_CHAIN_TARGET === "arcTestnet";
   return (
-    <>
-      <section className="relative overflow-hidden border-b border-white/5">
-        <div className="pointer-events-none absolute inset-0 bg-arena-grid [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-        <div className="pointer-events-none absolute left-1/2 top-12 h-72 w-72 -translate-x-1/2 rounded-full bg-arena-accent/10 blur-[100px]" />
-        <div className="relative mx-auto grid max-w-6xl gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:py-32">
-          <div>
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-arena-accent/20 bg-arena-accent/5 px-3 py-1.5 text-xs font-medium text-arena-accent">
-              <span className="h-1.5 w-1.5 rounded-full bg-arena-win shadow-[0_0_10px_#34d399]" /> {arcIsActive ? "Live on Arc Testnet" : "Arc-native settlement in development"}
-            </div>
-            <h1 className="text-balance font-display text-5xl font-bold leading-[0.98] tracking-[-0.025em] text-white sm:text-6xl lg:text-7xl">
-              Play on skill.<br /><span className="text-arena-accent">Settle in USDC.</span>
-            </h1>
-            <p className="mt-7 max-w-xl text-balance text-lg leading-8 text-slate-400">
-              SkillFi Arena turns competitive matches into transparent peer-to-peer payment agreements—with equal deposits, non-custodial escrow, and verifiable settlement.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a href="/dashboard" className="rounded-lg bg-arena-accent px-6 py-3 text-center text-sm font-bold text-arena-bg transition hover:-translate-y-0.5 hover:bg-cyan-300">Enter the arena</a>
-              <a href="#technology" className="rounded-lg border border-arena-border bg-white/[0.03] px-6 py-3 text-center text-sm font-semibold text-white transition hover:border-slate-500 hover:bg-white/[0.06]">Explore the protocol</a>
-            </div>
-            <p className="mt-5 text-xs leading-5 text-arena-muted">Testnet product. No promise of returns. Availability is subject to eligibility and applicable law.</p>
+    <section
+      className="border-b border-arena-border"
+      aria-labelledby="hero-title"
+    >
+      <div className="mx-auto grid max-w-6xl lg:grid-cols-[1.18fr_0.82fr]">
+        <div className="px-5 py-20 sm:px-8 sm:py-28 lg:border-r lg:border-arena-border lg:pr-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
+            Controlled pilot · Arc Testnet
+          </p>
+          <h1
+            id="hero-title"
+            className="mt-7 max-w-3xl font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-white sm:text-7xl"
+          >
+            Skill should be visible in the result.
+          </h1>
+          <p className="mt-8 max-w-xl text-base leading-7 text-arena-muted sm:text-lg">
+            SkillFi Arena is a competitive-play pilot built around five
+            deterministic games, shared rounds and outcomes participants can
+            inspect.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <Link
+              href="/games"
+              className="bg-arena-accent px-5 py-3 text-sm font-bold text-arena-bg transition hover:bg-cyan-300"
+            >
+              Explore the games
+            </Link>
+            <Link
+              href="/pilot"
+              className="border-b border-arena-muted pb-1 text-sm font-semibold text-white transition hover:border-arena-accent hover:text-arena-accent"
+            >
+              Read the pilot brief →
+            </Link>
           </div>
-          <SettlementPreview />
+          <p className="mt-7 max-w-xl text-xs leading-5 text-arena-muted">
+            Testnet pilot only. Participation does not promise cash, tokens or
+            other real-value rewards.
+          </p>
         </div>
-      </section>
-      <section className="border-b border-white/5 bg-white/[0.015]">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-y divide-white/5 px-5 sm:px-8 md:grid-cols-4 md:divide-y-0">
-          <ProofStat value="48" label="contract tests" /><ProofStat value="ARC" label="testnet deployed" /><ProofStat value="6" label="decimal-safe USDC" /><ProofStat value="0" label="residual Base test escrow" />
-        </div>
-      </section>
-    </>
+
+        <aside
+          className="px-5 py-14 sm:px-8 lg:py-20 lg:pl-12"
+          aria-label="A pilot session"
+        >
+          <div className="flex items-end justify-between border-b border-arena-border pb-5">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-arena-muted">
+                Session anatomy
+              </p>
+              <p className="mt-2 font-display text-xl font-semibold text-white">
+                One round, four clear states
+              </p>
+            </div>
+            <span className="text-xs text-arena-accent">TEST / 01</span>
+          </div>
+          <ol>
+            {SESSION_STEPS.map(([number, title, body]) => (
+              <li
+                key={number}
+                className="grid grid-cols-[3rem_1fr] gap-3 border-b border-arena-border py-5"
+              >
+                <span className="font-mono text-xs text-arena-accent">
+                  {number}
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold text-white">{title}</h2>
+                  <p className="mt-1 text-sm leading-6 text-arena-muted">
+                    {body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </aside>
+      </div>
+
+      <dl className="mx-auto grid max-w-6xl grid-cols-2 border-x border-arena-border sm:grid-cols-4">
+        {PROOF_POINTS.map(([value, label], index) => (
+          <div
+            key={label}
+            className={`px-5 py-6 sm:px-7 ${index > 0 ? "border-l border-arena-border" : ""}`}
+          >
+            <dt className="text-xs uppercase tracking-[0.16em] text-arena-muted">
+              {label}
+            </dt>
+            <dd className="mt-2 font-display text-2xl font-bold text-white">
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
 export function MarketingDetails() {
   return (
     <>
-      <section id="how-it-works" className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
-        <SectionHeading eyebrow="The flow" title="From challenge to settlement" description="A simple competitive experience backed by explicit onchain state—not a black-box balance." />
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          <FeatureCard number="01" title="Create & fund" copy="A player sets the game, rules, and equal USDC entry amount. Funds move into non-custodial match escrow." />
-          <FeatureCard number="02" title="Compete & verify" copy="Both players compete under agreed rules. Authorized result handling links the game outcome to settlement." />
-          <FeatureCard number="03" title="Settle transparently" copy="The contract executes payout or refund logic while immutable events keep the lifecycle auditable." />
+      <section
+        id="how-it-works"
+        className="scroll-mt-24 border-b border-arena-border"
+      >
+        <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
+              How it works
+            </p>
+            <h2 className="mt-5 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl">
+              Fewer promises. More observable states.
+            </h2>
+          </div>
+          <ol className="mt-14 grid border-y border-arena-border md:grid-cols-3">
+            {FLOW.map((item, index) => (
+              <li
+                key={item.number}
+                className={`py-8 md:px-8 ${index > 0 ? "border-t border-arena-border md:border-l md:border-t-0" : ""}`}
+              >
+                <span className="font-mono text-xs text-arena-accent">
+                  {item.number}
+                </span>
+                <h3 className="mt-8 font-display text-xl font-semibold text-white">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-arena-muted">
+                  {item.body}
+                </p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
-      <section id="technology" className="border-y border-white/5 bg-white/[0.015]">
-        <div className="mx-auto grid max-w-6xl gap-14 px-5 py-24 sm:px-8 lg:grid-cols-2 lg:items-center">
+
+      <section
+        id="technology"
+        className="scroll-mt-24 border-b border-arena-border"
+      >
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:py-24">
           <div>
-            <SectionHeading eyebrow="Built for programmable money" title="Arc at the center of value" description="SkillFi escrow is live on Arc Testnet with canonical USDC. Public runs have completed payout, cancellation/refund, and participant dispute/arbiter resolution paths with zero residual escrow balance." />
-            <div className="mt-8 space-y-4"><TechRow title="Arc" copy="Deterministic home for match settlement and protocol activity." /><TechRow title="USDC" copy="Stable unit of account across deposits, refunds, and payouts." /><TechRow title="Circle stack" copy="Wallet onboarding and crosschain liquidity pathways under evaluation." /></div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
+              Verification path
+            </p>
+            <h2 className="mt-5 font-display text-3xl font-bold text-white">
+              Designed to be checked.
+            </h2>
           </div>
-          <ValueFlow />
+          <div className="max-w-2xl text-base leading-7 text-arena-muted">
+            <p>
+              A match moves through explicit queue, play, submission and result
+              states. The pilot focuses on whether those states remain
+              consistent across two players and whether disputes can be
+              investigated from recorded evidence.
+            </p>
+            <p className="mt-6 border-l-2 border-arena-accent pl-5 text-sm text-arena-text">
+              Value-bearing settlement infrastructure is not part of the current
+              public pilot. It remains gated behind product, security and legal
+              release reviews.
+            </p>
+            <Link
+              href="/technology"
+              className="mt-8 inline-block text-sm font-semibold text-white underline decoration-arena-muted underline-offset-4 hover:decoration-arena-accent"
+            >
+              Inspect the architecture →
+            </Link>
+          </div>
         </div>
       </section>
     </>
@@ -59,31 +205,29 @@ export function MarketingDetails() {
 }
 
 export function PilotSection() {
-  const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
-  const contactHref = contactEmail
-    ? `mailto:${contactEmail}?subject=SkillFi%20Arena%20Pilot`
-    : "/pilot";
-
   return (
-    <section className="border-t border-white/5">
-      <div className="mx-auto max-w-6xl px-5 py-20 text-center sm:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-arena-accent">Pilot partners</p>
-        <h2 className="mx-auto mt-4 max-w-2xl text-balance font-display text-4xl font-bold text-white">Help shape fair, global competitive settlement.</h2>
-        <p className="mx-auto mt-4 max-w-xl text-arena-muted">We are inviting esports communities, university clubs, and tournament operators to join the Arc testnet pilot.</p>
-        <a href={contactEmail ? contactHref : "/pilot"} className="mt-8 inline-flex rounded-lg border border-arena-accent/40 bg-arena-accent/10 px-6 py-3 text-sm font-bold text-arena-accent transition hover:bg-arena-accent hover:text-arena-bg">Become a pilot partner</a>
+    <section id="pilot" className="scroll-mt-24 bg-[#0d141b]">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:py-24">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
+            Pilot cohort
+          </p>
+          <h2 className="mt-5 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            Help test the competition, not the pitch.
+          </h2>
+          <p className="mt-6 max-w-2xl text-base leading-7 text-arena-muted">
+            We are preparing a limited cohort of players and game studios to
+            test matchmaking, result verification and operational controls
+            before a wider release.
+          </p>
+        </div>
+        <Link
+          href="/pilot"
+          className="w-fit border border-arena-accent px-5 py-3 text-sm font-bold text-arena-accent transition hover:bg-arena-accent hover:text-arena-bg"
+        >
+          View pilot requirements
+        </Link>
       </div>
     </section>
   );
 }
-
-function SettlementPreview() {
-  return <div className="relative mx-auto w-full max-w-lg"><div className="absolute -inset-12 rounded-full bg-arena-accent/10 blur-3xl" /><div className="glass-panel relative rounded-2xl border border-white/10 p-5 shadow-2xl shadow-black/40"><div className="flex items-center justify-between border-b border-white/5 pb-4"><div><p className="text-xs uppercase tracking-[0.2em] text-arena-muted">Settlement preview</p><p className="mt-1 font-display text-xl font-semibold text-white">1v1 Skill Match</p></div><span className="rounded-full border border-arena-win/20 bg-arena-win/10 px-2.5 py-1 text-xs font-semibold text-arena-win">Escrow ready</span></div><div className="my-7 flex items-center justify-around"><Player label="Player A" color="cyan" /><span className="font-display text-sm font-bold tracking-widest text-arena-muted">VS</span><Player label="Player B" color="green" /></div><div className="rounded-xl border border-white/5 bg-black/20 p-4"><div className="flex justify-between text-sm"><span className="text-arena-muted">Equal deposits</span><span className="font-semibold text-white">10 + 10 USDC</span></div><div className="mt-4 flex justify-between text-[11px] text-arena-muted"><span className="text-arena-accent">● Fund</span><span>○ Play</span><span>○ Verify</span><span>○ Settle</span></div></div><div className="mt-4 flex justify-between text-xs text-arena-muted"><span>USDC settlement</span><span>Transparent · Auditable</span></div></div></div>;
-}
-
-function Player({ label, color }: { label: string; color: "cyan" | "green" }) { return <div className="text-center"><div className={`mx-auto grid h-14 w-14 place-items-center rounded-xl border font-display text-lg font-bold ${color === "cyan" ? "border-arena-accent/30 bg-arena-accent/10 text-arena-accent" : "border-arena-win/30 bg-arena-win/10 text-arena-win"}`}>{label.slice(-1)}</div><p className="mt-2 text-xs text-slate-300">{label}</p></div>; }
-function ProofStat({ value, label }: { value: string; label: string }) { return <div className="px-4 py-8 text-center"><p className="font-display text-3xl font-bold text-white">{value}</p><p className="mt-1 text-xs uppercase tracking-wider text-arena-muted">{label}</p></div>; }
-function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) { return <div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-arena-accent">{eyebrow}</p><h2 className="mt-4 text-balance font-display text-4xl font-bold text-white sm:text-5xl">{title}</h2><p className="mt-5 max-w-2xl text-lg leading-8 text-arena-muted">{description}</p></div>; }
-function FeatureCard({ number, title, copy }: { number: string; title: string; copy: string }) { return <article className="rounded-2xl border border-white/10 bg-arena-surface p-6 transition hover:-translate-y-1 hover:border-arena-accent/30"><p className="font-display text-sm font-bold text-arena-accent">{number}</p><h3 className="mt-8 font-display text-2xl font-semibold text-white">{title}</h3><p className="mt-3 leading-7 text-arena-muted">{copy}</p></article>; }
-function TechRow({ title, copy }: { title: string; copy: string }) { return <div className="flex gap-4 rounded-xl border border-white/5 bg-arena-surface/70 p-4"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-arena-accent shadow-[0_0_10px_rgba(34,211,238,.8)]" /><div><p className="font-semibold text-white">{title}</p><p className="mt-1 text-sm leading-6 text-arena-muted">{copy}</p></div></div>; }
-function ValueFlow() { return <div className="rounded-2xl border border-white/10 bg-arena-surface p-6"><p className="text-xs uppercase tracking-[0.2em] text-arena-muted">Value architecture</p><div className="mt-6 space-y-3"><FlowNode label="Player wallets" note="Equal USDC deposits" /><p className="text-center text-arena-accent">↓</p><FlowNode label="SkillFi escrow on Arc" note="Rules · state · reconciliation" active /><p className="text-center text-arena-accent">↓</p><div className="grid grid-cols-2 gap-3"><FlowNode label="Winner payout" note="Verified result" /><FlowNode label="Player refunds" note="Cancelled flow" /></div></div></div>; }
-function FlowNode({ label, note, active = false }: { label: string; note: string; active?: boolean }) { return <div className={`rounded-xl border p-4 text-center ${active ? "border-arena-accent/40 bg-arena-accent/10 shadow-arena-glow" : "border-white/10 bg-black/20"}`}><p className="font-display font-semibold text-white">{label}</p><p className="mt-1 text-xs text-arena-muted">{note}</p></div>; }

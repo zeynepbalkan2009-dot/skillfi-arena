@@ -3,19 +3,33 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-  title: "SkillFi Arena — Play on skill. Settle in USDC.",
-  description: "Verifiable peer-to-peer skill competitions with non-custodial USDC escrow and transparent onchain settlement.",
-  keywords: ["SkillFi", "USDC", "Arc", "esports", "onchain settlement", "peer-to-peer payments"],
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ),
+  title: "SkillFi Arena — Verifiable skill competition",
+  description:
+    "A controlled competitive-play pilot with deterministic games, shared rounds and inspectable results.",
+  keywords: [
+    "SkillFi",
+    "skill games",
+    "Arc testnet",
+    "competitive gaming",
+    "verifiable results",
+  ],
   openGraph: {
-    title: "SkillFi Arena — Play on skill. Settle in USDC.",
-    description: "A transparent settlement layer for competitive play, built around USDC.",
+    title: "SkillFi Arena — Verifiable skill competition",
+    description:
+      "Five deterministic pilot games, shared rounds and inspectable results.",
     type: "website",
     siteName: "SkillFi Arena",
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className="dark">
       <body className="font-body bg-arena-bg text-arena-text antialiased">
