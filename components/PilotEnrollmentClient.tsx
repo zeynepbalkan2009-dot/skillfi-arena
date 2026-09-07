@@ -6,7 +6,10 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useSkillFiUser } from "@/components/AuthSync";
 import { PILOT_PRIVACY_VERSION, PILOT_TERMS_VERSION } from "@/lib/pilotPolicy";
 
-type Enrollment = { status: "applied" | "active" | "completed" | "withdrawn" | "rejected"; created_at: string };
+type Enrollment = {
+  status: "applied" | "active" | "completed" | "withdrawn" | "rejected";
+  created_at: string;
+};
 
 export function PilotEnrollmentClient() {
   const { authenticated, getAccessToken, login } = usePrivy();
@@ -23,59 +26,249 @@ export function PilotEnrollmentClient() {
   }, [authenticated, getAccessToken]);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/pilot/enroll", { headers: await headers(), cache: "no-store" });
+    const response = await fetch("/api/pilot/enroll", {
+      headers: await headers(),
+      cache: "no-store",
+    });
     const data = await response.json().catch(() => ({}));
-    if (response.ok) { setEnrollment(data.enrollment ?? null); setActive(data.capacity?.active ?? 0); }
-    else setMessage(data.error ?? "Pilot status could not be loaded.");
+    if (response.ok) {
+      setEnrollment(data.enrollment ?? null);
+      setActive(data.capacity?.active ?? 0);
+    } else setMessage(data.error ?? "Pilot status could not be loaded.");
     setLoading(false);
   }, [headers]);
 
-  useEffect(() => { if (!profileLoading) void load(); }, [profileLoading, load]);
+  useEffect(() => {
+    if (!profileLoading) void load();
+  }, [profileLoading, load]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!authenticated) { login(); return; }
-    if (!profile) { setMessage("Complete your player profile before applying."); return; }
+    if (!authenticated) {
+      login();
+      return;
+    }
+    if (!profile) {
+      setMessage("Complete your player profile before applying.");
+      return;
+    }
     const form = new FormData(event.currentTarget);
-    setBusy(true); setMessage("");
-    const response = await fetch("/api/pilot/enroll", { method: "POST", headers: { "Content-Type": "application/json", ...(await headers()) }, body: JSON.stringify({ adultAttested: form.get("adult") === "on", termsAccepted: form.get("terms") === "on", privacyAccepted: form.get("privacy") === "on" }) });
+    setBusy(true);
+    setMessage("");
+    const response = await fetch("/api/pilot/enroll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await headers()) },
+      body: JSON.stringify({
+        adultAttested: form.get("adult") === "on",
+        termsAccepted: form.get("terms") === "on",
+        privacyAccepted: form.get("privacy") === "on",
+      }),
+    });
     const data = await response.json().catch(() => ({}));
-    setBusy(false); setMessage(response.ok ? "Application received. Access remains locked until manual review." : data.error ?? "Application failed.");
+    setBusy(false);
+    setMessage(
+      response.ok
+        ? "Application received. Access remains locked until manual review."
+        : (data.error ?? "Application failed."),
+    );
     if (response.ok) await load();
   }
 
   async function withdraw() {
-    if (!window.confirm("Withdraw from the controlled pilot? You will immediately lose access to new pilot matches.")) return;
-    setBusy(true); setMessage("");
-    const response = await fetch("/api/pilot/enroll", { method: "PATCH", headers: { "Content-Type": "application/json", ...(await headers()) }, body: JSON.stringify({ action: "withdraw" }) });
+    if (
+      !window.confirm(
+        "Withdraw from the controlled pilot? You will immediately lose access to new pilot matches.",
+      )
+    )
+      return;
+    setBusy(true);
+    setMessage("");
+    const response = await fetch("/api/pilot/enroll", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...(await headers()) },
+      body: JSON.stringify({ action: "withdraw" }),
+    });
     const data = await response.json().catch(() => ({}));
-    setBusy(false); setMessage(response.ok ? "Pilot participation withdrawn. Existing audit records may be retained as described in the privacy notice." : data.error ?? "Withdrawal failed.");
+    setBusy(false);
+    setMessage(
+      response.ok
+        ? "Pilot participation withdrawn. Existing audit records may be retained as described in the privacy notice."
+        : (data.error ?? "Withdrawal failed."),
+    );
     if (response.ok) await load();
   }
 
-  return <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[.05] p-5">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">Controlled beta cohort</p><h3 className="mt-2 text-xl font-bold text-white">100-player test access</h3></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">{loading ? "Syncing…" : `${active}/100 active`}</span></div>
-    {enrollment ? <EnrollmentStatus enrollment={enrollment} busy={busy} onWithdraw={() => void withdraw()}/> : <form onSubmit={submit} className="mt-5 space-y-3"><p className="text-sm leading-6 text-slate-400">Apply with your existing SkillFi profile. This pilot has no real deposits, prizes, lending, or production-value transfers.</p><Consent name="adult">I attest that I am at least 18 years old and eligible to participate where I live.</Consent><Consent name="terms">I have opened and accept the <PolicyLink href="/terms">pilot terms</PolicyLink> (version {PILOT_TERMS_VERSION}) and understand this is a testnet product trial.</Consent><Consent name="privacy">I have opened and read the <PolicyLink href="/privacy">privacy notice</PolicyLink> (version {PILOT_PRIVACY_VERSION}) and consent to pilot telemetry and anonymized aggregate reporting.</Consent><button disabled={busy} className="mt-2 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-black text-[#071014] disabled:opacity-50">{busy ? "SUBMITTING…" : authenticated ? "APPLY FOR BETA" : "SIGN IN TO APPLY"}</button></form>}
-    {message && <p role="status" className="mt-4 text-sm text-amber-200">{message}</p>}
-  </section>;
+  return (
+    <section className="border-y border-cyan-300/20 bg-cyan-300/[.025]">
+      <div className="grid border-b border-cyan-300/20 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="px-5 py-5">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">
+            Controlled beta cohort
+          </p>
+          <h3 className="mt-2 text-xl font-bold text-white">
+            100-player test access
+          </h3>
+        </div>
+        <span className="border-t border-cyan-300/20 px-5 py-4 font-mono text-xs text-slate-400 sm:border-l sm:border-t-0">
+          {loading ? "Syncing…" : `${active}/100 active`}
+        </span>
+      </div>
+      <div className="px-5 py-5">
+        {enrollment ? (
+          <EnrollmentStatus
+            enrollment={enrollment}
+            busy={busy}
+            onWithdraw={() => void withdraw()}
+          />
+        ) : (
+          <form onSubmit={submit} className="mt-5 space-y-3">
+            <p className="text-sm leading-6 text-slate-400">
+              Apply with your existing SkillFi profile. This pilot has no real
+              deposits, prizes, lending, or production-value transfers.
+            </p>
+            <Consent name="adult">
+              I attest that I am at least 18 years old and eligible to
+              participate where I live.
+            </Consent>
+            <Consent name="terms">
+              I have opened and accept the{" "}
+              <PolicyLink href="/terms">pilot terms</PolicyLink> (version{" "}
+              {PILOT_TERMS_VERSION}) and understand this is a testnet product
+              trial.
+            </Consent>
+            <Consent name="privacy">
+              I have opened and read the{" "}
+              <PolicyLink href="/privacy">privacy notice</PolicyLink> (version{" "}
+              {PILOT_PRIVACY_VERSION}) and consent to pilot telemetry and
+              anonymized aggregate reporting.
+            </Consent>
+            <button
+              disabled={busy}
+              className="mt-2 bg-cyan-300 px-5 py-3 text-sm font-black text-[#071014] transition-colors hover:bg-cyan-200 disabled:opacity-50"
+            >
+              {busy
+                ? "SUBMITTING…"
+                : authenticated
+                  ? "APPLY FOR BETA"
+                  : "SIGN IN TO APPLY"}
+            </button>
+          </form>
+        )}
+        {message && (
+          <p
+            role="status"
+            className="mt-4 border-l-2 border-amber-200 pl-3 text-sm text-amber-200"
+          >
+            {message}
+          </p>
+        )}
+      </div>
+    </section>
+  );
 }
 
-function EnrollmentStatus({ enrollment, busy, onWithdraw }: { enrollment: Enrollment; busy: boolean; onWithdraw: () => void }) {
+function EnrollmentStatus({
+  enrollment,
+  busy,
+  onWithdraw,
+}: {
+  enrollment: Enrollment;
+  busy: boolean;
+  onWithdraw: () => void;
+}) {
   const descriptions: Record<Enrollment["status"], string> = {
-    applied: "Your application is queued for manual review. Competitive pilot games remain locked until activation.",
-    active: "Access granted. You can now practice the five games and enter controlled testnet challenges.",
-    completed: "Your current cohort participation is complete. Practice games remain available without stakes or prizes.",
-    withdrawn: "This application is withdrawn. Contact the pilot operator if you want to join a future cohort.",
-    rejected: "This application was not selected for the current cohort. Practice games remain publicly available.",
+    applied:
+      "Your application is queued for manual review. Competitive pilot games remain locked until activation.",
+    active:
+      "Access granted. You can now practice the five games and enter controlled testnet challenges.",
+    completed:
+      "Your current cohort participation is complete. Practice games remain available without stakes or prizes.",
+    withdrawn:
+      "This application is withdrawn. Contact the pilot operator if you want to join a future cohort.",
+    rejected:
+      "This application was not selected for the current cohort. Practice games remain publicly available.",
   };
-  const canWithdraw = enrollment.status === "applied" || enrollment.status === "active";
-  return <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs uppercase tracking-wider text-slate-500">Application status</p><p className="mt-1 font-display text-2xl font-bold uppercase text-cyan-200">{enrollment.status}</p><p className="mt-2 text-sm leading-6 text-slate-400">{descriptions[enrollment.status]}</p><p className="mt-2 text-xs text-slate-600">Submitted {new Date(enrollment.created_at).toLocaleDateString()}.</p><div className="mt-4 flex flex-wrap gap-3">{enrollment.status === "active" && <Link href="/challenges" className="rounded-lg bg-cyan-300 px-4 py-2 text-xs font-black text-[#071014]">ENTER CHALLENGE ARENA</Link>}<Link href="/pilot/games" className="rounded-lg border border-white/10 px-4 py-2 text-xs font-bold text-slate-300">PRACTICE FIVE GAMES</Link>{canWithdraw && <button type="button" disabled={busy} onClick={onWithdraw} className="rounded-lg border border-rose-300/20 px-4 py-2 text-xs font-bold text-rose-200 disabled:opacity-40">{busy ? "WITHDRAWING…" : "WITHDRAW FROM PILOT"}</button>}</div></div>;
+  const canWithdraw =
+    enrollment.status === "applied" || enrollment.status === "active";
+  return (
+    <div className="mt-5 border-l-2 border-cyan-300 pl-4">
+      <p className="text-xs uppercase tracking-wider text-slate-500">
+        Application status
+      </p>
+      <p className="mt-1 font-display text-2xl font-bold uppercase text-cyan-200">
+        {enrollment.status}
+      </p>
+      <p className="mt-2 text-sm leading-6 text-slate-400">
+        {descriptions[enrollment.status]}
+      </p>
+      <p className="mt-2 text-xs text-slate-600">
+        Submitted {new Date(enrollment.created_at).toLocaleDateString()}.
+      </p>
+      <div className="mt-5 flex flex-wrap gap-4">
+        {enrollment.status === "active" && (
+          <Link
+            href="/challenges"
+            className="bg-cyan-300 px-4 py-2 text-xs font-black text-[#071014]"
+          >
+            ENTER CHALLENGE ARENA
+          </Link>
+        )}
+        <Link
+          href="/pilot/games"
+          className="border-b border-white/20 py-2 text-xs font-bold text-slate-300"
+        >
+          PRACTICE FIVE GAMES
+        </Link>
+        {canWithdraw && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onWithdraw}
+            className="border-b border-rose-300/30 py-2 text-xs font-bold text-rose-200 disabled:opacity-40"
+          >
+            {busy ? "WITHDRAWING…" : "WITHDRAW FROM PILOT"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function Consent({ name, children }: { name: string; children: React.ReactNode }) {
-  return <label className="flex gap-3 rounded-lg border border-white/7 bg-black/15 p-3 text-sm leading-5 text-slate-400"><input required type="checkbox" name={name} className="mt-1 accent-cyan-300"/><span>{children}</span></label>;
+function Consent({
+  name,
+  children,
+}: {
+  name: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex gap-3 border-t border-white/10 py-3 text-sm leading-5 text-slate-400">
+      <input
+        required
+        type="checkbox"
+        name={name}
+        className="mt-1 accent-cyan-300"
+      />
+      <span>{children}</span>
+    </label>
+  );
 }
 
-function PolicyLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return <Link href={href} target="_blank" rel="noreferrer" className="font-semibold text-cyan-200 underline decoration-cyan-300/40 underline-offset-2">{children}</Link>;
+function PolicyLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="font-semibold text-cyan-200 underline decoration-cyan-300/40 underline-offset-2"
+    >
+      {children}
+    </Link>
+  );
 }

@@ -21,7 +21,7 @@ test("pilot copy keeps real-value activity disabled", () => {
   const client = readFileSync("components/PilotEnrollmentClient.tsx", "utf8");
   assert.match(
     client,
-    /no real deposits, prizes, lending, or production-value transfers/i,
+    /no real\s+deposits, prizes, lending, or production-value transfers/i,
   );
 });
 

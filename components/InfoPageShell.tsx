@@ -1,33 +1,101 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export function InfoPageShell({ eyebrow, title, intro, children }: { eyebrow: string; title: string; intro: string; children: ReactNode }) {
+export function InfoPageShell({
+  eyebrow,
+  title,
+  intro,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-white/5 bg-arena-bg/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-3" aria-label="SkillFi Arena home">
-            <span className="grid h-9 w-9 place-items-center rounded-lg border border-arena-accent/30 bg-arena-accent/10 font-display text-lg font-bold text-arena-accent">S</span>
-            <span className="font-display text-lg font-bold tracking-[0.12em] text-white">SKILLFI</span>
+    <div className="min-h-screen bg-arena-bg">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <header className="border-b border-arena-border bg-arena-bg/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+          <Link
+            href="/"
+            className="flex items-baseline gap-2"
+            aria-label="SkillFi Arena home"
+          >
+            <span className="font-display text-base font-bold tracking-[0.14em] text-white">
+              SKILLFI
+            </span>
+            <span className="text-xs uppercase tracking-[0.18em] text-arena-muted">
+              Arena
+            </span>
           </Link>
-          <Link href="/#arena" className="rounded-lg border border-arena-border px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-arena-accent/40 hover:text-arena-accent">Open arena</Link>
+          <Link
+            href="/dashboard"
+            className="border-b border-arena-muted pb-1 text-sm font-semibold text-slate-200 transition hover:border-arena-accent hover:text-arena-accent"
+          >
+            Open workspace →
+          </Link>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-arena-accent">{eyebrow}</p>
-        <h1 className="mt-4 text-balance font-display text-4xl font-bold text-white sm:text-5xl">{title}</h1>
-        <p className="mt-6 text-lg leading-8 text-slate-400">{intro}</p>
-        <div className="prose-skillfi mt-12 space-y-10">{children}</div>
+      <main id="main-content">
+        <div className="border-b border-arena-border">
+          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-arena-accent">
+              {eyebrow}
+            </p>
+            <h1 className="mt-5 max-w-4xl text-balance font-display text-4xl font-bold tracking-[-0.035em] text-white sm:text-6xl">
+              {title}
+            </h1>
+            <p className="mt-7 max-w-3xl text-lg leading-8 text-slate-400">
+              {intro}
+            </p>
+          </div>
+        </div>
+        <div className="prose-skillfi mx-auto max-w-6xl space-y-0 px-5 sm:px-8">
+          {children}
+        </div>
       </main>
-      <footer className="border-t border-white/5">
-        <div className="mx-auto flex max-w-5xl flex-wrap gap-x-6 gap-y-3 px-5 py-8 text-xs text-arena-muted sm:px-8">
-          <Link href="/about" className="hover:text-white">About</Link><Link href="/pilot" className="hover:text-white">Pilot</Link><Link href="/technology" className="hover:text-white">Technology</Link><Link href="/security" className="hover:text-white">Security</Link><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link>
+      <footer className="border-t border-arena-border">
+        <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-3 px-5 py-8 text-xs text-arena-muted sm:px-8">
+          <Link href="/about" className="hover:text-white">
+            About
+          </Link>
+          <Link href="/pilot" className="hover:text-white">
+            Pilot
+          </Link>
+          <Link href="/technology" className="hover:text-white">
+            Technology
+          </Link>
+          <Link href="/security" className="hover:text-white">
+            Security
+          </Link>
+          <Link href="/privacy" className="hover:text-white">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-white">
+            Terms
+          </Link>
         </div>
       </footer>
     </div>
   );
 }
 
-export function InfoSection({ title, children }: { title: string; children: ReactNode }) {
-  return <section><h2 className="font-display text-2xl font-semibold text-white">{title}</h2><div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-400">{children}</div></section>;
+export function InfoSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="grid gap-6 border-b border-arena-border py-12 sm:py-16 lg:grid-cols-[15rem_1fr] lg:gap-12">
+      <h2 className="font-display text-xl font-semibold text-white">{title}</h2>
+      <div className="max-w-3xl space-y-4 text-[15px] leading-7 text-slate-400">
+        {children}
+      </div>
+    </section>
+  );
 }
