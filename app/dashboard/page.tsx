@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GameShell } from "@/components/GameShell";
+import { PilotJourneyCard } from "@/components/PilotJourneyCard";
 
 const steps = [
   [
@@ -51,6 +52,7 @@ export default function DashboardPage() {
             </Link>
           </div>
         </section>
+        <PilotJourneyCard />
         <section
           className="grid border-b border-arena-border md:grid-cols-3"
           aria-labelledby="flow-heading"
