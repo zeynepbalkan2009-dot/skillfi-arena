@@ -211,18 +211,18 @@ function PilotAccessBanner({
 }) {
   if (status === "active")
     return (
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/[.06] p-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-wider text-emerald-300">
-            Beta access active
-          </p>
-          <p className="mt-1 text-sm text-slate-400">
-            Your account can create and join the five controlled pilot games.
+      <div className="mt-7 grid border-y border-emerald-300/20 bg-emerald-300/[.035] sm:grid-cols-[10rem_1fr_auto] sm:items-center">
+        <div className="border-b border-emerald-300/20 px-4 py-4 sm:border-b-0 sm:border-r">
+          <p className="text-[10px] font-bold uppercase tracking-[.18em] text-emerald-300">
+            Access / Active
           </p>
         </div>
+        <p className="px-4 py-4 text-sm leading-6 text-slate-400">
+          Your account can create and join the five controlled pilot games.
+        </p>
         <Link
           href="/pilot/games"
-          className="text-xs font-bold text-emerald-200"
+          className="mx-4 mb-4 border-b border-emerald-300/40 pb-1 text-xs font-bold text-emerald-200 sm:mb-0"
         >
           Practice games →
         </Link>
@@ -243,18 +243,18 @@ function PilotAccessBanner({
                 ? "Sign in and apply before entering a pilot match."
                 : "Apply for the controlled beta before entering a pilot match.";
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/20 bg-amber-300/[.05] p-4">
-      <div>
-        <p className="text-xs font-black uppercase tracking-wider text-amber-200">
-          Pilot arena locked
+    <div className="mt-7 grid border-y border-amber-300/20 bg-amber-300/[.03] sm:grid-cols-[10rem_1fr_auto] sm:items-center">
+      <div className="border-b border-amber-300/20 px-4 py-4 sm:border-b-0 sm:border-r">
+        <p className="text-[10px] font-bold uppercase tracking-[.18em] text-amber-200">
+          Access / Locked
         </p>
-        <p className="mt-1 text-sm text-slate-400">{copy}</p>
       </div>
+      <p className="px-4 py-4 text-sm leading-6 text-slate-400">{copy}</p>
       <Link
         href="/pilot"
-        className="rounded-lg border border-amber-200/20 px-4 py-2 text-xs font-bold text-amber-100"
+        className="mx-4 mb-4 border-b border-amber-200/30 pb-1 text-xs font-bold text-amber-100 sm:mb-0"
       >
-        VIEW PILOT ACCESS
+        View pilot access →
       </Link>
     </div>
   );

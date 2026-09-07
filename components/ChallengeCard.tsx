@@ -80,9 +80,9 @@ export function ChallengeCard({
         ) : !canJoin ? (
           <Link
             href="/pilot"
-            className="rounded-md border border-amber-300/25 bg-amber-300/[.06] px-4 py-2 text-xs font-bold text-amber-100"
+            className="border-b border-amber-300/40 pb-1 text-xs font-bold text-amber-100"
           >
-            BETA ACCESS
+            Pilot access →
           </Link>
         ) : (
           <JoinMatchButton matchId={matchId} stakeAmount={match.stake_amount} />

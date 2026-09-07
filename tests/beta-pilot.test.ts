@@ -19,7 +19,10 @@ test("beta activation enforces the 100-player cap atomically", () => {
 
 test("pilot copy keeps real-value activity disabled", () => {
   const client = readFileSync("components/PilotEnrollmentClient.tsx", "utf8");
-  assert.match(client, /no real deposits, prizes, lending, or production-value transfers/i);
+  assert.match(
+    client,
+    /no real deposits, prizes, lending, or production-value transfers/i,
+  );
 });
 
 test("pilot admin UI exposes only controlled cohort transitions", () => {
@@ -34,10 +37,20 @@ test("pilot game entry is gated before onchain create or join", () => {
   const createRoute = readFileSync("app/api/matches/create/route.ts", "utf8");
   const joinCheck = readFileSync("app/api/matches/join/check/route.ts", "utf8");
   const joinConfirm = readFileSync("app/api/matches/join/route.ts", "utf8");
-  const challengeAccept = readFileSync("app/api/challenges/[id]/accept/route.ts", "utf8");
-  for (const source of [createRoute, joinCheck, joinConfirm, challengeAccept]) assert.match(source, /hasActiveBetaAccess/);
-  assert.ok(createRoute.lastIndexOf("hasActiveBetaAccess") < createRoute.indexOf("writeContract"));
-  assert.ok(challengeAccept.lastIndexOf("hasActiveBetaAccess") < challengeAccept.indexOf('.rpc("accept_challenge"'));
+  const challengeAccept = readFileSync(
+    "app/api/challenges/[id]/accept/route.ts",
+    "utf8",
+  );
+  for (const source of [createRoute, joinCheck, joinConfirm, challengeAccept])
+    assert.match(source, /hasActiveBetaAccess/);
+  assert.ok(
+    createRoute.lastIndexOf("hasActiveBetaAccess") <
+      createRoute.indexOf("writeContract"),
+  );
+  assert.ok(
+    challengeAccept.lastIndexOf("hasActiveBetaAccess") <
+      challengeAccept.indexOf('.rpc("accept_challenge"'),
+  );
   assert.match(joinCheck, /status: 403/);
 });
 
@@ -57,12 +70,15 @@ test("pilot run tracking requires active enrollment and limits personal feedback
 
 test("challenge UI explains beta access and avoids financial reward claims", () => {
   const hub = readFileSync("components/ChallengeHubClient.tsx", "utf8");
-  const enrollment = readFileSync("components/PilotEnrollmentClient.tsx", "utf8");
-  assert.match(hub, /Beta access active/);
-  assert.match(hub, /Pilot arena locked/);
+  const enrollment = readFileSync(
+    "components/PilotEnrollmentClient.tsx",
+    "utf8",
+  );
+  assert.match(hub, /Access \/ Active/);
+  assert.match(hub, /Access \/ Locked/);
   assert.match(enrollment, /ENTER CHALLENGE ARENA/);
   assert.doesNotMatch(hub, /REWARD POOL|180 USDC|Verified entry fees/);
   const card = readFileSync("components/ChallengeCard.tsx", "utf8");
   assert.match(card, /canJoin/);
-  assert.match(card, /BETA ACCESS/);
+  assert.match(card, /Pilot access/);
 });

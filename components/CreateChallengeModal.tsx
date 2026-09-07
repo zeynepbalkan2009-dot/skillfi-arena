@@ -251,17 +251,17 @@ export function CreateChallengeModal({
             promised monetary value and cannot be redeemed by SkillFi.
           </p>
           {isBusy && (
-            <div className="rounded-xl border border-arena-accent-dim bg-arena-accent/10 px-3 py-4 text-arena-accent">
+            <div className="border-y border-arena-accent-dim bg-arena-accent/[.06] px-3 py-4 text-arena-accent">
               <WaitingMotion compact label={LABELS[phase]} />
             </div>
           )}
           {phase === "success" && (
-            <div className="rounded-md border border-arena-win/40 bg-arena-win/10 px-3 py-2 text-sm text-arena-win">
+            <div className="border-l-2 border-arena-win bg-arena-win/[.06] px-3 py-2 text-sm text-arena-win">
               Your testnet entry is locked. Waiting for an opponent.
             </div>
           )}
           {errorMessage && (
-            <div className="rounded-md border border-arena-danger/40 bg-arena-danger/10 px-3 py-2 text-sm text-arena-danger">
+            <div className="border-l-2 border-arena-danger bg-arena-danger/[.06] px-3 py-2 text-sm text-arena-danger">
               {errorMessage}
             </div>
           )}
@@ -270,7 +270,7 @@ export function CreateChallengeModal({
               type="button"
               onClick={onClose}
               disabled={isBusy}
-              className="rounded-md px-4 py-2 text-sm text-arena-muted"
+              className="px-4 py-2 text-sm text-arena-muted hover:text-white"
             >
               Cancel
             </button>
