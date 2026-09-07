@@ -94,7 +94,7 @@ Tasks are ordered by current production priority. Complexity: S, M, L, XL.
 
 ## 10. Implement Participant Disputes
 
-- Status: In progress, verified on 2026-09-06. Participant wallet submission, validated dispute reasons, receipt/event verification, immutable audit recording, automatic-settlement pause UI, hosted schema migration, participant status visibility, and recovery-safe arbiter tooling are implemented. No disputes are currently pending. The Arc Testnet preflight confirms the escrow deployment but the locally configured signer does not hold `ARBITER_ROLE`; the deployment admin must grant that role (or provide the existing arbiter key) before the live two-player arbitration exercise can run.
+- Status: Completed on 2026-09-07. Participant wallet submission, validated dispute reasons, receipt/event verification, immutable audit recording, automatic-settlement pause UI, hosted schema migration, participant status visibility, and recovery-safe arbiter tooling are implemented. The replacement Arc Testnet escrow grants the configured signer `ARBITER_ROLE`; a live two-player exercise confirmed participant-only dispute creation, arbiter resolution, payout to a participant, zero residual escrow balance, and rejection of duplicate arbitration.
 
 - Description: Allow either participant to stop automatic settlement when a live result is contested, while keeping arbitration separate and privileged.
 - Affected files: live match UI, dispute API, escrow ABI, match status migration, product tests
