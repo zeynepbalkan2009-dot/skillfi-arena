@@ -15,6 +15,7 @@
     "test:cancellation": "node scripts/cancellation-validation.mjs",
     "list:disputes": "node scripts/list-disputes.mjs",
     "test:dispute:readiness": "node scripts/dispute-readiness.mjs",
+    "test:escrow:migration": "node scripts/escrow-migration-readiness.mjs",
     "test:studio": "node scripts/studio-validation.mjs",
     "test:studio:fixture": "node scripts/studio-live-fixture.mjs",
     "test:studio:payment": "node scripts/studio-payment-readiness.mjs",
