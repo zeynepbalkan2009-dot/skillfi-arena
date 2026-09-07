@@ -68,18 +68,17 @@ export function ChallengeHubClient({
 
   return (
     <GameShell>
-      <main className="mx-auto max-w-[1480px] px-4 py-7 sm:px-7 lg:py-9">
+      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-rose-300">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-rose-300" />
-              Live combat queue
+            <div className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">
+              Matchmaking / Arc Testnet
             </div>
-            <h1 className="mt-2 font-display text-4xl font-black uppercase italic text-white sm:text-5xl">
-              Challenge Arena
+            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-white sm:text-6xl">
+              Open challenges
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              Pick a game. Run a controlled testnet match. Prove who wins.
+              Choose a verified game and join another approved pilot player.
             </p>
           </div>
           <button
@@ -90,30 +89,30 @@ export function ChallengeHubClient({
                 ? "Create a pilot challenge"
                 : "Active beta access is required"
             }
-            className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-black text-[#071015] disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-11 bg-arena-accent px-5 text-sm font-semibold text-[#071015] transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            + CREATE CHALLENGE
+            Create challenge
           </button>
         </div>
         <PilotAccessBanner status={pilotStatus} />
-        <section className="mt-8 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/7 bg-white/[.035] p-5">
+        <section className="mt-10 grid border-y border-arena-border md:grid-cols-3">
+          <div className="border-b border-arena-border py-5 md:border-b-0 md:border-r md:px-6 md:first:pl-0">
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-600">
-              Open fights
+              Open now
             </p>
             <p className="mt-2 font-display text-3xl font-bold">
               {sorted.length}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/7 bg-white/[.035] p-5">
+          <div className="border-b border-arena-border py-5 md:border-b-0 md:border-r md:px-6">
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-600">
               Network
             </p>
-            <p className="mt-2 font-display text-3xl font-bold text-cyan-300">
-              TESTNET
+            <p className="mt-2 font-display text-2xl font-semibold text-white">
+              Arc Testnet
             </p>
           </div>
-          <div className="rounded-2xl border border-white/7 bg-white/[.035] p-5">
+          <div className="py-5 md:px-6 md:last:pr-0">
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-600">
               Pilot asset
             </p>
@@ -122,25 +121,25 @@ export function ChallengeHubClient({
             </p>
           </div>
         </section>
-        <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_320px]">
-          <section className="rounded-3xl border border-white/7 bg-white/[.025] p-5 sm:p-6">
+        <div className="mt-10 grid gap-10 xl:grid-cols-[1fr_280px]">
+          <section>
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="font-display text-2xl font-bold">
-                  Open lobbies
+                  Available now
                 </h2>
                 <p className="mt-1 text-xs text-slate-600">
                   Verified results · Testnet-only sessions
                 </p>
               </div>
-              <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-300">
-                MATCHMAKING ONLINE
+              <span className="border border-emerald-300/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-300">
+                Online
               </span>
             </div>
             {needsProfile ? (
               <OnboardingCard />
             ) : sorted.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 py-12 text-center">
+              <div className="border border-dashed border-arena-border py-12 text-center">
                 <WaitingMotion compact label="The arena is quiet" />
                 <p className="mt-4 text-sm text-slate-500">
                   Be the first active pilot player to open a challenge.
@@ -159,29 +158,31 @@ export function ChallengeHubClient({
               </div>
             )}
           </section>
-          <aside className="rounded-3xl border border-indigo-400/15 bg-indigo-500/[.055] p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-300">
-              Guild mission preview
+          <aside className="border-t border-arena-border pt-5 xl:border-l xl:border-t-0 xl:pl-7 xl:pt-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-slate-600">
+              Before you join
             </p>
             <h2 className="mt-2 font-display text-2xl font-bold">
-              Voidrunners Hunt
+              A fair start takes a minute.
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">
-              A non-financial test mission: win 3 verified matches against a
-              rival guild before Sunday.
+              Confirm the game, region and testnet amount before signing. Keep
+              this page open while a second player connects.
             </p>
-            <div className="mt-6 rounded-xl bg-black/20 p-4">
-              <p className="text-xs text-slate-600">PILOT RECOGNITION</p>
-              <p className="mt-1 font-display text-2xl font-bold text-white">
-                Guild badge
-              </p>
-            </div>
-            <div className="mt-4 text-xs text-slate-500">
-              Demo proposal · 16/24 wins simulated
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/5">
-              <div className="h-full w-2/3 bg-indigo-400" />
-            </div>
+            <ol className="mt-6 space-y-4 text-xs leading-5 text-arena-muted">
+              <li className="border-t border-arena-border pt-3">
+                <span className="mr-3 font-mono text-arena-accent">01</span>Use
+                the wallet linked to your pilot profile.
+              </li>
+              <li className="border-t border-arena-border pt-3">
+                <span className="mr-3 font-mono text-arena-accent">02</span>
+                Approve only the displayed testnet asset.
+              </li>
+              <li className="border-t border-arena-border pt-3">
+                <span className="mr-3 font-mono text-arena-accent">03</span>Wait
+                for the shared countdown before playing.
+              </li>
+            </ol>
           </aside>
         </div>
       </main>

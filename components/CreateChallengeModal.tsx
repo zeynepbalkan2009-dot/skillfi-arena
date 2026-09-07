@@ -4,13 +4,29 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWriteContract,
+} from "wagmi";
 import { skillFiEscrowAbi } from "@/lib/abi/skillFiEscrow";
 import { WaitingMotion } from "@/components/motion/WaitingMotion";
-import { ESCROW_CONTRACT_ADDRESS, GNESS_TOKEN_ADDRESS, SETTLEMENT_ASSET_LABEL } from "@/lib/contracts";
+import {
+  ESCROW_CONTRACT_ADDRESS,
+  GNESS_TOKEN_ADDRESS,
+  SETTLEMENT_ASSET_LABEL,
+} from "@/lib/contracts";
 import type { Game, PlayerProfile } from "@/lib/types";
 
-type Phase = "form" | "creating" | "approving" | "joining" | "indexing" | "success" | "error";
+type Phase =
+  | "form"
+  | "creating"
+  | "approving"
+  | "joining"
+  | "indexing"
+  | "success"
+  | "error";
 
 const LABELS: Record<Phase, string> = {
   form: "",
@@ -42,7 +58,10 @@ export function CreateChallengeModal({
   const [stakeInput, setStakeInput] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pendingMatch, setPendingMatch] = useState<{ matchId: bigint; stakeAmount: bigint } | null>(null);
+  const [pendingMatch, setPendingMatch] = useState<{
+    matchId: bigint;
+    stakeAmount: bigint;
+  } | null>(null);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 
   const { data: decimals } = useReadContract({
@@ -96,7 +115,8 @@ export function CreateChallengeModal({
 
     let stakeAmount: bigint;
     try {
-      stakeAmount = pendingMatch?.stakeAmount ?? parseUnits(stakeInput, decimals);
+      stakeAmount =
+        pendingMatch?.stakeAmount ?? parseUnits(stakeInput, decimals);
       if (stakeAmount <= 0n) throw new Error("invalid stake");
     } catch {
       setErrorMessage("Enter a valid stake amount.");
@@ -112,11 +132,19 @@ export function CreateChallengeModal({
         setPhase("creating");
         const createResponse = await fetch("/api/matches/create", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ gameId, stakeAmount: stakeAmount.toString(), idempotencyKey: requestId }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            gameId,
+            stakeAmount: stakeAmount.toString(),
+            idempotencyKey: requestId,
+          }),
         });
         const createBody = await createResponse.json().catch(() => ({}));
-        if (!createResponse.ok) throw new Error(createBody.error ?? "Could not create the match.");
+        if (!createResponse.ok)
+          throw new Error(createBody.error ?? "Could not create the match.");
         matchId = BigInt(createBody.match.smart_contract_match_id);
         setPendingMatch({ matchId, stakeAmount });
       }
@@ -144,18 +172,24 @@ export function CreateChallengeModal({
       setPhase("indexing");
       const joinResponse = await fetch("/api/matches/join", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ matchId: matchId.toString(), txHash: joinHash }),
       });
       const joinBody = await joinResponse.json().catch(() => ({}));
-      if (!joinResponse.ok) throw new Error(joinBody.error ?? "Could not register the join.");
+      if (!joinResponse.ok)
+        throw new Error(joinBody.error ?? "Could not register the join.");
 
       setPhase("success");
       router.refresh();
       setTimeout(onClose, 1000);
     } catch (err) {
       setPhase("error");
-      setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
+      setErrorMessage(
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
     }
   }
 
@@ -163,20 +197,33 @@ export function CreateChallengeModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+      aria-labelledby="create-challenge-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm"
       onClick={(event) => {
         if (event.target === event.currentTarget && !isBusy) onClose();
       }}
     >
-      <div className="w-full max-w-md rounded-xl border border-arena-border bg-arena-surface p-6 shadow-arena-glow">
-        <h2 className="font-display text-xl font-bold text-arena-text">Create a Challenge</h2>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <div className="w-full max-w-md border border-arena-border bg-arena-surface p-6 shadow-2xl sm:p-8">
+        <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-arena-accent">
+          New testnet session
+        </p>
+        <h2
+          id="create-challenge-title"
+          className="mt-2 font-display text-3xl font-semibold text-arena-text"
+        >
+          Create a challenge
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-arena-muted">
+          Choose the game and amount before opening your wallet. You will
+          confirm each blockchain step separately.
+        </p>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <select
             aria-label="Game"
             value={gameId}
             onChange={(event) => setGameId(event.target.value)}
             disabled={isBusy || Boolean(pendingMatch)}
-            className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text"
+            className="min-h-11 w-full border border-arena-border bg-arena-bg px-3 text-arena-text"
           >
             {games.map((game) => (
               <option key={game.id} value={game.id}>
@@ -184,7 +231,7 @@ export function CreateChallengeModal({
               </option>
             ))}
           </select>
-          <div className="rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-sm text-arena-muted">
+          <div className="border border-arena-border bg-arena-bg px-3 py-3 text-sm text-arena-muted">
             Region: {currentUser?.region ?? "-"}
           </div>
           <input
@@ -197,10 +244,11 @@ export function CreateChallengeModal({
             onChange={(event) => setStakeInput(event.target.value)}
             disabled={isBusy || Boolean(pendingMatch)}
             placeholder="10.00"
-            className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text"
+            className="min-h-11 w-full border border-arena-border bg-arena-bg px-3 text-arena-text"
           />
           <p className="text-xs leading-5 text-arena-muted">
-            Pilot asset: {SETTLEMENT_ASSET_LABEL}. Testnet units have no promised monetary value and cannot be redeemed by SkillFi.
+            Pilot asset: {SETTLEMENT_ASSET_LABEL}. Testnet units have no
+            promised monetary value and cannot be redeemed by SkillFi.
           </p>
           {isBusy && (
             <div className="rounded-xl border border-arena-accent-dim bg-arena-accent/10 px-3 py-4 text-arena-accent">
@@ -218,15 +266,22 @@ export function CreateChallengeModal({
             </div>
           )}
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} disabled={isBusy} className="rounded-md px-4 py-2 text-sm text-arena-muted">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isBusy}
+              className="rounded-md px-4 py-2 text-sm text-arena-muted"
+            >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isBusy || !stakeInput}
-              className="rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg disabled:opacity-50"
+              className="min-h-11 bg-arena-accent px-4 text-sm font-semibold text-arena-bg transition-colors hover:bg-cyan-200 disabled:opacity-50"
             >
-              {isBusy ? "Processing..." : `Create with ${SETTLEMENT_ASSET_LABEL}`}
+              {isBusy
+                ? "Processing..."
+                : `Create with ${SETTLEMENT_ASSET_LABEL}`}
             </button>
           </div>
         </form>
