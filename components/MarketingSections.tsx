@@ -2,10 +2,10 @@ import Link from "next/link";
 import { PixelFleetMotion } from "@/components/motion/PixelFleetMotion";
 
 const SESSION_STEPS = [
-  ["01", "Choose", "Pick one of five measurable pilot games."],
-  ["02", "Match", "Enter a queue with the same rules and round data."],
-  ["03", "Play", "Complete the deterministic skill challenge."],
-  ["04", "Record", "Review the submitted result and verification trail."],
+  ["01", "Pick your game", "Choose the skill you want on the line."],
+  ["02", "Find a rival", "Both players enter with identical rules."],
+  ["03", "Play the round", "No boosts. No mystery modifiers."],
+  ["04", "Read the proof", "Score, round data and result stay inspectable."],
 ] as const;
 
 const PROOF_POINTS = [
@@ -18,18 +18,18 @@ const PROOF_POINTS = [
 const FLOW = [
   {
     number: "01",
-    title: "Pick a measurable game",
-    body: "Every pilot game has a fixed objective, explicit scoring rules and a result that can be inspected.",
+    title: "Choose your discipline",
+    body: "Typing, memory, logic, arithmetic or pattern reading. Every game publishes its scoring rules before you queue.",
   },
   {
     number: "02",
-    title: "Enter a controlled queue",
-    body: "Participants receive the same match parameters. Capacity, regions and access remain limited during the pilot.",
+    title: "Meet on equal ground",
+    body: "You and your rival receive the same round parameters. The pilot keeps the field small enough to investigate every edge case.",
   },
   {
     number: "03",
-    title: "Play a shared round",
-    body: "The platform records the attempt, validates the outcome and keeps the match history available for review.",
+    title: "Own the result",
+    body: "Your attempt becomes a reviewable match record—not a vague badge, not a score that disappears when the screen closes.",
   },
 ] as const;
 
@@ -41,37 +41,40 @@ export function MarketingHero() {
     >
       <div className="mx-auto grid max-w-6xl lg:grid-cols-[1.18fr_0.82fr]">
         <div className="px-5 py-20 sm:px-8 sm:py-28 lg:border-r lg:border-arena-border lg:pr-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
-            Controlled pilot · Arc Testnet
-          </p>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em]">
+            <span className="arena-live-dot text-[#b7ff4a]">Season 00 live</span>
+            <span className="text-slate-600">//</span>
+            <span className="text-arena-muted">Founders&apos; pilot · Arc</span>
+          </div>
           <h1
             id="hero-title"
             className="mt-7 max-w-3xl font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-white sm:text-7xl"
           >
-            Skill should be visible in the result.
+            Queue up.
+            <span className="block text-arena-accent">Prove it.</span>
           </h1>
           <p className="mt-8 max-w-xl text-base leading-7 text-arena-muted sm:text-lg">
-            SkillFi Arena is a competitive-play pilot built around five
-            deterministic games, shared rounds and outcomes participants can
-            inspect.
+            Five original skill games. One rival. A result both sides can
+            inspect. SkillFi is building the place where a clean win actually
+            means something.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/games"
               className="bg-arena-accent px-5 py-3 text-sm font-bold text-arena-bg transition hover:bg-cyan-300"
             >
-              Explore the games
+              Enter the game lab
             </Link>
             <Link
               href="/pilot"
               className="border-b border-arena-muted pb-1 text-sm font-semibold text-white transition hover:border-arena-accent hover:text-arena-accent"
             >
-              Read the pilot brief →
+              Join Season 00 →
             </Link>
           </div>
           <p className="mt-7 max-w-xl text-xs leading-5 text-arena-muted">
-            Testnet pilot only. Participation does not promise cash, tokens or
-            other real-value rewards.
+            Season 00 is a testnet playtest. No entry fee, token sale or
+            real-value prize pool.
           </p>
         </div>
 
@@ -83,13 +86,13 @@ export function MarketingHero() {
           <div className="flex items-end justify-between border-b border-arena-border pb-5">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-arena-muted">
-                Session anatomy
+                Match protocol
               </p>
               <p className="mt-2 font-display text-xl font-semibold text-white">
-                One round, four clear states
+                Your next run, decoded
               </p>
             </div>
-            <span className="text-xs text-arena-accent">TEST / 01</span>
+            <span className="font-mono text-xs text-[#b7ff4a]">READY_01</span>
           </div>
           <ol>
             {SESSION_STEPS.map(([number, title, body]) => (
@@ -110,6 +113,19 @@ export function MarketingHero() {
             ))}
           </ol>
         </aside>
+      </div>
+
+      <div className="arena-broadcast" aria-label="Season zero game roster">
+        <div className="arena-broadcast__track">
+          <span>TYPING SPRINT</span><i>◆</i><span>ARITHMETIC RUSH</span><i>◆</i>
+          <span>SEQUENCE RECALL</span><i>◆</i><span>PATTERN LOCK</span><i>◆</i>
+          <span>LOGIC GRID</span><i>◆</i>
+          <span aria-hidden="true">TYPING SPRINT</span><i aria-hidden="true">◆</i>
+          <span aria-hidden="true">ARITHMETIC RUSH</span><i aria-hidden="true">◆</i>
+          <span aria-hidden="true">SEQUENCE RECALL</span><i aria-hidden="true">◆</i>
+          <span aria-hidden="true">PATTERN LOCK</span><i aria-hidden="true">◆</i>
+          <span aria-hidden="true">LOGIC GRID</span><i aria-hidden="true">◆</i>
+        </div>
       </div>
 
       <dl className="mx-auto grid max-w-6xl grid-cols-2 border-x border-arena-border sm:grid-cols-4">
@@ -141,10 +157,10 @@ export function MarketingDetails() {
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
-              How it works
+              Match loop
             </p>
             <h2 className="mt-5 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              Fewer promises. More observable states.
+              No pay-to-win fog. Just the run.
             </h2>
           </div>
           <ol className="mt-14 grid border-y border-arena-border md:grid-cols-3">
@@ -175,18 +191,17 @@ export function MarketingDetails() {
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:py-24">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
-              Verification path
+              After the final input
             </p>
             <h2 className="mt-5 font-display text-3xl font-bold text-white">
-              Designed to be checked.
+              The scoreboard keeps receipts.
             </h2>
           </div>
           <div className="max-w-2xl text-base leading-7 text-arena-muted">
             <p>
-              A match moves through explicit queue, play, submission and result
-              states. The pilot focuses on whether those states remain
-              consistent across two players and whether disputes can be
-              investigated from recorded evidence.
+              Every match moves through a visible queue, play, submission and
+              result trail. If two players disagree, the answer should come
+              from recorded evidence—not whoever shouts loudest in chat.
             </p>
             <p className="mt-6 border-l-2 border-arena-accent pl-5 text-sm text-arena-text">
               Value-bearing settlement infrastructure is not part of the current
@@ -197,7 +212,7 @@ export function MarketingDetails() {
               href="/technology"
               className="mt-8 inline-block text-sm font-semibold text-white underline decoration-arena-muted underline-offset-4 hover:decoration-arena-accent"
             >
-              Inspect the architecture →
+              Open the protocol notes →
             </Link>
           </div>
         </div>
@@ -212,22 +227,22 @@ export function PilotSection() {
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:py-24">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
-            Pilot cohort
+            Founding players
           </p>
           <h2 className="mt-5 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Help test the competition, not the pitch.
+            Leave your fingerprints on Season 00.
           </h2>
           <p className="mt-6 max-w-2xl text-base leading-7 text-arena-muted">
-            We are preparing a limited cohort of players and game studios to
-            test matchmaking, result verification and operational controls
-            before a wider release.
+            The first 100 players are not background traffic. You will break
+            queues, expose unfair edges and help decide what deserves to enter
+            the next season.
           </p>
         </div>
         <Link
           href="/pilot"
           className="w-fit border border-arena-accent px-5 py-3 text-sm font-bold text-arena-accent transition hover:bg-arena-accent hover:text-arena-bg"
         >
-          View pilot requirements
+          Claim a pilot slot
         </Link>
       </div>
     </section>

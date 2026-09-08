@@ -9,24 +9,24 @@ import { WalletConnect } from "@/components/WalletConnect";
 const ROUTES = [
   {
     index: "01",
-    title: "Game catalogue",
-    body: "Review the five playable pilot formats and their scoring rules.",
+    title: "Game lab",
+    body: "Meet the five Season 00 games, learn the rules and find your main.",
     href: "/games",
-    action: "Browse games",
+    action: "Pick a game",
   },
   {
     index: "02",
-    title: "Player workspace",
-    body: "See your pilot access, match history and readiness checks in one place.",
+    title: "Command deck",
+    body: "Your pilot access, recent runs and next move—without dashboard clutter.",
     href: "/dashboard",
-    action: "Open workspace",
+    action: "Enter deck",
   },
   {
     index: "03",
-    title: "Studio pathway",
-    body: "Understand the integration and review gates before submitting a game.",
+    title: "Builder dock",
+    body: "Bring a game into the arena and see exactly what it must prove first.",
     href: "/studio",
-    action: "For studios",
+    action: "Dock a build",
   },
 ] as const;
 
@@ -55,16 +55,16 @@ export function LandingPage() {
             className="hidden items-center gap-7 text-sm text-arena-muted md:flex"
           >
             <a href="#how-it-works" className="hover:text-white">
-              How it works
+              Match loop
             </a>
             <a href="#pilot" className="hover:text-white">
-              Pilot
+              Season 00
             </a>
             <Link href="/games" className="hover:text-white">
-              Games
+              Game lab
             </Link>
             <Link href="/technology" className="hover:text-white">
-              Technology
+              Protocol
             </Link>
           </nav>
           <div className="flex items-center gap-4">
@@ -72,7 +72,7 @@ export function LandingPage() {
               href="/dashboard"
               className="hidden text-sm font-semibold text-white hover:text-arena-accent sm:block"
             >
-              Open workspace
+              Command deck
             </Link>
             <WalletConnect />
           </div>
@@ -91,18 +91,18 @@ export function LandingPage() {
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">
-                  Find your route
+                  Select station
                 </p>
                 <h2
                   id="routes-title"
                   className="mt-5 font-display text-3xl font-bold text-white sm:text-5xl"
                 >
-                  Start with what you need.
+                  Where are you spawning?
                 </h2>
               </div>
               <p className="max-w-sm text-sm leading-6 text-arena-muted">
-                Player tools, pilot games and studio documentation are separated
-                so each audience gets a clear next step.
+                Player, challenger or builder—the arena gives each role its own
+                door instead of one endless dashboard.
               </p>
             </div>
             <div className="mt-14 border-t border-arena-border">
@@ -135,7 +135,7 @@ export function LandingPage() {
 
       <footer className="border-t border-arena-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-9 text-xs text-arena-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>© {new Date().getFullYear()} SkillFi Arena · Controlled pilot</p>
+          <p>© {new Date().getFullYear()} SkillFi Arena · Season 00</p>
           <nav
             aria-label="Footer navigation"
             className="flex flex-wrap gap-x-6 gap-y-3"

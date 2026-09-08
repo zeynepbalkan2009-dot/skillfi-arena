@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   ),
-  title: "SkillFi Arena — Verifiable skill competition",
+  title: "SkillFi Arena — Queue up. Prove it.",
   description:
-    "A controlled competitive-play pilot with deterministic games, shared rounds and inspectable results.",
+    "Five original skill games, one rival and a match result both sides can inspect. Enter the SkillFi Season 00 pilot.",
   keywords: [
     "SkillFi",
     "skill games",
@@ -17,9 +17,9 @@ export const metadata: Metadata = {
     "verifiable results",
   ],
   openGraph: {
-    title: "SkillFi Arena — Verifiable skill competition",
+    title: "SkillFi Arena — Queue up. Prove it.",
     description:
-      "Five deterministic pilot games, shared rounds and inspectable results.",
+      "Five original skill games. One rival. A result both sides can inspect.",
     type: "website",
     siteName: "SkillFi Arena",
   },

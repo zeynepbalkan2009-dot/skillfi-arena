@@ -151,6 +151,45 @@
     font-size: 0.48rem;
   }
 
+  .arena-live-dot::before {
+    content: "";
+    display: inline-block;
+    width: 0.48rem;
+    height: 0.48rem;
+    margin-right: 0.55rem;
+    border-radius: 999px;
+    background: #b7ff4a;
+    box-shadow: 0 0 0.8rem rgba(183, 255, 74, 0.72);
+    animation: arena-signal 1.9s ease-in-out infinite;
+  }
+
+  .arena-broadcast {
+    overflow: hidden;
+    border-top: 1px solid rgba(34, 211, 238, 0.2);
+    border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+    background: #22d3ee;
+    color: #061015;
+  }
+
+  .arena-broadcast__track {
+    display: flex;
+    width: max-content;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.72rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    animation: arena-broadcast 24s linear infinite;
+  }
+
+  .arena-broadcast__track i {
+    color: #6d28d9;
+    font-style: normal;
+  }
+
   @keyframes pixel-fleet-fly {
     0%,
     100% {
@@ -179,10 +218,25 @@
     }
   }
 
+  @keyframes arena-signal {
+    50% {
+      opacity: 0.42;
+      transform: scale(0.82);
+    }
+  }
+
+  @keyframes arena-broadcast {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .pixel-fleet::before,
     .pixel-fleet__art,
-    .pixel-fleet__scanline {
+    .pixel-fleet__scanline,
+    .arena-live-dot::before,
+    .arena-broadcast__track {
       animation: none;
     }
   }

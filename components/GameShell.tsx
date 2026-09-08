@@ -6,10 +6,10 @@ import { WalletConnect } from "@/components/WalletConnect";
 import { PixelFleetMotion } from "@/components/motion/PixelFleetMotion";
 
 const navigation = [
-  { href: "/dashboard", label: "Overview", index: "01" },
-  { href: "/games", label: "Games", index: "02" },
-  { href: "/challenges", label: "Challenges", index: "03" },
-  { href: "/guilds", label: "Guilds", index: "04" },
+  { href: "/dashboard", label: "Command deck", index: "01" },
+  { href: "/games", label: "Game library", index: "02" },
+  { href: "/challenges", label: "Match room", index: "03" },
+  { href: "/guilds", label: "Guild hall", index: "04" },
 ] as const;
 
 export function GameShell({ children }: { children: React.ReactNode }) {
@@ -34,7 +34,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav className="px-4 py-6" aria-label="Player navigation">
           <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-            Workspace
+            Player station
           </p>
           {navigation.map((item) => {
             const active =
@@ -69,10 +69,10 @@ export function GameShell({ children }: { children: React.ReactNode }) {
               className="h-1.5 w-1.5 rounded-full bg-emerald-400"
               aria-hidden="true"
             />
-            Testnet systems online
+            Pilot shard: Arc-01
           </div>
           <p className="mt-3 text-xs leading-5 text-slate-600">
-            Controlled pilot · no real-value rewards
+            Season 00 · practice stakes only
           </p>
         </div>
       </aside>
@@ -110,7 +110,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
             <p className="hidden text-xs text-arena-muted lg:block">
-              Skill-based competition infrastructure
+              Season 00 // player station
             </p>
             <div className="flex items-center gap-2">
               <Link
