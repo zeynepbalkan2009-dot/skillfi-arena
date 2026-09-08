@@ -43,7 +43,7 @@ export function MarketingHero() {
         <div className="px-5 py-20 sm:px-8 sm:py-28 lg:border-r lg:border-arena-border lg:pr-16">
           <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em]">
             <span className="arena-live-dot text-[#b7ff4a]">Season 00 live</span>
-            <span className="text-slate-600">//</span>
+            <span className="text-slate-600">{"//"}</span>
             <span className="text-arena-muted">Founders&apos; pilot · Arc</span>
           </div>
           <h1

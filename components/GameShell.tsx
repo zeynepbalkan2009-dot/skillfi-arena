@@ -110,7 +110,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
             <p className="hidden text-xs text-arena-muted lg:block">
-              Season 00 // player station
+              Season 00 {"//"} player station
             </p>
             <div className="flex items-center gap-2">
               <Link
