@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (!user || !isStudioAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data: disputes, error } = await supabaseAdmin.from("matches")
-    .select("id,smart_contract_match_id,created_at")
+    .select("id,smart_contract_match_id,created_at,player_a_id,player_b_id,player_a:users!matches_player_a_id_fkey(id,username,display_name,wallet_address),player_b:users!matches_player_b_id_fkey(id,username,display_name,wallet_address)")
     .eq("status", "disputed")
     .order("created_at", { ascending: true })
     .limit(20);
