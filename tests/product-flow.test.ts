@@ -359,7 +359,7 @@ test("studio onboarding separates listing fees from match escrow", () => {
   assert.doesNotMatch(feeRoute, /ESCROW_CONTRACT_ADDRESS/);
   assert.match(
     portal,
-    /Testnet listing payment is separate from player stakes and match escrow/,
+    /Testnet listing payment is separate from player stakes and match\s+escrow/,
   );
   const adminRoute = readFileSync(
     join(root, "app/api/admin/studios/route.ts"),
