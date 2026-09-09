@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light-theme">
       <body className="font-body bg-arena-bg text-arena-text antialiased">
         <Providers>{children}</Providers>
       </body>

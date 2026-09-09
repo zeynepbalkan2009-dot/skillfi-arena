@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Bridge existing dark-theme utility classes to the shared light palette.
+   Artwork keeps its own colors; content, forms and navigation stay neutral. */
+.light-theme :is(.text-white, .text-slate-200, .text-slate-300) { color: #23333e; }
+.light-theme :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700) { color: #526571; }
+.light-theme :is(.text-cyan-100, .text-cyan-200, .text-cyan-300, .text-indigo-200, .text-indigo-300) { color: #006e96; }
+.light-theme :is(.text-emerald-300, .text-emerald-400) { color: #26704c; }
+.light-theme :is(.text-amber-100, .text-amber-200, .text-amber-300) { color: #805313; }
+.light-theme :is(.text-rose-300, .text-rose-200) { color: #a7354d; }
+.light-theme [class*="bg-[#0"],
+.light-theme [class*="bg-[radial-gradient"] { background: #fafaf8; }
+.light-theme [class*="bg-black/"] { background-color: #e6e9e7; }
+.light-theme [class*="border-white/"] { border-color: #d3d9d9; }
+.light-theme :is(.hover\:text-white:hover, .hover\:border-white:hover) { color: #006e96; border-color: #00769e; }
+.light-theme .bg-arena-accent { color: #fff; }
+.light-theme .game-cover :is(strong, p) { color: #fff; }
+.light-theme .game-cover { color: #fff; }
+
 @layer base {
   * {
     border-color: theme("colors.arena-border");
@@ -13,10 +30,9 @@
 
   body {
     min-width: 320px;
-    background:
-      radial-gradient(circle at 72% -20%, rgba(0, 132, 205, 0.2), transparent 42rem),
-      #06131f;
-    color: #eef8ff;
+    background: #f1f2ef;
+    color: #23333e;
+    color-scheme: light;
   }
 
   ::selection {
@@ -31,7 +47,7 @@
 }
 
 @layer utilities {
-  /* A soft neutral desktop surrounds the darker game surfaces. */
+  /* The canvas and content share one neutral light palette. */
   .player-shell {
     background: #eeefed;
   }
@@ -62,9 +78,9 @@
   }
 
   .player-shell__canvas > * {
-    background-color: #0b2235;
-    border: 1px solid #cad2d6;
-    box-shadow: 0 8px 28px rgba(28, 44, 56, 0.1);
+    background-color: #fafaf8;
+    border: 1px solid #d9dddd;
+    box-shadow: none;
   }
 
   @media (max-width: 639px) {
@@ -87,7 +103,7 @@
   }
 
   .glass-panel {
-    background: rgba(8, 29, 46, 0.96);
+    background: rgba(250, 250, 248, 0.96);
     backdrop-filter: blur(12px);
   }
 
@@ -116,9 +132,7 @@
     place-items: center;
     overflow: hidden;
     pointer-events: none;
-    background:
-      radial-gradient(circle at 50% 60%, rgba(18, 191, 243, 0.2), transparent 24rem),
-      #04101b;
+    background: #f1f2ef;
     animation: route-curtain 0.78s both ease-in-out;
   }
 
@@ -152,12 +166,12 @@
 
   .route-transition__copy span {
     font-size: 0.7rem;
-    color: #7fa8bf;
+    color: #526571;
   }
 
   .route-transition__copy strong {
     font-size: 0.8rem;
-    color: #12bff3;
+    color: #00769e;
   }
   .skip-link:focus {
     top: 1rem;
@@ -172,9 +186,7 @@
     margin: 0 auto 2rem;
     overflow: hidden;
     border: 1px solid rgba(34, 211, 238, 0.18);
-    background:
-      radial-gradient(circle at 50% 76%, rgba(34, 211, 238, 0.13), transparent 32%),
-      linear-gradient(180deg, rgba(9, 13, 18, 0.18), rgba(4, 7, 11, 0.86));
+    background: linear-gradient(180deg, #fafaf8, #e7ebea);
     box-shadow: inset 0 0 4rem rgba(6, 182, 212, 0.05);
   }
 
@@ -224,16 +236,16 @@
     display: flex;
     justify-content: space-between;
     border-top: 1px solid rgba(34, 211, 238, 0.18);
-    background: rgba(4, 7, 11, 0.82);
+    background: rgba(250, 250, 248, 0.95);
     padding: 0.65rem 0.8rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.6rem;
     letter-spacing: 0.13em;
-    color: #94a3b8;
+    color: #526571;
   }
 
   .pixel-fleet__status {
-    color: #a3e635;
+    color: #3f681f;
   }
 
   .pixel-fleet--compact {

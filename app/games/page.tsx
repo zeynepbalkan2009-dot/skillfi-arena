@@ -87,7 +87,7 @@ export default async function GamesPage() {
                 key={game.id}
                 className="group relative overflow-hidden border border-arena-border bg-arena-surface shadow-[0_16px_36px_rgba(0,8,16,.24)] transition duration-200 hover:-translate-y-1 hover:border-arena-accent hover:shadow-[0_18px_42px_rgba(0,126,190,.22)]"
               >
-                <div className={`relative aspect-[4/5] overflow-hidden bg-gradient-to-br ${gameCovers[game.slug ?? ""]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
+                <div className={`game-cover relative aspect-[4/5] overflow-hidden bg-gradient-to-br ${gameCovers[game.slug ?? ""]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_35%,rgba(255,255,255,.16)_35%,rgba(255,255,255,.16)_36%,transparent_36%,transparent_62%,rgba(255,255,255,.1)_62%,rgba(255,255,255,.1)_63%,transparent_63%)]" />
                   <p className="absolute left-4 top-4 font-mono text-xs font-bold tracking-[.2em] text-white/70">
                     S00_{String(index + 1).padStart(2, "0")}

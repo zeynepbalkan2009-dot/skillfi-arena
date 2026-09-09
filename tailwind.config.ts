@@ -11,12 +11,12 @@ const config: Config = {
       colors: {
         // Deep launcher-blue system inspired by game libraries, with a
         // distinct SkillFi cyan rather than any platform's exact palette.
-        "arena-bg": "#06131f",
-        "arena-surface": "#0b2235",
-        "arena-border": "#174967",
-        "arena-text": "#eef8ff",
-        "arena-muted": "#8eb0c5",
-        "arena-accent": "#12bff3",
+        "arena-bg": "#f1f2ef",
+        "arena-surface": "#fafaf8",
+        "arena-border": "#ced4d5",
+        "arena-text": "#23333e",
+        "arena-muted": "#526571",
+        "arena-accent": "#00769e",
         "arena-accent-dim": "#087fb2",
         "arena-win": "#34d399",
         "arena-danger": "#f87171",
