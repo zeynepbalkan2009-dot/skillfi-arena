@@ -15,7 +15,7 @@ const navigation = [
 export function GameShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
-    <div className="min-h-screen bg-arena-bg text-arena-text">
+    <div className="player-shell min-h-screen text-arena-text">
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -77,7 +77,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <div className="lg:pl-60">
-        <header className="sticky top-0 z-30 border-b border-arena-border bg-arena-bg/95 backdrop-blur-lg">
+        <header className="player-shell__toolbar sticky top-0 z-30 border-b backdrop-blur-lg">
           <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-7">
             <Link
               href="/"
@@ -140,7 +140,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
         </header>
-        <div id="main-content">{children}</div>
+        <div id="main-content" className="player-shell__canvas">{children}</div>
       </div>
     </div>
   );

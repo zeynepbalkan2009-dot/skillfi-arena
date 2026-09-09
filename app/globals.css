@@ -31,6 +31,48 @@
 }
 
 @layer utilities {
+  /* A soft neutral desktop surrounds the darker game surfaces. */
+  .player-shell {
+    background: #eeefed;
+  }
+
+  .player-shell__toolbar {
+    background: rgba(248, 248, 246, 0.96);
+    border-color: #d1d7da;
+    color: #243746;
+  }
+
+  .player-shell__toolbar :is(a, p) {
+    color: #344c5d;
+  }
+
+  .player-shell__toolbar a[aria-current="page"] {
+    color: #006d96;
+    background: #deedf2;
+  }
+
+  .player-shell__toolbar a:hover {
+    color: #006d96;
+  }
+
+  .player-shell__canvas {
+    padding: clamp(1rem, 2.5vw, 2.5rem);
+    min-height: calc(100vh - 4rem);
+    background: linear-gradient(135deg, #f5f5f2, #e3e6e6);
+  }
+
+  .player-shell__canvas > * {
+    background-color: #0b2235;
+    border: 1px solid #cad2d6;
+    box-shadow: 0 8px 28px rgba(28, 44, 56, 0.1);
+  }
+
+  @media (max-width: 639px) {
+    .player-shell__canvas {
+      padding: 0.75rem;
+    }
+  }
+
   /* Subtle scanline-esque grid used behind the lobby header for the
      competitive-HUD feel, without resorting to a background image. */
   .bg-arena-grid {
