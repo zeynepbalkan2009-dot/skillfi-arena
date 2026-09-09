@@ -13,6 +13,29 @@ const gameNotes: Record<string, string> = {
   "logic-grid": "Deductive reasoning",
 };
 
+const gameCovers: Record<string, { code: string; style: string }> = {
+  "typing-sprint": {
+    code: "TYP",
+    style: "from-[#064e73] via-[#087fb2] to-[#12bff3]",
+  },
+  "arithmetic-rush": {
+    code: "NUM",
+    style: "from-[#172554] via-[#1d4ed8] to-[#38bdf8]",
+  },
+  "sequence-recall": {
+    code: "SEQ",
+    style: "from-[#312e81] via-[#4f46e5] to-[#22d3ee]",
+  },
+  "pattern-lock": {
+    code: "PTR",
+    style: "from-[#164e63] via-[#0e7490] to-[#67e8f9]",
+  },
+  "logic-grid": {
+    code: "LOG",
+    style: "from-[#0c4a6e] via-[#0369a1] to-[#818cf8]",
+  },
+};
+
 export default async function GamesPage() {
   const { data } = await supabase
     .from("games")
@@ -32,7 +55,7 @@ export default async function GamesPage() {
               Pilot catalogue / {games.length.toString().padStart(2, "0")}
             </p>
             <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-white sm:text-6xl">
-              Games built to be measured.
+              Your game library.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-arena-muted">
               Every pilot player receives the same deterministic round. Choose
@@ -51,50 +74,59 @@ export default async function GamesPage() {
         </header>
 
         {games.length ? (
-          <section
-            className="border-b border-arena-border"
-            aria-label="Available games"
-          >
+          <section className="py-8" aria-label="Available games">
+            <div className="mb-5 flex items-center justify-between border-b border-arena-border pb-3">
+              <p className="text-xs font-semibold uppercase tracking-[.16em] text-white">
+                Installed for Season 00
+              </p>
+              <p className="font-mono text-xs text-arena-muted">SORT / SKILL</p>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {games.map((game, index) => (
               <article
                 key={game.id}
-                className="group grid gap-5 border-t border-arena-border py-7 first:border-t-0 md:grid-cols-[64px_1fr_180px_auto] md:items-center"
+                className="group relative overflow-hidden border border-arena-border bg-arena-surface shadow-[0_16px_36px_rgba(0,8,16,.24)] transition duration-200 hover:-translate-y-1 hover:border-arena-accent hover:shadow-[0_18px_42px_rgba(0,126,190,.22)]"
               >
-                <p className="font-mono text-xs text-slate-600">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-display text-2xl font-semibold text-white">
-                      {game.name}
-                    </h2>
-                    <span className="border border-emerald-400/20 bg-emerald-400/[.06] px-2 py-1 text-[9px] font-semibold uppercase tracking-[.14em] text-emerald-300">
-                      Pilot ready
-                    </span>
+                <div className={`relative aspect-[4/5] overflow-hidden bg-gradient-to-br ${gameCovers[game.slug ?? ""]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_35%,rgba(255,255,255,.16)_35%,rgba(255,255,255,.16)_36%,transparent_36%,transparent_62%,rgba(255,255,255,.1)_62%,rgba(255,255,255,.1)_63%,transparent_63%)]" />
+                  <p className="absolute left-4 top-4 font-mono text-xs font-bold tracking-[.2em] text-white/70">
+                    S00_{String(index + 1).padStart(2, "0")}
+                  </p>
+                  <strong className="absolute inset-x-4 bottom-5 font-display text-5xl font-black tracking-[-.05em] text-white drop-shadow-lg">
+                    {gameCovers[game.slug ?? ""]?.code ?? "SKL"}
+                  </strong>
+                  <span className="absolute right-3 top-3 h-2 w-2 bg-[#b7ff4a] shadow-[0_0_12px_#b7ff4a]" aria-hidden="true" />
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-semibold text-white">
+                        {game.name}
+                      </h2>
+                      <p className="mt-1 text-xs text-arena-muted">
+                        {gameNotes[game.slug ?? ""] ?? "Competitive decision-making"}
+                      </p>
+                    </div>
+                    <Link
+                      href="/challenges"
+                      aria-label={`Play ${game.name}`}
+                      className="grid h-9 w-9 shrink-0 place-items-center bg-arena-accent text-lg font-bold text-arena-bg transition group-hover:bg-white"
+                    >
+                      ↗
+                    </Link>
                   </div>
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-arena-muted">
+                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-arena-muted">
                     {game.description ??
                       "A deterministic head-to-head skill round."}
                   </p>
+                  <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 text-[10px] font-bold uppercase tracking-[.12em]">
+                    <span className="text-[#b7ff4a]">Ready</span>
+                    <span className="text-arena-muted">2 players</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-[.16em] text-slate-600">
-                    Primary skill
-                  </p>
-                  <p className="mt-2 text-sm text-slate-300">
-                    {gameNotes[game.slug ?? ""] ??
-                      "Competitive decision-making"}
-                  </p>
-                </div>
-                <Link
-                  href="/challenges"
-                  aria-label={`Play ${game.name}`}
-                  className="inline-flex h-11 w-11 items-center justify-center border border-arena-border text-lg text-arena-muted transition-colors group-hover:border-arena-accent group-hover:text-arena-accent"
-                >
-                  ↗
-                </Link>
               </article>
             ))}
+            </div>
           </section>
         ) : (
           <section className="border-b border-arena-border py-20 text-center">

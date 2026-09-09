@@ -13,17 +13,19 @@
 
   body {
     min-width: 320px;
-    background: #090d12;
-    color: #e7e9ec;
+    background:
+      radial-gradient(circle at 72% -20%, rgba(0, 132, 205, 0.2), transparent 42rem),
+      #06131f;
+    color: #eef8ff;
   }
 
   ::selection {
-    background: rgba(34, 211, 238, 0.3);
+    background: rgba(18, 191, 243, 0.32);
     color: #f8fafc;
   }
 
   :focus-visible {
-    outline: 2px solid #22d3ee;
+    outline: 2px solid #12bff3;
     outline-offset: 3px;
   }
 }
@@ -43,7 +45,7 @@
   }
 
   .glass-panel {
-    background: rgba(16, 21, 29, 0.96);
+    background: rgba(8, 29, 46, 0.96);
     backdrop-filter: blur(12px);
   }
 
@@ -58,6 +60,62 @@
     font-size: 0.8rem;
     font-weight: 700;
     transition: top 0.15s;
+  }
+
+  .route-stage {
+    animation: route-stage-in 0.5s 0.18s both ease-out;
+  }
+
+  .route-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 60%, rgba(18, 191, 243, 0.2), transparent 24rem),
+      #04101b;
+    animation: route-curtain 0.78s both ease-in-out;
+  }
+
+  .route-transition__fleet {
+    width: 15rem;
+    height: auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 1.4rem rgba(18, 191, 243, 0.52));
+    transform: translateY(31%);
+    animation: route-fleet-jump 0.78s both cubic-bezier(0.5, 0, 0.2, 1);
+  }
+
+  .route-transition__beam {
+    position: absolute;
+    inset: 0 auto;
+    width: min(32rem, 72vw);
+    background: linear-gradient(90deg, transparent, rgba(18, 191, 243, 0.13), transparent);
+    transform: scaleX(0.08);
+    animation: route-beam 0.72s both ease-in;
+  }
+
+  .route-transition__copy {
+    position: absolute;
+    bottom: 9vh;
+    display: grid;
+    gap: 0.25rem;
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.16em;
+  }
+
+  .route-transition__copy span {
+    font-size: 0.7rem;
+    color: #7fa8bf;
+  }
+
+  .route-transition__copy strong {
+    font-size: 0.8rem;
+    color: #12bff3;
   }
   .skip-link:focus {
     top: 1rem;
@@ -231,13 +289,64 @@
     }
   }
 
+  @keyframes route-curtain {
+    0%,
+    67% {
+      opacity: 1;
+      visibility: visible;
+    }
+    100% {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  @keyframes route-fleet-jump {
+    0% {
+      opacity: 0;
+      transform: translateY(45%) scale(0.82);
+    }
+    35% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-34%) scale(1.15);
+    }
+  }
+
+  @keyframes route-beam {
+    45% {
+      transform: scaleX(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scaleX(0.2);
+    }
+  }
+
+  @keyframes route-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.4rem);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .pixel-fleet::before,
     .pixel-fleet__art,
     .pixel-fleet__scanline,
     .arena-live-dot::before,
-    .arena-broadcast__track {
+    .arena-broadcast__track,
+    .route-stage,
+    .route-transition,
+    .route-transition__fleet,
+    .route-transition__beam {
       animation: none;
+    }
+
+    .route-transition {
+      display: none;
     }
   }
 }

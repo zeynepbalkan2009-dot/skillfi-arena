@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Verifiable peer-to-peer skill competitions settled in USDC.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0a0e14",
-    theme_color: "#0a0e14",
+    background_color: "#06131f",
+    theme_color: "#06131f",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   };
 }

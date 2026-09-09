@@ -223,7 +223,7 @@ export function MarketingDetails() {
 
 export function PilotSection() {
   return (
-    <section id="pilot" className="scroll-mt-24 bg-[#0d141b]">
+    <section id="pilot" className="scroll-mt-24 bg-[#081d2e]">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:py-24">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-arena-accent">

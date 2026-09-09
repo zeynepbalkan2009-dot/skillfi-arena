@@ -9,15 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark, slightly-cool neutrals rather than pure black/gray — reads
-        // less "default dark mode" and closer to a competitive-gaming HUD.
-        "arena-bg": "#0a0e14",
-        "arena-surface": "#10151d",
-        "arena-border": "#1f2733",
-        "arena-text": "#e2e8f0",
-        "arena-muted": "#7c8aa0",
-        "arena-accent": "#22d3ee",
-        "arena-accent-dim": "#0e7490",
+        // Deep launcher-blue system inspired by game libraries, with a
+        // distinct SkillFi cyan rather than any platform's exact palette.
+        "arena-bg": "#06131f",
+        "arena-surface": "#0b2235",
+        "arena-border": "#174967",
+        "arena-text": "#eef8ff",
+        "arena-muted": "#8eb0c5",
+        "arena-accent": "#12bff3",
+        "arena-accent-dim": "#087fb2",
         "arena-win": "#34d399",
         "arena-danger": "#f87171",
       },
@@ -26,7 +26,7 @@ const config: Config = {
         display: ["Rajdhani", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        "arena-glow": "0 0 0 1px rgba(34,211,238,0.15), 0 0 24px -8px rgba(34,211,238,0.35)",
+        "arena-glow": "0 0 0 1px rgba(18,191,243,0.2), 0 0 28px -8px rgba(18,191,243,0.5)",
       },
     },
   },

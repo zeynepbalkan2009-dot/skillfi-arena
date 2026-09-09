@@ -19,7 +19,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-arena-border bg-[#0b0f14] lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-arena-border bg-[#071a2a] shadow-[12px_0_38px_rgba(0,64,104,.18)] lg:flex lg:flex-col">
         <Link
           href="/"
           className="border-b border-arena-border px-7 py-7"
