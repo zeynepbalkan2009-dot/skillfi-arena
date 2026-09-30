@@ -53,8 +53,8 @@ export function PilotJourneyCard() {
 
   return <section className="border-b border-arena-border py-8" aria-labelledby="journey-title">
     <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-      <div className="max-w-lg"><p className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">Your pilot path</p><h2 id="journey-title" className="mt-2 font-display text-3xl font-semibold text-white">{loading ? "Checking your access…" : authenticated ? `${completedSteps}/3 setup steps complete` : "Sign in to start your pilot setup"}</h2><p className="mt-2 text-sm leading-6 text-arena-muted">Complete your profile, receive controlled-beta approval, then save a result in each of the five practice games.</p></div>
-      {!authenticated ? <button type="button" onClick={login} className="min-h-11 bg-arena-accent px-5 text-sm font-semibold text-[#071015]">SIGN IN TO START</button> : <JourneyAction profileDone={profileDone} enrollment={journey.enrollment} gamesDone={gamesDone}/>} 
+      <div className="max-w-lg"><p className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">Your pilot path</p><h2 id="journey-title" className="mt-2 font-display text-3xl font-semibold text-arena-text">{loading ? "Checking your access…" : authenticated ? `${completedSteps}/3 setup steps complete` : "Sign in to start your pilot setup"}</h2><p className="mt-2 text-sm leading-6 text-arena-muted">Complete your profile, receive controlled-beta approval, then save a result in each of the five practice games.</p></div>
+      {!authenticated ? <button type="button" onClick={login} className="min-h-11 bg-arena-accent px-5 text-sm font-semibold text-[#071015]">SIGN IN TO START</button> : <JourneyAction profileDone={profileDone} enrollment={journey.enrollment} gamesDone={gamesDone}/>}
     </div>
     <ol className="mt-6 grid gap-px overflow-hidden border border-arena-border bg-arena-border md:grid-cols-3">
       <JourneyStep index="01" title="Player profile" detail={profileDone ? "Profile ready" : "Username and region required"} done={profileDone}/>
@@ -72,5 +72,5 @@ function JourneyAction({ profileDone, enrollment, gamesDone }: { profileDone: bo
 }
 
 function JourneyStep({ index, title, detail, done }: { index: string; title: string; detail: string; done: boolean }) {
-  return <li className="bg-arena-bg p-5"><div className="flex items-center justify-between"><span className="font-mono text-[11px] text-slate-600">{index}</span><span className={done ? "text-emerald-300" : "text-slate-600"} aria-label={done ? "Complete" : "Incomplete"}>{done ? "●" : "○"}</span></div><p className="mt-5 font-display text-lg font-semibold text-white">{title}</p><p className="mt-1 text-sm text-arena-muted">{detail}</p></li>;
+  return <li className="bg-arena-bg p-5"><div className="flex items-center justify-between"><span className="font-mono text-[11px] text-arena-muted">{index}</span><span className={done ? "text-emerald-600" : "text-arena-muted"} aria-label={done ? "Complete" : "Incomplete"}>{done ? "●" : "○"}</span></div><p className="mt-5 font-display text-lg font-semibold text-arena-text">{title}</p><p className="mt-1 text-sm text-arena-muted">{detail}</p></li>;
 }
