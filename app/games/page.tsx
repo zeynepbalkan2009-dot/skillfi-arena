@@ -98,6 +98,14 @@ export default async function GamesPage() {
                   <span className="absolute right-3 top-3 h-2 w-2 bg-[#b7ff4a] shadow-[0_0_12px_#b7ff4a]" aria-hidden="true" />
                 </div>
                 <div className="p-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <span className="border border-arena-border bg-[#f4f7f6] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-arena-accent">
+                      Skill trial
+                    </span>
+                    <span className="font-mono text-[9px] uppercase tracking-[.14em] text-arena-muted">
+                      S00 / {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h2 className="font-display text-xl font-semibold text-white">
@@ -120,7 +128,7 @@ export default async function GamesPage() {
                       "A deterministic head-to-head skill round."}
                   </p>
                   <div className="mt-4 flex items-center justify-between border-t border-arena-border pt-3 text-[10px] font-bold uppercase tracking-[.12em]">
-                    <span className="text-[#b7ff4a]">Ready</span>
+                    <span className="text-[#4f7b22]">Pilot ready</span>
                     <span className="text-arena-muted">2 players</span>
                   </div>
                 </div>
