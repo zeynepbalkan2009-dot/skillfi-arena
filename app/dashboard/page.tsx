@@ -29,10 +29,10 @@ export default function DashboardPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-arena-accent">
               Controlled pilot / Arc Testnet
             </p>
-            <h1 className="mt-5 max-w-3xl font-display text-5xl font-semibold leading-[0.98] tracking-[-0.035em] text-white sm:text-7xl">
+            <h1 className="mt-5 max-w-3xl font-display text-5xl font-semibold leading-[0.98] tracking-[-0.035em] text-arena-text sm:text-7xl">
               Compete on skill.
               <br />
-              <span className="text-slate-500">Verify the result.</span>
+              <span className="text-arena-muted">Verify the result.</span>
             </h1>
           </div>
           <div className="lg:pb-1">
@@ -66,7 +66,7 @@ export default function DashboardPage() {
               className="border-arena-border py-8 md:border-r md:px-7 md:first:pl-0 md:last:border-r-0 md:last:pr-0"
             >
               <p className="font-mono text-[10px] text-arena-accent">{index}</p>
-              <h3 className="mt-5 font-display text-2xl font-semibold text-white">
+              <h3 className="mt-5 font-display text-2xl font-semibold text-arena-text">
                 {title}
               </h3>
               <p className="mt-3 max-w-sm text-sm leading-6 text-arena-muted">
@@ -77,10 +77,10 @@ export default function DashboardPage() {
         </section>
         <section className="grid gap-8 py-12 lg:grid-cols-2">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-arena-muted">
               Pilot status
             </p>
-            <h2 className="mt-3 font-display text-3xl font-semibold text-white">
+            <h2 className="mt-3 font-display text-3xl font-semibold text-arena-text">
               Built for a small, observable cohort.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-arena-muted">
@@ -91,20 +91,20 @@ export default function DashboardPage() {
           </div>
           <div className="grid grid-cols-2 border border-arena-border">
             <div className="border-b border-r border-arena-border p-5">
-              <p className="text-[10px] uppercase tracking-[.16em] text-slate-600">
+              <p className="text-[10px] uppercase tracking-[.16em] text-arena-muted">
                 Games
               </p>
-              <p className="mt-3 font-display text-3xl text-white">05</p>
+              <p className="mt-3 font-display text-3xl text-arena-text">05</p>
             </div>
             <div className="border-b border-arena-border p-5">
-              <p className="text-[10px] uppercase tracking-[.16em] text-slate-600">
+              <p className="text-[10px] uppercase tracking-[.16em] text-arena-muted">
                 Cohort cap
               </p>
-              <p className="mt-3 font-display text-3xl text-white">100</p>
+              <p className="mt-3 font-display text-3xl text-arena-text">100</p>
             </div>
             <Link
               href="/games"
-              className="border-r border-arena-border p-5 text-sm font-medium text-slate-300 hover:bg-white/[.025] hover:text-white"
+              className="border-r border-arena-border p-5 text-sm font-medium text-arena-muted hover:bg-[#f4f7f6] hover:text-arena-text"
             >
               Browse games{" "}
               <span className="float-right" aria-hidden="true">
@@ -113,7 +113,7 @@ export default function DashboardPage() {
             </Link>
             <Link
               href="/pilot"
-              className="p-5 text-sm font-medium text-slate-300 hover:bg-white/[.025] hover:text-white"
+              className="p-5 text-sm font-medium text-arena-muted hover:bg-[#f4f7f6] hover:text-arena-text"
             >
               Pilot details{" "}
               <span className="float-right" aria-hidden="true">
