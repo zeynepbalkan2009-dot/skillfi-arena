@@ -41,7 +41,7 @@ export function LandingPage() {
           <Link
             href="/"
             aria-label="SkillFi Arena home"
-            className="flex items-baseline gap-2 text-white"
+            className="flex items-baseline gap-2 text-arena-text"
           >
             <span className="font-display text-base font-bold tracking-[0.14em]">
               SKILLFI
@@ -54,7 +54,7 @@ export function LandingPage() {
             aria-label="Main navigation"
             className="hidden items-center gap-7 text-sm text-arena-muted md:flex"
           >
-            <a href="#how-it-works" className="hover:text-white">
+            <a href="#how-it-works" className="hover:text-arena-accent">
               Match loop
             </a>
             <a href="#pilot" className="hover:text-white">
@@ -70,7 +70,7 @@ export function LandingPage() {
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
-              className="hidden text-sm font-semibold text-white hover:text-arena-accent sm:block"
+              className="hidden text-sm font-semibold text-arena-text hover:text-arena-accent sm:block"
             >
               Command deck
             </Link>
@@ -95,7 +95,7 @@ export function LandingPage() {
                 </p>
                 <h2
                   id="routes-title"
-                  className="mt-5 font-display text-3xl font-bold text-white sm:text-5xl"
+                  className="mt-5 font-display text-3xl font-bold text-arena-text sm:text-5xl"
                 >
                   Where are you spawning?
                 </h2>
@@ -110,18 +110,18 @@ export function LandingPage() {
                 <Link
                   key={route.index}
                   href={route.href}
-                  className="group grid gap-4 border-b border-arena-border py-7 transition hover:bg-white/[0.025] sm:grid-cols-[4rem_1fr_1fr_auto] sm:items-center sm:px-3"
+                  className="group grid gap-4 border-b border-arena-border py-7 transition hover:bg-[#f4f7f6] sm:grid-cols-[4rem_1fr_1fr_auto] sm:items-center sm:px-3"
                 >
                   <span className="font-mono text-xs text-arena-accent">
                     {route.index}
                   </span>
-                  <h3 className="font-display text-xl font-semibold text-white">
+                  <h3 className="font-display text-xl font-semibold text-arena-text">
                     {route.title}
                   </h3>
                   <p className="max-w-md text-sm leading-6 text-arena-muted">
                     {route.body}
                   </p>
-                  <span className="text-sm font-semibold text-white group-hover:text-arena-accent">
+                  <span className="text-sm font-semibold text-arena-text group-hover:text-arena-accent">
                     {route.action} →
                   </span>
                 </Link>
