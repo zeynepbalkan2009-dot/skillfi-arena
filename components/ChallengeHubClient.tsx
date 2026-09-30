@@ -74,10 +74,10 @@ export function ChallengeHubClient({
             <div className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">
               Matchmaking / Arc Testnet
             </div>
-            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-white sm:text-6xl">
+            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-arena-text sm:text-6xl">
               Open challenges
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-arena-muted">
               Choose a verified game and join another approved pilot player.
             </p>
           </div>
@@ -97,7 +97,7 @@ export function ChallengeHubClient({
         <PilotAccessBanner status={pilotStatus} />
         <section className="mt-10 grid border-y border-arena-border md:grid-cols-3">
           <div className="border-b border-arena-border py-5 md:border-b-0 md:border-r md:px-6 md:first:pl-0">
-            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-600">
+            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-arena-muted">
               Open now
             </p>
             <p className="mt-2 font-display text-3xl font-bold">
@@ -132,7 +132,7 @@ export function ChallengeHubClient({
                   Verified results · Testnet-only sessions
                 </p>
               </div>
-              <span className="border border-emerald-300/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-300">
+              <span className="border border-emerald-300/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.14em] text-[#3f7d50]">
                 Online
               </span>
             </div>
@@ -211,18 +211,18 @@ function PilotAccessBanner({
 }) {
   if (status === "active")
     return (
-      <div className="mt-7 grid border-y border-emerald-300/20 bg-emerald-300/[.035] sm:grid-cols-[10rem_1fr_auto] sm:items-center">
+      <div className="mt-7 grid border-y border-arena-border bg-[#f3f7f4] sm:grid-cols-[10rem_1fr_auto] sm:items-center">
         <div className="border-b border-emerald-300/20 px-4 py-4 sm:border-b-0 sm:border-r">
-          <p className="text-[10px] font-bold uppercase tracking-[.18em] text-emerald-300">
+          <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#3f7d50]">
             Access / Active
           </p>
         </div>
-        <p className="px-4 py-4 text-sm leading-6 text-slate-400">
+        <p className="px-4 py-4 text-sm leading-6 text-arena-muted">
           Your account can create and join the five controlled pilot games.
         </p>
         <Link
           href="/pilot/games"
-          className="mx-4 mb-4 border-b border-emerald-300/40 pb-1 text-xs font-bold text-emerald-200 sm:mb-0"
+          className="mx-4 mb-4 border-b border-arena-border pb-1 text-xs font-bold text-[#356b43] sm:mb-0"
         >
           Practice games →
         </Link>
@@ -243,16 +243,16 @@ function PilotAccessBanner({
                 ? "Sign in and apply before entering a pilot match."
                 : "Apply for the controlled beta before entering a pilot match.";
   return (
-    <div className="mt-7 grid border-y border-amber-300/20 bg-amber-300/[.03] sm:grid-cols-[10rem_1fr_auto] sm:items-center">
+    <div className="mt-7 grid border-y border-arena-border bg-[#f7f5ef] sm:grid-cols-[10rem_1fr_auto] sm:items-center">
       <div className="border-b border-amber-300/20 px-4 py-4 sm:border-b-0 sm:border-r">
-        <p className="text-[10px] font-bold uppercase tracking-[.18em] text-amber-200">
+        <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#8a6b2d]">
           Access / Locked
         </p>
       </div>
       <p className="px-4 py-4 text-sm leading-6 text-slate-400">{copy}</p>
       <Link
         href="/pilot"
-        className="mx-4 mb-4 border-b border-amber-200/30 pb-1 text-xs font-bold text-amber-100 sm:mb-0"
+        className="mx-4 mb-4 border-b border-arena-border pb-1 text-xs font-bold text-[#765b24] sm:mb-0"
       >
         View pilot access →
       </Link>
