@@ -54,7 +54,7 @@ export default async function GamesPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">
               Pilot catalogue / {games.length.toString().padStart(2, "0")}
             </p>
-            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-white sm:text-6xl">
+            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-arena-text sm:text-6xl">
               Your game library.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-arena-muted">
@@ -64,7 +64,7 @@ export default async function GamesPage() {
           </div>
           <Link
             href="/challenges"
-            className="inline-flex min-h-11 items-center justify-center border border-slate-500 px-5 text-sm font-medium text-white transition-colors hover:border-white"
+            className="inline-flex min-h-11 items-center justify-center border border-arena-border bg-arena-surface px-5 text-sm font-medium text-arena-text transition-colors hover:border-arena-accent hover:text-arena-accent"
           >
             Open challenges{" "}
             <span className="ml-6" aria-hidden="true">
@@ -85,7 +85,7 @@ export default async function GamesPage() {
             {games.map((game, index) => (
               <article
                 key={game.id}
-                className="group relative overflow-hidden border border-arena-border bg-arena-surface shadow-[0_16px_36px_rgba(0,8,16,.24)] transition duration-200 hover:-translate-y-1 hover:border-arena-accent hover:shadow-[0_18px_42px_rgba(0,126,190,.22)]"
+                className="group relative overflow-hidden border border-arena-border bg-arena-surface shadow-[0_12px_30px_rgba(35,51,62,.08)] transition duration-200 hover:-translate-y-1 hover:border-arena-accent hover:shadow-[0_18px_42px_rgba(0,126,190,.22)]"
               >
                 <div className={`game-cover relative aspect-[4/5] overflow-hidden bg-gradient-to-br ${gameCovers[game.slug ?? ""]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_35%,rgba(255,255,255,.16)_35%,rgba(255,255,255,.16)_36%,transparent_36%,transparent_62%,rgba(255,255,255,.1)_62%,rgba(255,255,255,.1)_63%,transparent_63%)]" />
@@ -119,7 +119,7 @@ export default async function GamesPage() {
                     {game.description ??
                       "A deterministic head-to-head skill round."}
                   </p>
-                  <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 text-[10px] font-bold uppercase tracking-[.12em]">
+                  <div className="mt-4 flex items-center justify-between border-t border-arena-border pt-3 text-[10px] font-bold uppercase tracking-[.12em]">
                     <span className="text-[#b7ff4a]">Ready</span>
                     <span className="text-arena-muted">2 players</span>
                   </div>
@@ -139,9 +139,9 @@ export default async function GamesPage() {
           </section>
         )}
 
-        <footer className="flex flex-col gap-3 py-8 text-xs leading-5 text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="flex flex-col gap-3 py-8 text-xs leading-5 text-arena-muted sm:flex-row sm:items-center sm:justify-between">
           <p>Controlled testnet pilot · no real-value reward promise</p>
-          <Link href="/pilot" className="text-slate-400 hover:text-white">
+          <Link href="/pilot" className="text-arena-accent hover:text-arena-text">
             Read the pilot rules →
           </Link>
         </footer>
