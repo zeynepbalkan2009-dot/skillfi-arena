@@ -116,8 +116,8 @@ export default async function GamesPage() {
                       </p>
                     </div>
                     <Link
-                      href="/challenges"
-                      aria-label={`Play ${game.name}`}
+                      href={`/games/${game.slug}`}
+                      aria-label={`Open ${game.name}`}
                       className="grid h-9 w-9 shrink-0 place-items-center bg-arena-accent text-lg font-bold text-arena-bg transition group-hover:bg-white"
                     >
                       ↗
@@ -138,7 +138,7 @@ export default async function GamesPage() {
           </section>
         ) : (
           <section className="border-b border-arena-border py-20 text-center">
-            <p className="font-display text-2xl text-white">
+            <p className="font-display text-2xl text-arena-text">
               No pilot games are available.
             </p>
             <p className="mt-3 text-sm text-arena-muted">
