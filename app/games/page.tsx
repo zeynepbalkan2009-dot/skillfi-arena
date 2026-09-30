@@ -76,7 +76,7 @@ export default async function GamesPage() {
         {games.length ? (
           <section className="py-8" aria-label="Available games">
             <div className="mb-5 flex items-center justify-between border-b border-arena-border pb-3">
-              <p className="text-xs font-semibold uppercase tracking-[.16em] text-white">
+              <p className="text-xs font-semibold uppercase tracking-[.16em] text-arena-text">
                 Installed for Season 00
               </p>
               <p className="font-mono text-xs text-arena-muted">SORT / SKILL</p>
@@ -108,7 +108,7 @@ export default async function GamesPage() {
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h2 className="font-display text-xl font-semibold text-white">
+                      <h2 className="font-display text-xl font-semibold text-arena-text">
                         {game.name}
                       </h2>
                       <p className="mt-1 text-xs text-arena-muted">
