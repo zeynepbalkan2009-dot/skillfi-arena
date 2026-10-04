@@ -10,6 +10,7 @@ const navigation = [
   { href: "/games", label: "Game library", index: "02" },
   { href: "/challenges", label: "Match room", index: "03" },
   { href: "/guilds", label: "Guild hall", index: "04" },
+  { href: "/profile", label: "Player profile", index: "05" },
 ] as const;
 
 export function GameShell({ children }: { children: React.ReactNode }) {
@@ -127,7 +128,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav
-            className="grid grid-cols-4 border-t border-arena-border sm:hidden"
+            className="grid grid-cols-5 border-t border-arena-border sm:hidden"
             aria-label="Mobile player navigation"
           >
             {navigation.map((item) => (
@@ -135,13 +136,14 @@ export function GameShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={pathname.startsWith(item.href) ? "page" : undefined}
-                className={`py-2 text-center text-[10px] ${
+                className={`py-2 text-center text-[9px] ${
                   pathname.startsWith(item.href)
                     ? "bg-[#e3f1f5] font-semibold text-arena-accent"
                     : "text-arena-muted"
                 }`}
               >
-                {item.label}
+                <span className="block font-mono text-[8px]">{item.index}</span>
+                <span className="block truncate px-0.5">{item.label}</span>
               </Link>
             ))}
           </nav>
