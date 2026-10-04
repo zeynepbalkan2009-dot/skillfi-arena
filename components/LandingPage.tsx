@@ -57,13 +57,13 @@ export function LandingPage() {
             <a href="#how-it-works" className="hover:text-arena-accent">
               Match loop
             </a>
-            <a href="#pilot" className="hover:text-white">
+            <a href="#pilot" className="hover:text-arena-accent">
               Season 00
             </a>
-            <Link href="/games" className="hover:text-white">
+            <Link href="/games" className="hover:text-arena-accent">
               Game lab
             </Link>
-            <Link href="/technology" className="hover:text-white">
+            <Link href="/technology" className="hover:text-arena-accent">
               Protocol
             </Link>
           </nav>
@@ -140,16 +140,16 @@ export function LandingPage() {
             aria-label="Footer navigation"
             className="flex flex-wrap gap-x-6 gap-y-3"
           >
-            <Link href="/about" className="hover:text-white">
+            <Link href="/about" className="hover:text-arena-accent">
               About
             </Link>
-            <Link href="/security" className="hover:text-white">
+            <Link href="/security" className="hover:text-arena-accent">
               Security
             </Link>
-            <Link href="/privacy" className="hover:text-white">
+            <Link href="/privacy" className="hover:text-arena-accent">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-white">
+            <Link href="/terms" className="hover:text-arena-accent">
               Terms
             </Link>
           </nav>
