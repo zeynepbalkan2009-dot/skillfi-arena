@@ -82,8 +82,26 @@ export function ProfileClient() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-6 flex items-center justify-between">
+    <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
+      <header className="mb-8 border-b border-arena-border pb-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[.2em] text-arena-accent">
+              Player station / 05
+            </p>
+            <h1 className="mt-3 font-display text-4xl font-semibold tracking-[-.035em] text-arena-text sm:text-5xl">
+              Your pilot profile.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-arena-muted">
+              Season 00 progression, match record and verified activity in one place.
+            </p>
+          </div>
+          <Link href="/games" className="text-sm font-medium text-arena-accent hover:text-arena-text">
+            Back to game library →
+          </Link>
+        </div>
+      </header>
+      <div className="mb-6 flex items-center justify-end">
         <Link href="/dashboard" className="text-sm font-medium text-arena-muted hover:text-arena-text">
           Back to dashboard
         </Link>
@@ -91,8 +109,16 @@ export function ProfileClient() {
       </div>
 
       {!authenticated ? (
-        <section className="rounded-lg border border-arena-border bg-arena-surface p-6">
-          <h1 className="font-display text-2xl font-bold text-arena-text">Player Profile</h1>
+        <section className="border border-arena-border bg-arena-surface p-6 shadow-[0_12px_30px_rgba(35,51,62,.06)]">
+          <div className="mb-6 flex items-center justify-between border-b border-arena-border pb-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[.16em] text-arena-muted">Season 00 / identity</p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-arena-text">Player profile</h2>
+            </div>
+            <span className="border border-arena-border bg-[#f4f7f6] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-arena-accent">
+              Pilot active
+            </span>
+          </div>
           <p className="mt-2 text-sm text-arena-muted">Connect or log in to manage your SkillFi profile.</p>
         </section>
       ) : needsProfile ? (
@@ -164,7 +190,13 @@ export function ProfileClient() {
 
           {savedProfile && (
             <div className="mt-8 border-t border-arena-border pt-6">
-              <h2 className="font-display text-xl font-bold text-arena-text">Match History</h2>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[.16em] text-arena-muted">Run log</p>
+                  <h2 className="mt-1 font-display text-xl font-bold text-arena-text">Match history</h2>
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-arena-muted">{matches.length.toString().padStart(2, "0")} rounds</span>
+              </div>
               {disputedMatches.length > 0 && (
                 <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
                   <p className="font-semibold">
