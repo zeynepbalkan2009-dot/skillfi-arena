@@ -5,7 +5,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useSkillFiUser } from "@/components/AuthSync";
 import { OnboardingCard } from "@/components/OnboardingCard";
-import { WalletConnect } from "@/components/WalletConnect";
 import { formatUsdcUnits } from "@/lib/env/public";
 import type { MatchAuditEvent, MatchWithRelations, PlayerProfile } from "@/lib/types";
 
@@ -101,13 +100,6 @@ export function ProfileClient() {
           </Link>
         </div>
       </header>
-      <div className="mb-6 flex items-center justify-end">
-        <Link href="/dashboard" className="text-sm font-medium text-arena-muted hover:text-arena-text">
-          Back to dashboard
-        </Link>
-        <WalletConnect />
-      </div>
-
       {!authenticated ? (
         <section className="border border-arena-border bg-arena-surface p-6 shadow-[0_12px_30px_rgba(35,51,62,.06)]">
           <div className="mb-6 flex items-center justify-between border-b border-arena-border pb-4">
