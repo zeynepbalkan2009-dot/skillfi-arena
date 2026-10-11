@@ -48,8 +48,8 @@ export default async function GamesPage() {
 
   return (
     <GameShell>
-      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
-        <header className="grid gap-6 border-b border-arena-border pb-7 md:grid-cols-[1fr_auto] md:items-end">
+      <main className="mx-auto max-w-7xl px-5 py-7 sm:px-8 sm:py-9">
+        <header className="flex flex-col items-start gap-5 border-b border-arena-border pb-7">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">
               Pilot catalogue / {games.length.toString().padStart(2, "0")}
@@ -64,7 +64,7 @@ export default async function GamesPage() {
           </div>
           <Link
             href="/challenges"
-            className="inline-flex min-h-11 items-center justify-center border border-arena-border bg-arena-surface px-5 text-sm font-medium text-arena-text transition-colors hover:border-arena-accent hover:text-arena-accent"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#4f46e5] px-5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(79,70,229,.2)] transition hover:bg-[#4338ca]"
           >
             Open challenges{" "}
             <span className="ml-6" aria-hidden="true">
@@ -90,8 +90,8 @@ export default async function GamesPage() {
                 <p className="mt-3 text-sm font-medium text-arena-accent">{gameNotes[games[0].slug] ?? "Competitive skill"}</p>
                 <p className="mt-4 max-w-md text-sm leading-7 text-arena-muted">{games[0].description ?? "A deterministic head-to-head skill round."}</p>
                 <div className="mt-7 flex flex-wrap gap-3">
-                  <Link href={`/games/${games[0].slug}`} className="inline-flex min-h-11 items-center justify-center bg-arena-accent px-6 text-sm font-bold text-[#071015] hover:bg-cyan-200">View game ↗</Link>
-                  <Link href="/challenges" className="inline-flex min-h-11 items-center justify-center border border-arena-border px-6 text-sm font-semibold text-arena-text hover:border-arena-accent">Match room →</Link>
+                  <Link href={`/games/${games[0].slug}`} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#4f46e5] px-6 text-sm font-bold text-white shadow-[0_6px_18px_rgba(79,70,229,.2)] transition hover:bg-[#4338ca]">View game ↗</Link>
+                  <Link href="/challenges" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-arena-border bg-white px-6 text-sm font-semibold text-arena-text hover:border-[#4f46e5] hover:text-[#4338ca]">Match room →</Link>
                 </div>
                 <p className="mt-5 text-xs text-arena-muted">Controlled pilot · No real-value rewards</p>
               </div>
