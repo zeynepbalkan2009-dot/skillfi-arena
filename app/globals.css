@@ -594,3 +594,40 @@
 .player-shell__canvas section[aria-label="Available games"] article:nth-child(3) .game-cover::before { background: radial-gradient(circle at 72% 32%, rgba(255,255,255,.55) 0 5px, transparent 6px), radial-gradient(circle at 62% 42%, rgba(255,255,255,.28) 0 24px, transparent 25px), radial-gradient(circle at 82% 52%, rgba(255,255,255,.24) 0 44px, transparent 45px); opacity: .9; }
 .player-shell__canvas section[aria-label="Available games"] article:nth-child(4) .game-cover::before { background: repeating-linear-gradient(45deg, transparent 0 24px, rgba(255,255,255,.18) 25px 26px), repeating-linear-gradient(-45deg, transparent 0 24px, rgba(255,255,255,.12) 25px 26px), radial-gradient(circle at 72% 30%, rgba(255,255,255,.35), transparent 34%); opacity: .8; }
 .player-shell__canvas section[aria-label="Available games"] article:nth-child(5) .game-cover::before { background: linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px), radial-gradient(circle at 75% 35%, rgba(255,255,255,.3), transparent 35%); background-size: 24px 24px, 24px 24px, auto; opacity: .8; }
+
+
+/* Steam-inspired dark library palette — original SkillFi identity. */
+.player-shell { background: #1b2029 !important; color: #dce2ec !important; }
+.player-sidebar { background: linear-gradient(180deg,#202631,#171c25) !important; border-color: #111821 !important; color: #dce2ec !important; }
+.player-topbar { background: linear-gradient(90deg,#202c3b,#1a202a) !important; border-color: #111820 !important; color: #e8edf4 !important; }
+.player-shell__canvas { background: linear-gradient(145deg,#343a46,#252b35 55%,#202631) !important; color: #dce2ec !important; min-height: calc(100vh - 70px); }
+.player-brand, .player-brand-mobile { color: #f3f6fa !important; }
+.player-brand__mark { background: linear-gradient(135deg,#1f9ed5,#376cbd) !important; }
+.player-sidebar .text-\[\#20242c\], .player-topbar .text-\[\#252a34\], .player-topbar .text-\[\#353945\] { color: #edf3fa !important; }
+.player-sidebar .bg-white\/80, .player-sidebar__pilot { background: #293240 !important; border-color: #3a4554 !important; color: #dce2ec !important; }
+.player-nav-item { color: #aeb8c6 !important; }
+.player-nav-item:hover { background: #303c4c !important; color: #fff !important; }
+.player-nav-item--active { background: linear-gradient(90deg,#314f6a,#29394c) !important; color: #fff !important; box-shadow: inset 3px 0 #4fb9ed; }
+.player-nav-item__glyph { color: #8fc9eb !important; }
+.player-topbar .bg-white, .player-topbar .border-\[\#e7e6e2\] { background: #2d3847 !important; border-color: #445162 !important; }
+.player-mobile-nav { background: #202a36 !important; border-color: #394757 !important; }
+.player-mobile-nav__active { color: #69c4fa !important; }
+.player-shell__canvas main :is(h1,h2,h3) { color: #f2f5fa !important; }
+.player-shell__canvas main .text-\[\#6159d8\], .player-shell__canvas main .text-\[\#6057dc\], .player-shell__canvas main .text-\[\#5146e5\] { color: #66c0f4 !important; }
+.player-shell__canvas main .bg-white:not(.text-white), .player-shell__canvas main .launcher-panel { background-color: #303946 !important; border-color: #46515e !important; color: #e8edf4 !important; }
+.player-shell__canvas main .launcher-panel :is(h1,h2,h3,p,span) { color: inherit; }
+.player-shell__canvas main :is(input,textarea,select) { background: #202936 !important; border-color: #536072 !important; color: #f3f7fc !important; }
+.player-shell__canvas main :is(input,textarea,select)::placeholder { color: #9baabd !important; }
+.player-shell__canvas main a:focus-visible, .player-shell__canvas main button:focus-visible { outline-color: #66c0f4 !important; }
+.player-shell__canvas main .launcher-button-primary { background: linear-gradient(90deg,#2384bc,#176ba2) !important; color: #fff !important; }
+.player-shell__canvas main section[aria-label="Featured game"] { background-color: #172535 !important; }
+.player-shell__canvas main section[aria-label="Featured game"] h2 { color: #fff !important; }
+.player-shell__canvas main section[aria-label="Featured game"] h2 span { color: #9ed9ff !important; }
+.player-shell__canvas main section[aria-label="Featured game"] .bg-white { background: #66c0f4 !important; color: #13273b !important; }
+.player-shell__canvas main section[aria-labelledby="library-heading"] > div > a { color: #66c0f4 !important; }
+.player-shell__canvas main section[aria-labelledby="library-heading"] a.group { background: #252d38 !important; border-color: #46505e !important; }
+.player-shell__canvas main section[aria-labelledby="library-heading"] a.group:hover { border-color: #66c0f4 !important; }
+.player-shell__canvas main section[aria-labelledby="library-heading"] a.group h3 { color: #f2f5fa !important; }
+.player-shell__canvas main section[aria-labelledby="library-heading"] a.group p { color: #9daec1 !important; }
+.player-shell__canvas main section[aria-labelledby="library-heading"] a.group p:last-child { color: #66c0f4 !important; }
+@media (max-width: 1023px) { .player-topbar { background: #202c3b !important; } }
