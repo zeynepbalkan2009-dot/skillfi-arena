@@ -81,75 +81,75 @@ export function ProfileClient() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
-      <header className="mb-8 border-b border-arena-border pb-8">
+    <main className="mx-auto max-w-[1440px] px-3 py-4 sm:px-5 sm:py-6 xl:px-7">
+      <header className="mb-7 border-b border-[#e5e5df] pb-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[.2em] text-arena-accent">
+            <p className="launcher-kicker">
               Player station / 05
             </p>
-            <h1 className="mt-3 font-display text-4xl font-semibold tracking-[-.035em] text-arena-text sm:text-5xl">
+            <h1 className="launcher-title mt-4 font-display text-4xl font-black sm:text-5xl">
               Your pilot profile.
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-arena-muted">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#777d88]">
               Season 00 progression, match record and verified activity in one place.
             </p>
           </div>
-          <Link href="/games" className="text-sm font-medium text-arena-accent hover:text-arena-text">
+          <Link href="/games" className="text-sm font-extrabold text-[#5146e5] hover:text-[#3930b3]">
             Back to game library →
           </Link>
         </div>
       </header>
       {!authenticated ? (
-        <section className="border border-arena-border bg-arena-surface p-6 shadow-[0_12px_30px_rgba(35,51,62,.06)]">
-          <div className="mb-6 flex items-center justify-between border-b border-arena-border pb-4">
+        <section className="launcher-panel p-6 sm:p-7">
+          <div className="mb-6 flex items-center justify-between border-b border-[#e7e7e1] pb-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[.16em] text-arena-muted">Season 00 / identity</p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-arena-text">Player profile</h2>
+              <p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#777d88]">Season 00 / identity</p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-[#252833]">Player profile</h2>
             </div>
-            <span className="border border-arena-border bg-[#f4f7f6] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-arena-accent">
+            <span className="rounded-md border border-[#e7e7e1] bg-[#eeedff] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-[#5146e5]">
               Pilot active
             </span>
           </div>
-          <p className="mt-2 text-sm text-arena-muted">Connect or log in to manage your SkillFi profile.</p>
+          <p className="mt-2 text-sm text-[#777d88]">Connect or log in to manage your SkillFi profile.</p>
         </section>
       ) : needsProfile ? (
         <OnboardingCard />
       ) : (
-        <section className="border border-arena-border bg-arena-surface p-6 shadow-[0_12px_30px_rgba(35,51,62,.06)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-arena-border pb-4"><div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-arena-muted">Season 00 / identity</p><h2 className="mt-1 font-display text-2xl font-bold text-arena-text">Player profile</h2></div><span className="border border-arena-border bg-[#f4f7f6] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-arena-accent">Pilot profile</span></div>
+        <section className="launcher-panel p-6 sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e7e7e1] pb-4"><div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#777d88]">Season 00 / identity</p><h2 className="mt-1 font-display text-2xl font-bold text-[#252833]">Player profile</h2></div><span className="rounded-md border border-[#e7e7e1] bg-[#eeedff] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-[#5146e5]">Pilot profile</span></div>
           <form onSubmit={saveProfile} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="username" className="mb-1 block text-sm font-medium text-arena-muted">
+              <label htmlFor="username" className="mb-1 block text-sm font-medium text-[#777d88]">
                 Username
               </label>
               <input
                 id="username"
                 value={draft.username}
                 onChange={(event) => setDraft((current) => ({ ...current, username: event.target.value }))}
-                className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text focus:border-arena-accent focus:outline-none"
+                className="w-full rounded-lg border border-[#e1e1dc] bg-white px-3 py-2 text-[#252833] focus:border-[#5146e5] focus:outline-none"
               />
             </div>
             <div>
-              <label htmlFor="display-name" className="mb-1 block text-sm font-medium text-arena-muted">
+              <label htmlFor="display-name" className="mb-1 block text-sm font-medium text-[#777d88]">
                 Display name
               </label>
               <input
                 id="display-name"
                 value={draft.displayName}
                 onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
-                className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text focus:border-arena-accent focus:outline-none"
+                className="w-full rounded-lg border border-[#e1e1dc] bg-white px-3 py-2 text-[#252833] focus:border-[#5146e5] focus:outline-none"
               />
             </div>
             <div>
-              <label htmlFor="avatar-url" className="mb-1 block text-sm font-medium text-arena-muted">
+              <label htmlFor="avatar-url" className="mb-1 block text-sm font-medium text-[#777d88]">
                 Avatar URL
               </label>
               <input
                 id="avatar-url"
                 value={draft.avatarUrl}
                 onChange={(event) => setDraft((current) => ({ ...current, avatarUrl: event.target.value }))}
-                className="w-full rounded-md border border-arena-border bg-arena-bg px-3 py-2 text-arena-text focus:border-arena-accent focus:outline-none"
+                className="w-full rounded-lg border border-[#e1e1dc] bg-white px-3 py-2 text-[#252833] focus:border-[#5146e5] focus:outline-none"
               />
             </div>
             <button
@@ -161,19 +161,19 @@ export function ProfileClient() {
             </button>
           </form>
 
-          {message && <p className="mt-4 text-sm text-arena-muted">{message}</p>}
+          {message && <p className="mt-4 text-sm text-[#777d88]">{message}</p>}
 
           {savedProfile && (
             <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-              <div className="rounded-md bg-arena-bg p-3">
-                <dt className="text-arena-muted">Wallet</dt>
-                <dd className="mt-1 break-all text-arena-text">
+              <div className="rounded-md bg-[#fafaf8] p-3">
+                <dt className="text-[#777d88]">Wallet</dt>
+                <dd className="mt-1 break-all text-[#252833]">
                   {savedProfile.primary_wallet_address ?? savedProfile.wallet_address ?? "No wallet linked"}
                 </dd>
               </div>
-              <div className="rounded-md bg-arena-bg p-3">
-                <dt className="text-arena-muted">Record</dt>
-                <dd className="mt-1 text-arena-text">
+              <div className="rounded-md bg-[#fafaf8] p-3">
+                <dt className="text-[#777d88]">Record</dt>
+                <dd className="mt-1 text-[#252833]">
                   {savedProfile.wins ?? 0}-{savedProfile.losses ?? 0} / ELO {savedProfile.elo_rating ?? 1000}
                 </dd>
               </div>
@@ -181,13 +181,13 @@ export function ProfileClient() {
           )}
 
           {savedProfile && (
-            <div className="mt-8 border-t border-arena-border pt-6">
+            <div className="mt-8 border-t border-[#e7e7e1] pt-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[.16em] text-arena-muted">Run log</p>
-                  <h2 className="mt-1 font-display text-xl font-bold text-arena-text">Match history</h2>
+                  <p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#777d88]">Run log</p>
+                  <h2 className="mt-1 font-display text-xl font-bold text-[#252833]">Match history</h2>
                 </div>
-                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-arena-muted">{matches.length.toString().padStart(2, "0")} rounds</span>
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-[#777d88]">{matches.length.toString().padStart(2, "0")} rounds</span>
               </div>
               {disputedMatches.length > 0 && (
                 <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900">
@@ -200,7 +200,7 @@ export function ProfileClient() {
                 </div>
               )}
               {matches.length === 0 ? (
-                <p className="mt-3 text-sm text-arena-muted">No matches yet.</p>
+                <p className="mt-3 text-sm text-[#777d88]">No matches yet.</p>
               ) : (
                 <div className="mt-4 space-y-3">
                   {matches.map((match) => {
@@ -216,13 +216,13 @@ export function ProfileClient() {
                       <Link
                         key={match.id}
                         href={`/matches/${match.id}`}
-                        className="flex items-center justify-between gap-4 rounded-lg border border-arena-border bg-arena-bg p-4 hover:border-arena-accent-dim"
+                        className="flex items-center justify-between gap-4 rounded-lg border border-[#e7e7e1] bg-[#fafaf8] p-4 hover:border-arena-accent-dim"
                       >
                         <div>
-                          <p className="font-display font-semibold text-arena-text">
+                          <p className="font-display font-semibold text-[#252833]">
                             {match.game?.name ?? "SkillFi Match"}
                           </p>
-                          <p className="mt-1 text-sm text-arena-muted">
+                          <p className="mt-1 text-sm text-[#777d88]">
                             vs {opponent?.display_name ?? opponent?.username ?? "Waiting for opponent"}
                           </p>
                         </div>
@@ -232,7 +232,7 @@ export function ProfileClient() {
                           }`}>
                             {outcome === "disputed" ? "under review" : outcome.replaceAll("_", " ")}
                           </p>
-                          <p className="mt-1 text-xs text-arena-muted">
+                          <p className="mt-1 text-xs text-[#777d88]">
                             {formatUsdcUnits(match.stake_amount)} USDC
                           </p>
                         </div>
@@ -245,16 +245,16 @@ export function ProfileClient() {
           )}
 
           {savedProfile && auditEvents.length > 0 && (
-            <div className="mt-8 border-t border-arena-border pt-6">
-              <h2 className="font-display text-xl font-bold text-arena-text">Transaction & Audit Trail</h2>
+            <div className="mt-8 border-t border-[#e7e7e1] pt-6">
+              <h2 className="font-display text-xl font-bold text-[#252833]">Transaction & Audit Trail</h2>
               <div className="mt-4 space-y-2">
                 {auditEvents.map((event) => (
-                  <div key={event.id} className="rounded-lg border border-arena-border bg-arena-bg p-3 text-sm">
+                  <div key={event.id} className="rounded-lg border border-[#e7e7e1] bg-[#fafaf8] p-3 text-sm">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium capitalize text-arena-text">
+                      <span className="font-medium capitalize text-[#252833]">
                         {event.event_type.replaceAll("_", " ")}
                       </span>
-                      <time className="text-xs text-arena-muted">{new Date(event.created_at).toLocaleString()}</time>
+                      <time className="text-xs text-[#777d88]">{new Date(event.created_at).toLocaleString()}</time>
                     </div>
                     {event.tx_hash && (
                       <a
