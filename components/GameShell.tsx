@@ -7,7 +7,7 @@ import { PixelFleetMotion } from "@/components/motion/PixelFleetMotion";
 
 const navigation = [
   { href: "/dashboard", label: "Command deck", index: "01" },
-  { href: "/games", label: "Game library", index: "02" },
+  { href: "/games", label: "Game lab", index: "02" },
   { href: "/challenges", label: "Match room", index: "03" },
   { href: "/guilds", label: "Guild hall", index: "04" },
   { href: "/profile", label: "Player profile", index: "05" },
@@ -23,7 +23,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-arena-border bg-arena-surface shadow-[10px_0_30px_rgba(35,51,62,.07)] lg:flex lg:flex-col">
         <Link
           href="/"
-          className="border-b border-arena-border px-7 py-7"
+          className="border-b border-arena-border px-7 py-7 transition-colors hover:bg-[#f1f7f8]"
           aria-label="SkillFi home"
         >
           <span className="font-display text-xl font-bold tracking-[0.1em] text-arena-text">
@@ -32,7 +32,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           <span className="ml-2 text-xs font-medium text-arena-accent">ARENA</span>
         </Link>
 
-        <nav className="px-4 py-6" aria-label="Player navigation">
+        <nav className="px-3 py-6" aria-label="Player navigation">
           <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-arena-muted">
             Player station
           </p>
@@ -44,10 +44,10 @@ export function GameShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`group flex items-center border-t border-arena-border px-3 py-4 text-sm transition-colors last:border-b ${
+                className={`group my-1 flex items-center rounded-lg border border-transparent px-4 py-3.5 text-sm transition-all ${
                   active
-                    ? "bg-[#e3f1f5] text-arena-accent"
-                    : "text-arena-muted hover:bg-[#f1f4f3] hover:text-arena-text"
+                    ? "border-[#b9dfe8] bg-[#e3f1f5] font-semibold text-arena-accent shadow-[inset_3px_0_0_#18a6c9]"
+                    : "text-arena-muted hover:border-arena-border hover:bg-[#f1f4f3] hover:text-arena-text"
                 }`}
               >
                 <span
@@ -73,7 +73,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           <PixelFleetMotion compact label="SkillFi fleet status" />
           <div className="flex items-center gap-2 text-[11px] text-arena-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-            Pilot shard: Arc-01
+            Arc-01 / controlled pilot
           </div>
           <p className="mt-3 text-xs leading-5 text-arena-muted">
             Season 00 · practice stakes only
