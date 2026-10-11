@@ -23,7 +23,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-arena-border bg-arena-surface shadow-[10px_0_30px_rgba(35,51,62,.07)] lg:flex lg:flex-col">
         <Link
           href="/"
-          className="border-b border-arena-border px-7 py-7 transition-colors hover:bg-[#f1f7f8]"
+          className="border-b border-arena-border px-6 py-6 transition-colors hover:bg-[#f1f7f8]"
           aria-label="SkillFi home"
         >
           <span className="font-display text-xl font-bold tracking-[0.1em] text-arena-text">
@@ -46,7 +46,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
                 aria-current={active ? "page" : undefined}
                 className={`group my-1 flex items-center rounded-lg border border-transparent px-4 py-3.5 text-sm transition-all ${
                   active
-                    ? "border-[#b9dfe8] bg-[#e3f1f5] font-semibold text-arena-accent shadow-[inset_3px_0_0_#18a6c9]"
+                    ? "border-[#c7d2fe] bg-[#eef2ff] font-semibold text-[#4338ca] shadow-[inset_3px_0_0_#4f46e5]"
                     : "text-arena-muted hover:border-arena-border hover:bg-[#f1f4f3] hover:text-arena-text"
                 }`}
               >
