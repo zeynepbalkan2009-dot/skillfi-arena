@@ -536,3 +536,12 @@
     .dashboard-hero-art__tile { transform: none; }
   }
 }
+
+
+@layer utilities {
+  .light-theme .game-cover :is(span, strong, p) { color: #fff; }
+  .light-theme .dashboard-hero-art :is(.dashboard-hero-art__caption, .dashboard-hero-art__tile) { color: #fff; }
+  .dashboard-hero-art__caption span { color: inherit; }
+  .player-topbar .player-brand-mobile { color: #252833; }
+  .player-topbar .player-brand-mobile > span:first-child { color: #fff; }
+}
