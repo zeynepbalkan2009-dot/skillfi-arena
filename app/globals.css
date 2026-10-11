@@ -574,7 +574,6 @@
   box-shadow: 0 7px 25px rgba(31,35,48,.035);
 }
 .player-shell__canvas main .launcher-panel :is(p, span) { max-width: 100%; }
-.player-shell__canvas main .launcher-panel .text-white { color: #252833; }
 .player-shell__canvas main .launcher-panel .bg-black\/15,
 .player-shell__canvas main .launcher-panel .bg-black\/20 { background-color: #fafaf8; }
 @media (max-width: 639px) {
