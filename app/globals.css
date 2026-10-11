@@ -545,3 +545,39 @@
   .player-topbar .player-brand-mobile { color: #252833; }
   .player-topbar .player-brand-mobile > span:first-child { color: #fff; }
 }
+
+
+/* Consistent component treatment across Match Room, Guild Hall and Profile. */
+.player-shell__canvas main :is(input, textarea, select) {
+  color: #252833;
+  background-color: #fff;
+  border-color: #e1e1dc;
+  border-radius: 10px;
+}
+.player-shell__canvas main :is(input, textarea, select)::placeholder { color: #a0a4ac; }
+.player-shell__canvas main :is(input, textarea, select):focus-visible {
+  outline: 2px solid rgba(81,70,229,.28);
+  outline-offset: 1px;
+  border-color: #827af0;
+}
+.player-shell__canvas main :is(h1, h2, h3) { text-wrap: pretty; }
+.player-shell__canvas main :is(p, li) { overflow-wrap: anywhere; }
+.player-shell__canvas main button:focus-visible,
+.player-shell__canvas main a:focus-visible {
+  outline: 2px solid #5146e5;
+  outline-offset: 3px;
+}
+.player-shell__canvas main .launcher-panel {
+  color: #252833;
+  border-color: #e7e7e1;
+  background-color: #fff;
+  box-shadow: 0 7px 25px rgba(31,35,48,.035);
+}
+.player-shell__canvas main .launcher-panel :is(p, span) { max-width: 100%; }
+.player-shell__canvas main .launcher-panel .text-white { color: #252833; }
+.player-shell__canvas main .launcher-panel .bg-black\/15,
+.player-shell__canvas main .launcher-panel .bg-black\/20 { background-color: #fafaf8; }
+@media (max-width: 639px) {
+  .player-shell__canvas main h1 { overflow-wrap: anywhere; }
+  .player-shell__canvas main .launcher-panel { border-radius: 16px; }
+}
