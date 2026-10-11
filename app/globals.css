@@ -500,3 +500,39 @@
     .player-shell__canvas { padding: .65rem; }
   }
 }
+
+
+@layer utilities {
+  .dashboard-hero-art {
+    background:
+      radial-gradient(ellipse at 70% 42%, rgba(130,121,255,.2), transparent 35%),
+      radial-gradient(ellipse at 34% 80%, rgba(89,202,211,.18), transparent 30%),
+      linear-gradient(135deg, #292c5d 0%, #343a87 52%, #5146e5 100%);
+  }
+  .dashboard-hero-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(90deg, transparent, #000);
+  }
+  .dashboard-hero-art__orb {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(1px);
+  }
+  .dashboard-hero-art__orb--one { width: 260px; height: 260px; top: 8%; left: 28%; background: radial-gradient(circle at 35% 30%, #c7c4ff, #7068ee 42%, rgba(77,70,229,.1) 72%); box-shadow: 0 0 90px rgba(176,171,255,.2); }
+  .dashboard-hero-art__orb--two { width: 120px; height: 120px; right: 9%; bottom: 17%; background: radial-gradient(circle at 30% 30%, #d9fff6, #57c9c7 45%, rgba(87,201,199,.05) 75%); }
+  .dashboard-hero-art__ring { position: absolute; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; transform: rotate(-28deg); }
+  .dashboard-hero-art__ring--one { width: 370px; height: 170px; left: 11%; top: 23%; }
+  .dashboard-hero-art__ring--two { width: 420px; height: 235px; left: 3%; top: 15%; transform: rotate(36deg); border-color: rgba(255,255,255,.16); }
+  .dashboard-hero-art__tile { position: absolute; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.4); border-radius: 18px; color: white; font-weight: 900; backdrop-filter: blur(12px); box-shadow: 0 18px 45px rgba(12,12,40,.22); }
+  .dashboard-hero-art__tile--one { width: 82px; height: 82px; top: 19%; right: 19%; background: linear-gradient(145deg, rgba(255,255,255,.26), rgba(255,255,255,.07)); font-size: 44px; transform: rotate(10deg); }
+  .dashboard-hero-art__tile--two { width: 58px; height: 58px; left: 16%; bottom: 27%; background: rgba(255,255,255,.13); font-size: 25px; transform: rotate(-12deg); }
+  .dashboard-hero-art__tile--three { width: 50px; height: 50px; right: 18%; bottom: 34%; background: rgba(255,255,255,.15); font-size: 24px; }
+  .dashboard-hero-art__caption { position: absolute; left: 1.5rem; right: 1.5rem; bottom: 1.5rem; display: flex; align-items: center; gap: .55rem; border-top: 1px solid rgba(255,255,255,.22); padding-top: .9rem; color: white; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; font-weight: 800; letter-spacing: .16em; }
+  @media (prefers-reduced-motion: reduce) {
+    .dashboard-hero-art__tile { transform: none; }
+  }
+}
