@@ -124,8 +124,8 @@ export function ProfileClient() {
       ) : needsProfile ? (
         <OnboardingCard />
       ) : (
-        <section className="rounded-lg border border-arena-border bg-arena-surface p-6">
-          <h1 className="font-display text-2xl font-bold text-arena-text">Player Profile</h1>
+        <section className="border border-arena-border bg-arena-surface p-6 shadow-[0_12px_30px_rgba(35,51,62,.06)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-arena-border pb-4"><div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-arena-muted">Season 00 / identity</p><h2 className="mt-1 font-display text-2xl font-bold text-arena-text">Player profile</h2></div><span className="border border-arena-border bg-[#f4f7f6] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-arena-accent">Pilot profile</span></div>
           <form onSubmit={saveProfile} className="mt-6 space-y-4">
             <div>
               <label htmlFor="username" className="mb-1 block text-sm font-medium text-arena-muted">
@@ -198,11 +198,11 @@ export function ProfileClient() {
                 <span className="font-mono text-[10px] uppercase tracking-[.14em] text-arena-muted">{matches.length.toString().padStart(2, "0")} rounds</span>
               </div>
               {disputedMatches.length > 0 && (
-                <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+                <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900">
                   <p className="font-semibold">
                     {disputedMatches.length} {disputedMatches.length === 1 ? "match is" : "matches are"} under review
                   </p>
-                  <p className="mt-1 text-amber-100/80">
+                  <p className="mt-1 text-amber-800">
                     Automatic payout is paused while an authorized arbiter reviews the result. No additional wallet action is required.
                   </p>
                 </div>
@@ -236,7 +236,7 @@ export function ProfileClient() {
                         </div>
                         <div className="text-right">
                           <p className={`font-semibold capitalize ${
-                            outcome === "disputed" ? "text-amber-300" : "text-arena-accent"
+                            outcome === "disputed" ? "text-amber-700" : "text-arena-accent"
                           }`}>
                             {outcome === "disputed" ? "under review" : outcome.replaceAll("_", " ")}
                           </p>
