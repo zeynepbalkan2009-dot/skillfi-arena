@@ -68,13 +68,13 @@ export function ChallengeHubClient({
 
   return (
     <GameShell>
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+      <main className="mx-auto max-w-[1440px] px-3 py-4 sm:px-5 sm:py-6 xl:px-7">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">
+            <div className="launcher-kicker">
               Matchmaking / Arc Testnet
             </div>
-            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-arena-text sm:text-6xl">
+            <h1 className="launcher-title mt-4 font-display text-5xl font-black sm:text-6xl">
               Open challenges
             </h1>
             <p className="mt-2 text-sm text-arena-muted">
@@ -89,14 +89,14 @@ export function ChallengeHubClient({
                 ? "Create a pilot challenge"
                 : "Active beta access is required"
             }
-            className="min-h-11 bg-arena-accent px-5 text-sm font-semibold text-[#071015] transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+            className="launcher-button-primary min-h-11 px-5 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-40"
           >
             Create challenge
           </button>
         </div>
         <PilotAccessBanner status={pilotStatus} />
-        <section className="mt-10 grid border-y border-arena-border md:grid-cols-3">
-          <div className="border-b border-arena-border py-5 md:border-b-0 md:border-r md:px-6 md:first:pl-0">
+        <section className="mt-7 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[#e7e7e1] bg-white p-5">
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-arena-muted">
               Open now
             </p>
@@ -104,42 +104,42 @@ export function ChallengeHubClient({
               {sorted.length}
             </p>
           </div>
-          <div className="border-b border-arena-border py-5 md:border-b-0 md:border-r md:px-6">
-            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-600">
+          <div className="rounded-2xl border border-[#e7e7e1] bg-white p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#9095a0]">
               Network
             </p>
-            <p className="mt-2 font-display text-2xl font-semibold text-white">
+            <p className="mt-2 font-display text-2xl font-black text-[#252833]">
               Arc Testnet
             </p>
           </div>
-          <div className="py-5 md:px-6 md:last:pr-0">
-            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-600">
+          <div className="rounded-2xl border border-[#e7e7e1] bg-white p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#9095a0]">
               Pilot asset
             </p>
-            <p className="mt-2 font-display text-2xl font-bold">
+            <p className="mt-2 font-display text-2xl font-black text-[#252833]">
               {SETTLEMENT_ASSET_LABEL}
             </p>
           </div>
         </section>
-        <div className="mt-10 grid gap-10 xl:grid-cols-[1fr_280px]">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_300px]">
           <section>
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="font-display text-2xl font-bold">
                   Available now
                 </h2>
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-[#858b96]">
                   Verified results · Testnet-only sessions
                 </p>
               </div>
-              <span className="border border-emerald-300/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.14em] text-[#3f7d50]">
+              <span className="rounded-lg border border-[#e7e7e1] bg-[#f6f6f3] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[.14em] text-[#6d7480]">
                 Online
               </span>
             </div>
             {needsProfile ? (
               <OnboardingCard />
             ) : sorted.length === 0 ? (
-              <div className="border border-dashed border-arena-border py-12 text-center">
+              <div className="rounded-2xl border border-dashed border-[#dcdcd5] bg-[#fafaf8] py-12 text-center">
                 <WaitingMotion compact label="The arena is quiet" />
                 <p className="mt-4 text-sm text-slate-500">
                   Be the first active pilot player to open a challenge.
@@ -158,27 +158,27 @@ export function ChallengeHubClient({
               </div>
             )}
           </section>
-          <aside className="border-t border-arena-border pt-5 xl:border-l xl:border-t-0 xl:pl-7 xl:pt-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-slate-600">
+          <aside className="launcher-panel self-start p-5 sm:p-6">
+            <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-[#9095a0]">
               Before you join
             </p>
-            <h2 className="mt-2 font-display text-2xl font-bold">
+            <h2 className="mt-2 font-display text-2xl font-black text-[#252833]">
               A fair start takes a minute.
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
+            <p className="mt-3 text-sm leading-6 text-[#777d88]">
               Confirm the game, region and testnet amount before signing. Keep
               this page open while a second player connects.
             </p>
             <ol className="mt-6 space-y-4 text-xs leading-5 text-arena-muted">
-              <li className="border-t border-arena-border pt-3">
+              <li className="border-t border-[#e7e7e1] pt-3">
                 <span className="mr-3 font-mono text-arena-accent">01</span>Use
                 the wallet linked to your pilot profile.
               </li>
-              <li className="border-t border-arena-border pt-3">
+              <li className="border-t border-[#e7e7e1] pt-3">
                 <span className="mr-3 font-mono text-arena-accent">02</span>
                 Approve only the displayed testnet asset.
               </li>
-              <li className="border-t border-arena-border pt-3">
+              <li className="border-t border-[#e7e7e1] pt-3">
                 <span className="mr-3 font-mono text-arena-accent">03</span>Wait
                 for the shared countdown before playing.
               </li>
