@@ -404,3 +404,99 @@
     }
   }
 }
+
+
+/* SkillFi Connect launcher system — original brand, light-first UI. */
+@layer utilities {
+  .player-shell { background: #f5f5f2; }
+  .player-sidebar {
+    background: #fbfbf9;
+    border-color: #e6e6e1;
+    box-shadow: 8px 0 28px rgba(30, 35, 50, .035);
+  }
+  .player-brand { border-bottom: 1px solid #ecece7; color: #20232c; }
+  .player-brand__mark {
+    background: linear-gradient(145deg, #6258f5, #4037c9);
+    box-shadow: 0 7px 18px rgba(79, 70, 229, .24);
+    letter-spacing: -.08em;
+  }
+  .player-nav-item { color: #69717d; }
+  .player-nav-item:hover { background: #f0f0ed; color: #282d38; }
+  .player-nav-item__glyph { background: #f0f0ed; color: #737b87; }
+  .player-nav-item--active {
+    color: #4338ca;
+    background: #eeedff;
+    box-shadow: inset 3px 0 0 #5146e5;
+  }
+  .player-nav-item--active .player-nav-item__glyph { color: #fff; background: #5146e5; }
+  .player-nav-item__arrow { font-size: 22px; font-weight: 400; color: #5146e5; }
+  .player-sidebar__pilot { background: linear-gradient(150deg, #f4f3ff, #fff); border-color: #e7e4ff; color: #45415d; }
+  .player-topbar { background: rgba(251,251,249,.92); border-color: #e7e7e2; }
+  .player-topbar :is(a, p) { color: inherit; }
+  .player-topbar a[aria-current="page"] { color: #4338ca; background: #eeedff; }
+  .player-mobile-nav { background: #fbfbf9; border-color: #e7e7e2; }
+  .player-mobile-nav a { color: #7d8490; }
+  .player-mobile-nav a:hover, .player-mobile-nav__active { color: #4338ca !important; background: #eeedff; }
+  .player-shell__canvas {
+    min-height: calc(100vh - 4.375rem);
+    padding: clamp(1rem, 2.2vw, 2.25rem);
+    background: #f5f5f2;
+  }
+  .player-shell__canvas > main {
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .player-shell__canvas > main > header { border-color: #e5e5df; }
+  .launcher-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    color: #5146e5;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .17em;
+    text-transform: uppercase;
+  }
+  .launcher-kicker::before { content: ""; width: 18px; height: 2px; background: #5146e5; }
+  .launcher-title { color: #20232c; letter-spacing: -.055em; line-height: .98; }
+  .launcher-panel { background: #fff; border: 1px solid #e8e8e2; border-radius: 18px; box-shadow: 0 7px 25px rgba(31,35,48,.035); }
+  .launcher-button-primary { background: #5146e5; color: #fff; border-radius: 10px; box-shadow: 0 5px 14px rgba(79,70,229,.18); transition: background .18s ease, transform .18s ease; }
+  .launcher-button-primary:hover { background: #4037c9; transform: translateY(-1px); }
+  .game-cover { isolation: isolate; }
+  .game-cover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: .6;
+    background: radial-gradient(ellipse at 70% 28%, rgba(255,255,255,.62), transparent 23%), radial-gradient(ellipse at 28% 72%, rgba(255,255,255,.2), transparent 28%);
+    pointer-events: none;
+  }
+  .game-cover::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    width: 68%;
+    aspect-ratio: 1;
+    right: -18%;
+    top: 12%;
+    border: 1px solid rgba(255,255,255,.48);
+    border-radius: 38% 62% 51% 49%;
+    transform: rotate(28deg);
+    box-shadow: 0 0 0 18px rgba(255,255,255,.06), 0 0 0 42px rgba(255,255,255,.045);
+    pointer-events: none;
+  }
+  .game-cover > * { z-index: 1; }
+  .game-cover strong { text-shadow: 0 5px 24px rgba(12,20,45,.22); }
+  @media (prefers-reduced-motion: reduce) {
+    .player-nav-item, .launcher-button-primary { transition: none; }
+    .launcher-button-primary:hover { transform: none; }
+  }
+  @media (max-width: 639px) {
+    .player-shell__canvas { padding: .65rem; }
+  }
+}
