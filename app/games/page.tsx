@@ -73,13 +73,39 @@ export default async function GamesPage() {
           </Link>
         </header>
 
+        {games.length > 0 && games[0].slug && (
+          <section className="mt-8 overflow-hidden border border-arena-border bg-arena-surface shadow-[0_18px_40px_rgba(35,51,62,.09)]" aria-label="Featured game">
+            <div className="grid md:grid-cols-[1.1fr_.9fr]">
+              <div className={`relative flex min-h-64 flex-col justify-between overflow-hidden bg-gradient-to-br p-7 text-white sm:p-10 ${gameCovers[games[0].slug]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
+                <span className="relative z-10 font-mono text-xs font-bold uppercase tracking-[.2em] text-white/80">Featured / Season 00</span>
+                <div className="relative z-10">
+                  <p className="font-mono text-xs uppercase tracking-[.2em] text-white/80">SkillFi game lab</p>
+                  <p className="mt-3 font-display text-7xl font-black tracking-tight sm:text-8xl">{gameCovers[games[0].slug]?.code ?? "SKL"}</p>
+                </div>
+                <div className="pointer-events-none absolute -right-12 -top-16 h-72 w-72 rotate-45 border-[45px] border-white/10" aria-hidden="true" />
+              </div>
+              <div className="flex flex-col justify-center p-7 sm:p-10">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-arena-accent">Selected game / 01</p>
+                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-arena-text">{games[0].name}</h2>
+                <p className="mt-3 text-sm font-medium text-arena-accent">{gameNotes[games[0].slug] ?? "Competitive skill"}</p>
+                <p className="mt-4 max-w-md text-sm leading-7 text-arena-muted">{games[0].description ?? "A deterministic head-to-head skill round."}</p>
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link href={`/games/${games[0].slug}`} className="inline-flex min-h-11 items-center justify-center bg-arena-accent px-6 text-sm font-bold text-[#071015] hover:bg-cyan-200">View game ↗</Link>
+                  <Link href="/challenges" className="inline-flex min-h-11 items-center justify-center border border-arena-border px-6 text-sm font-semibold text-arena-text hover:border-arena-accent">Match room →</Link>
+                </div>
+                <p className="mt-5 text-xs text-arena-muted">Controlled pilot · No real-value rewards</p>
+              </div>
+            </div>
+          </section>
+        )}
+
         {games.length ? (
           <section className="py-8" aria-label="Available games">
             <div className="mb-5 flex items-center justify-between border-b border-arena-border pb-3">
               <p className="text-xs font-semibold uppercase tracking-[.16em] text-arena-text">
-                Installed for Season 00
+                Browse game library
               </p>
-              <p className="font-mono text-xs text-arena-muted">SORT / SKILL</p>
+              <p className="font-mono text-xs text-arena-muted">AVAILABLE / PILOT</p>
             </div>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {games.map((game, index) => (
