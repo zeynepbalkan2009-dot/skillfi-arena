@@ -48,14 +48,14 @@ export default async function GamesPage() {
 
   return (
     <GameShell>
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <header className="grid gap-6 border-b border-arena-border pb-10 md:grid-cols-[1fr_auto] md:items-end">
+      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+        <header className="grid gap-6 border-b border-arena-border pb-7 md:grid-cols-[1fr_auto] md:items-end">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[.18em] text-arena-accent">
               Pilot catalogue / {games.length.toString().padStart(2, "0")}
             </p>
-            <h1 className="mt-4 font-display text-5xl font-semibold tracking-[-.035em] text-arena-text sm:text-6xl">
-              Your game library.
+            <h1 className="mt-4 font-display text-5xl font-black tracking-[-.045em] text-arena-text sm:text-6xl">
+              Game Lab.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-arena-muted">
               Every pilot player receives the same deterministic round. Choose
@@ -74,9 +74,9 @@ export default async function GamesPage() {
         </header>
 
         {games.length > 0 && games[0].slug && (
-          <section className="mt-8 overflow-hidden border border-arena-border bg-arena-surface shadow-[0_18px_40px_rgba(35,51,62,.09)]" aria-label="Featured game">
-            <div className="grid md:grid-cols-[1.1fr_.9fr]">
-              <div className={`relative flex min-h-64 flex-col justify-between overflow-hidden bg-gradient-to-br p-7 text-white sm:p-10 ${gameCovers[games[0].slug]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
+          <section className="mt-7 overflow-hidden rounded-2xl border border-arena-border bg-arena-surface shadow-[0_18px_40px_rgba(35,51,62,.09)]" aria-label="Featured game">
+            <div className="grid lg:grid-cols-[1.35fr_.65fr]">
+              <div className={`relative flex min-h-72 flex-col justify-between overflow-hidden bg-gradient-to-br p-7 text-white sm:p-10 ${gameCovers[games[0].slug]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
                 <span className="relative z-10 font-mono text-xs font-bold uppercase tracking-[.2em] text-white/80">Featured / Season 00</span>
                 <div className="relative z-10">
                   <p className="font-mono text-xs uppercase tracking-[.2em] text-white/80">SkillFi game lab</p>
@@ -107,13 +107,13 @@ export default async function GamesPage() {
               </p>
               <p className="font-mono text-xs text-arena-muted">AVAILABLE / PILOT</p>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
             {games.map((game, index) => (
               <article
                 key={game.id}
-                className="group relative overflow-hidden border border-arena-border bg-arena-surface shadow-[0_12px_30px_rgba(35,51,62,.08)] transition duration-200 hover:-translate-y-1 hover:border-arena-accent hover:shadow-[0_18px_42px_rgba(0,126,190,.22)]"
+                className="group relative overflow-hidden rounded-xl border border-arena-border bg-arena-surface shadow-[0_12px_30px_rgba(35,51,62,.08)] transition duration-200 hover:-translate-y-1 hover:border-arena-accent hover:shadow-[0_18px_42px_rgba(0,126,190,.22)]"
               >
-                <div className={`game-cover relative aspect-[4/5] overflow-hidden bg-gradient-to-br ${gameCovers[game.slug ?? ""]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
+                <div className={`game-cover relative aspect-[4/3] sm:aspect-[4/5] overflow-hidden bg-gradient-to-br ${gameCovers[game.slug ?? ""]?.style ?? "from-[#07304b] via-[#075985] to-[#38bdf8]"}`}>
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_35%,rgba(255,255,255,.16)_35%,rgba(255,255,255,.16)_36%,transparent_36%,transparent_62%,rgba(255,255,255,.1)_62%,rgba(255,255,255,.1)_63%,transparent_63%)]" />
                   <p className="absolute left-4 top-4 font-mono text-xs font-bold tracking-[.2em] text-white/70">
                     S00_{String(index + 1).padStart(2, "0")}
@@ -123,7 +123,7 @@ export default async function GamesPage() {
                   </strong>
                   <span className="absolute right-3 top-3 h-2 w-2 bg-[#b7ff4a] shadow-[0_0_12px_#b7ff4a]" aria-hidden="true" />
                 </div>
-                <div className="p-4">
+                <div className="p-5">
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <span className="border border-arena-border bg-[#f4f7f6] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[.14em] text-arena-accent">
                       Skill trial
