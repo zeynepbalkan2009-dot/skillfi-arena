@@ -24,18 +24,18 @@ export default function DashboardPage() {
   return (
     <GameShell>
       <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <section className="grid gap-10 border-b border-arena-border pb-12 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
+        <section className="flex flex-col items-start gap-6 border-b border-arena-border pb-10">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-arena-accent">
               Controlled pilot / Arc Testnet
             </p>
-            <h1 className="mt-5 max-w-3xl font-display text-5xl font-semibold leading-[0.98] tracking-[-0.035em] text-arena-text sm:text-7xl">
+            <h1 className="mt-5 max-w-3xl font-display text-5xl font-black leading-[0.98] tracking-[-0.035em] text-arena-text sm:text-7xl">
               Compete on skill.
               <br />
               <span className="text-arena-muted">Verify the result.</span>
             </h1>
           </div>
-          <div className="lg:pb-1">
+          <div className="max-w-2xl">
             <p className="max-w-md text-sm leading-7 text-arena-muted">
               A focused testing environment for deterministic
               player-versus-player games. No simulated earnings, no fictional
@@ -43,7 +43,7 @@ export default function DashboardPage() {
             </p>
             <Link
               href="/challenges"
-              className="mt-7 inline-flex min-h-11 items-center bg-arena-accent px-5 text-sm font-semibold text-[#071015] transition-colors hover:bg-cyan-200"
+              className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-[#4f46e5] px-5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(79,70,229,.2)] transition-colors hover:bg-[#4338ca]"
             >
               Find a challenge{" "}
               <span className="ml-8" aria-hidden="true">
