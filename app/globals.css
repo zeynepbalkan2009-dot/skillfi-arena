@@ -631,3 +631,19 @@
 .player-shell__canvas main section[aria-labelledby="library-heading"] a.group p { color: #9daec1 !important; }
 .player-shell__canvas main section[aria-labelledby="library-heading"] a.group p:last-child { color: #66c0f4 !important; }
 @media (max-width: 1023px) { .player-topbar { background: #202c3b !important; } }
+
+
+/* Approved graphite sidebar and interactive controls */
+.player-sidebar .player-nav-item { background: #303740 !important; border: 1px solid #46505c; border-radius: 8px !important; margin-block: 5px; }
+.player-sidebar .player-nav-item:hover { background: #404a56 !important; border-color: #64758a; }
+.player-sidebar .player-nav-item--active { background: #344b5e !important; border-color: #526a7b; box-shadow: inset 3px 0 #66c0f4 !important; }
+.player-library-link { color: #b5c1cd; background: transparent; }
+.player-library-link:hover { color: #fff; background: #404a56; }
+.player-library-link--active { color: #fff; background: #344b5e; box-shadow: inset 3px 0 #66c0f4; }
+.player-shell__canvas main .launcher-panel { background-color: #292f39 !important; }
+.player-shell__canvas main .launcher-button-primary { background: #237eae !important; }
+.player-shell__canvas main .launcher-button-primary:hover { background: #349bce !important; }
+@media (max-height: 820px) and (min-width: 1024px) {
+ .player-sidebar { overflow-y: auto; }
+ .player-sidebar .mt-auto { margin-top: 1.5rem; }
+}
