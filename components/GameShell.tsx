@@ -56,6 +56,21 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        <div className="mx-4 mt-5 border-t border-[#414a55] pt-4">
+          <p className="px-2 pb-3 text-[10px] font-black uppercase tracking-[.17em] text-[#96a7b9]">Your games</p>
+          {[
+            { name: "Typing Sprint", slug: "typing-sprint", glyph: "⌨" },
+            { name: "Arithmetic Rush", slug: "arithmetic-rush", glyph: "∑" },
+            { name: "Sequence Recall", slug: "sequence-recall", glyph: "◈" },
+            { name: "Pattern Lock", slug: "pattern-lock", glyph: "✳" },
+            { name: "Logic Grid", slug: "logic-grid", glyph: "▦" },
+          ].map((game) => (
+            <Link key={game.slug} href={`/games/${game.slug}`} className={`player-library-link flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${pathname === `/games/${game.slug}` ? "player-library-link--active" : ""}`}>
+              <span className="w-5 text-center text-sm text-[#82b8d8]" aria-hidden="true">{game.glyph}</span>{game.name}
+            </Link>
+          ))}
+        </div>
+
         <div className="mt-auto px-5 pb-5">
           <div className="player-sidebar__pilot overflow-hidden rounded-2xl border p-4">
             <div className="mb-3 flex items-center justify-between">
