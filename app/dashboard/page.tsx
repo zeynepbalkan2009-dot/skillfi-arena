@@ -38,12 +38,12 @@ export default function DashboardPage() {
           <div className="absolute bottom-5 right-6 z-10 text-[10px] font-black tracking-[.2em] text-white/60">SKILLFI / 001</div>
         </section>
 
-        <section className="mt-11" aria-labelledby="library-heading">
+        <section className="mt-8" aria-labelledby="library-heading">
           <div className="mb-5 flex items-end justify-between gap-3">
-            <div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#6159d8]">YOUR NEXT CHALLENGE</p><h2 id="library-heading" className="mt-2 font-display text-3xl font-black tracking-tight text-[#22263a]">Game library</h2></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#6159d8]">RECENT GAMES</p><h2 id="library-heading" className="mt-2 font-display text-3xl font-black tracking-tight text-[#22263a]">Recently played & featured</h2></div>
             <Link href="/games" className="text-xs font-black text-[#5146e5] hover:underline">View all games ↗</Link>
           </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
             {games.map((game, index) => (
               <Link href={`/games/${game.slug}`} key={game.slug} className="group overflow-hidden rounded-2xl border border-[#e5e4ee] bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-[#afa8ff] hover:shadow-xl">
                 <div className={`relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-gradient-to-br ${game.colors}`}>
@@ -59,7 +59,27 @@ export default function DashboardPage() {
             ))}
           </div>
         </section>
-        <section className="mt-10 grid gap-4 md:grid-cols-2">
+
+        <section className="mt-9" aria-labelledby="collection-heading">
+          <div className="mb-4 flex items-center gap-4 border-b border-[#556171] pb-3">
+            <h2 id="collection-heading" className="shrink-0 font-display text-lg font-black uppercase tracking-wide text-[#e6edf5]">Your complete collection</h2>
+            <span className="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-[.14em] text-[#a4b1c2]">5 games · Season 00</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-7">
+            {games.map((game) => (
+              <Link href={`/games/${game.slug}`} key={game.slug} className="group overflow-hidden rounded-sm border border-[#485463] bg-[#222b36] transition hover:-translate-y-1 hover:border-[#66c0f4] hover:shadow-[0_10px_24px_rgba(0,0,0,.35)]">
+                <div className={`relative grid aspect-[2/3] place-items-center overflow-hidden bg-gradient-to-br ${game.colors}`}>
+                  <div className="absolute inset-3 rounded-[18px] border border-white/25" />
+                  <div className="absolute -right-8 top-0 h-28 w-28 rounded-full border-[16px] border-white/15" />
+                  <span className="relative font-display text-6xl font-black text-white drop-shadow-lg sm:text-7xl" aria-hidden="true">{game.glyph}</span>
+                  <span className="absolute bottom-3 left-3 rounded bg-black/40 px-2 py-1 text-[9px] font-black tracking-widest text-white">{game.code}</span>
+                </div>
+                <div className="px-2.5 py-2.5"><h3 className="truncate text-xs font-extrabold text-[#e9f0f7]">{game.title}</h3><p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-wide text-[#9eaec0]">{game.category}</p></div>
+              </Link>
+            ))}
+          </div>
+        </section>
+        <section className="mt-8 grid gap-3 md:grid-cols-2">
           <Link href="/challenges" className="group flex min-h-36 flex-col justify-between rounded-2xl bg-[#eceaff] p-6 transition hover:bg-[#e1deff]"><span className="text-[10px] font-black uppercase tracking-[.2em] text-[#645bd1]">COMPETE</span><div className="flex items-end justify-between"><span className="font-display text-2xl font-black text-[#29265c]">Enter the Match Room</span><span className="text-2xl text-[#5146e5]">↗</span></div></Link>
           <Link href="/guilds" className="group flex min-h-36 flex-col justify-between rounded-2xl bg-[#e7f3f5] p-6 transition hover:bg-[#d9edf1]"><span className="text-[10px] font-black uppercase tracking-[.2em] text-[#397e91]">CONNECT</span><div className="flex items-end justify-between"><span className="font-display text-2xl font-black text-[#224955]">Explore Guild Hall</span><span className="text-2xl text-[#397e91]">↗</span></div></Link>
         </section>
