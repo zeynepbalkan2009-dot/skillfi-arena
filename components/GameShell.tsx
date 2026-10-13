@@ -7,9 +7,9 @@ import { PixelFleetMotion } from "@/components/motion/PixelFleetMotion";
 
 const navigation = [
   { href: "/dashboard", label: "Home", sub: "Command Deck", index: "01", glyph: "⌂" },
-  { href: "/games", label: "Games", sub: "Game Lab", index: "02", glyph: "▣" },
-  { href: "/challenges", label: "Play", sub: "Match Room", index: "03", glyph: "⚔" },
-  { href: "/guilds", label: "Community", sub: "Guild Hall", index: "04", glyph: "◈" },
+  { href: "/games", label: "Game Library", sub: "Game Lab", index: "02", glyph: "▣" },
+  { href: "/challenges", label: "Match Room", sub: "Compete", index: "03", glyph: "⚔" },
+  { href: "/guilds", label: "Guild Hall", sub: "Community", index: "04", glyph: "◈" },
   { href: "/profile", label: "Profile", sub: "Player Profile", index: "05", glyph: "◎" },
 ] as const;
 
@@ -21,7 +21,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
     <div className="player-shell min-h-screen text-arena-text">
       <a className="skip-link" href="#main-content">Skip to content</a>
 
-      <aside className="player-sidebar fixed inset-y-0 left-0 z-40 hidden w-[248px] border-r lg:flex lg:flex-col">
+      <aside className="player-sidebar fixed inset-y-0 left-0 z-40 hidden w-[248px] overflow-y-auto border-r lg:flex lg:flex-col">
         <Link href="/" className="player-brand flex items-center gap-3 px-6 py-7" aria-label="SkillFi Arena home">
           <span className="player-brand__mark grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl font-black text-white">S</span>
           <span className="min-w-0">
@@ -65,7 +65,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             { name: "Pattern Lock", slug: "pattern-lock", glyph: "✳" },
             { name: "Logic Grid", slug: "logic-grid", glyph: "▦" },
           ].map((game) => (
-            <Link key={game.slug} href={`/games/${game.slug}`} className={`player-library-link flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${pathname === `/games/${game.slug}` ? "player-library-link--active" : ""}`}>
+            <Link key={game.slug} href={`/games/${game.slug}`} aria-current={pathname === `/games/${game.slug}` ? "page" : undefined} className={`player-library-link flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${pathname === `/games/${game.slug}` ? "player-library-link--active" : ""}`}>
               <span className="w-5 text-center text-sm text-[#82b8d8]" aria-hidden="true">{game.glyph}</span>{game.name}
             </Link>
           ))}
@@ -75,7 +75,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           <div className="player-sidebar__pilot overflow-hidden rounded-2xl border p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[9px] font-bold uppercase tracking-[.16em]">Pilot status</span>
-              <span className="h-2 w-2 rounded-full bg-[#4f46e5]" aria-label="Controlled pilot" />
+              <span className="h-2 w-2 rounded-full bg-[#66c0f4]" aria-label="Controlled pilot" />
             </div>
             <PixelFleetMotion compact label="SkillFi fleet status" />
             <p className="text-[11px] font-bold">Arc-01 · Controlled pilot</p>
